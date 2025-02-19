@@ -20,7 +20,7 @@ SP_historical_data line #348
 
 
 
-Define trendline break accuracy - 
+    Define trendline break accuracy - 
 
 
 
@@ -30,7 +30,7 @@ SP_historical_data line #381
 
 
 
-Implementing technical indicators: 
+    Implementing technical indicators: 
 
 
 
@@ -42,7 +42,7 @@ Definition of technical indicators-
 
 
 
-SP_Historical_data line #26 
+    SP_Historical_data line #26 
 
 
 
@@ -52,7 +52,7 @@ Define technical indicators-
 
 
 
-SP_Historical_data line #89 
+    SP_Historical_data line #89 
 
 
 
