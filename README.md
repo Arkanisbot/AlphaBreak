@@ -30,151 +30,106 @@
 
 
 
-Assess each technical indicator using trendline break acc function (on 1 historical security)- 
+    Assess each technical indicator using trendline break acc function (on 1 historical security)- SP_Historical_data_line #457 
 
 
 
+3. Create model for accuracy testing and refinement 
 
 
-SP_Historical_data_line #457 
 
+    RFC model - SP_Historical_data_line #515 
 
 
-Create model for accuracy testing and refinement 
 
+    Keras model - SP_Historical_data_line #528 
 
 
 
+    Reproduce Step 3 for larger training set (eg S&P historical data for the past 35 years) 
 
-RFC model - 
 
 
+    Test more models, refine model, increase accuracy metrics, fine tune model 
 
 
 
-SP_Historical_data_line #515 
+ 4. Black-Scholes fair value comparision for stock options 
 
 
 
-Keras model - 
+    Black-Scholes function- SP_Historical_data_line #606 
 
 
 
+    Create model for fair price- SP_Historical_data_line #660 
 
 
-SP_Historical_data_line #528 
 
+5. LSTM to predict trend line break 
+    Create model - SP_Historical_data_line #801 
 
 
-Reproduce Step 3 for larger training set (eg S&P historical data for the past 35 years) 
 
+    Train model 
 
 
-Test more models, refine model, increase accuracy metrics, fine tune model 
 
+    increase relu nodes based on computing power available
 
 
- Black-Scholes fair value comparision for stock options 
 
+    increase sample size of historical securities data, 
 
 
 
+    improve accuracy
 
-Black-Scholes function- 
 
 
+    Develop additional models for 5m,10m, 30m, 1hr, 2hr, 1day, 5day, weekly etc charts 
 
 
 
-SP_Historical_data_line #606 
+6. Create database to hold data 
 
 
 
-Create model for fair price- 
+7. Create Airflow service 
 
 
 
+8. Visualizations 
 
 
-SP_Historical_data_line #660 
 
+9. Application & delivery 
 
 
-LSTM to predict trend line break 
 
+10. pricing model & monetization 
 
 
 
+11. Additioanal features 
 
-SP_Historical_data_line #801 
 
 
+    Securities watch list 
 
-Train model 
 
 
+    13F Report and analysis -
 
-increase relu nodes based on computing power available
 
 
+        SEC requires hedge funds to report the companies that they have holdings in on a quarterly basis. All of these reports are stored on the SEC .gov website and can be pulled to do analytics on. 
 
-increase sample size of historical securities data, 
 
 
+    Forex trading application - 
 
-improve accuracy
 
 
-
-Develop additional models for 5m,10m, 30m, 1hr, 2hr, 1day, 5day, weekly etc charts 
-
-
-
-Create database to hold data 
-
-
-
-Create Airflow service 
-
-
-
-Visualizations 
-
-
-
-Application & delivery 
-
-
-
-pricing model & monetization 
-
-
-
-Additioanal features 
-
-
-
-
-
-Securities watch list 
-
-
-
-13F Report and analysis -
-
-
-
-
-
-SEC requires hedge funds to report the companies that they have holdings in on a quarterly basis. All of these reports are stored on the SEC .gov website and can be pulled to do analytics on. 
-
-
-
-Forex trading application - 
-
-
-
-
-
-Create models that calculate what the impact on currency evaluation multiple factors removed
+        Create models that calculate what the impact on currency evaluation multiple factors removed
   
