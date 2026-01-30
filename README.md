@@ -1,6 +1,6 @@
-# Securities Prediction Model
+# AlphaBreak
 
-A comprehensive trading prediction system that identifies high-probability short-term trading opportunities using technical indicators, machine learning, and options pricing analysis.
+A comprehensive AI-powered trading prediction system that identifies high-probability short-term trading opportunities using technical indicators, machine learning, and options pricing analysis.
 
 ## Overview
 
@@ -63,6 +63,37 @@ src/
 - Dynamic risk-free rate from Treasury yields
 - Greeks calculation (Delta, Gamma, Theta, Vega, Rho)
 - Trend-aligned option filtering for swing trading
+
+### Forex Correlation Model
+Analyzes correlations between currency pairs to identify patterns that may inform equity positioning.
+
+**Data Sources:**
+- **FRED (Federal Reserve)** - Historical exchange rates back to 1971 (54 years for major pairs)
+- **Yahoo Finance** - Recent OHLCV data for supplementation
+
+**Currency Pairs Tracked:**
+| Pair | Data Start | History |
+|------|------------|---------|
+| USD/JPY, GBP/USD, USD/CAD, USD/CHF, AUD/USD | 1971 | ~54 years |
+| USD/CNY | 1981 | ~44 years |
+| EUR/USD | 1999 | ~26 years (Euro introduction) |
+| USD/MXN, USD/BRL, USD/INR, USD/KRW, etc. | Various | 20-30 years |
+
+**Correlation Analysis:**
+- Computes correlations between all currency pairs (30d, 90d, 1yr, all-time)
+- Classifies patterns as **Strong**, **Mid**, or **Weak** using relative thresholds
+- Identifies lead/lag relationships (which pair moves first)
+
+**Trend Break Detection:**
+- Applies the same trend-break model used for equities to forex pairs
+- Detects notable movements using RSI, CCI, MACD, Stochastic, and Bollinger Bands
+- Tracks movement outcomes (5d, 10d, 20d returns)
+
+**Files:**
+- `src/forex_data_fetcher.py` - Fetches data from FRED and Yahoo Finance
+- `src/forex_correlation_model.py` - Correlation model and trend break analysis
+- `flask_app/app/routes/forex.py` - REST API endpoints
+- `kubernetes/schema_forex.sql` - Database schema
 
 ## Installation
 
@@ -132,6 +163,10 @@ Securities_prediction_model/
 | `f13_holdings` | Individual holdings per filing with Q/Q changes |
 | `f13_stock_aggregates` | Per-stock aggregate institutional sentiment |
 | `cusip_ticker_map` | CUSIP to ticker symbol mappings |
+| `forex_daily_data` | Historical forex OHLCV from FRED + Yahoo Finance |
+| `forex_pairs` | Currency pair metadata and model status |
+| `forex_correlations` | Pair-to-pair correlation matrix with pattern strength |
+| `forex_trend_breaks` | Notable forex movements with technical indicators |
 
 ## Usage Notes
 
@@ -164,9 +199,64 @@ The system automatically fetches current Treasury yields:
 ## Future Work
 
 - **User Authentication** — Login system with per-user settings, saved watchlists, and personalized dashboards
-- **Forex Correlation Model** — Currency pair correlation analysis to inform equity and options positioning
+- ~~**Forex Correlation Model**~~ ✅ Implemented - Currency pair correlation analysis with 54 years of historical data
 - **Trading Platform Integration** — Direct connectivity to Schwab and/or Robinhood APIs for order execution and portfolio sync
 - **Pullback/Continuation Model** — Predict candlestick count after a trend break, model whether price action represents a pullback (continuation) or full reversal
+
+### Theoretical Portfolio Tracker
+
+A paper trading portfolio to validate the prediction model's effectiveness before committing real capital.
+
+**Concept:**
+- Start with **$100,000 USD** in a simulated money market account
+- Execute trades based on model signals (trend breaks, options analysis, 13F sentiment)
+- Track theoretical P&L over time to measure model accuracy
+
+**Portfolio Document Structure:**
+```
+docs/theoretical_portfolio/
+├── portfolio.json          # Current holdings, cash balance, transaction history
+├── performance.json        # Daily/weekly/monthly returns, Sharpe ratio, max drawdown
+├── trades.csv              # All executed trades with entry/exit prices, rationale
+└── README.md               # Portfolio rules, position sizing, risk management
+```
+
+**Automation Options:**
+
+| Method | Description | Complexity |
+|--------|-------------|------------|
+| **Cron + Python Script** | Daily script checks signals, updates `portfolio.json`, calculates P&L | Low |
+| **Flask API Endpoint** | `/api/portfolio/execute` processes pending signals and updates holdings | Medium |
+| **Airflow DAG** | Scheduled workflow: fetch signals → validate → execute → report | Medium |
+| **GitHub Actions** | Scheduled workflow runs daily, commits portfolio updates to repo | Low |
+| **Database + Triggers** | Store portfolio in PostgreSQL, use triggers/functions for automatic updates | Medium |
+| **Webhook Integration** | Trend break detection triggers webhook → portfolio service executes trade | High |
+
+**Suggested Implementation (Phase 1):**
+
+1. Create `src/portfolio_manager.py` with functions:
+   - `get_portfolio()` — Load current holdings from JSON/DB
+   - `execute_signal(ticker, action, quantity, price)` — Record theoretical trade
+   - `calculate_pnl()` — Compute unrealized/realized P&L
+   - `generate_report()` — Daily performance summary
+
+2. Add scheduled job (cron or Airflow):
+   - Run after market close (4:30 PM ET)
+   - Fetch today's trend break signals
+   - Apply position sizing rules (e.g., max 5% per position)
+   - Execute theoretical trades
+   - Update portfolio JSON
+   - Optionally commit to Git or send email report
+
+3. Dashboard integration:
+   - New "Portfolio" tab showing holdings, P&L, trade history
+   - Charts: equity curve, sector allocation, win/loss ratio
+
+**Position Sizing Rules:**
+- Max 5% of portfolio per individual stock position
+- Max 2% per options contract (due to higher risk)
+- Maintain 20% cash reserve minimum
+- Stop-loss at 7% below entry for stocks, 50% for options
 
 ## License
 

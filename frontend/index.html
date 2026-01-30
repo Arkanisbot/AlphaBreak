@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trading System - AI-Powered Stock Predictions</title>
-    <link rel="stylesheet" href="styles.css?v=2">
+    <title>AlphaBreak - AI-Powered Stock Predictions</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=4">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
@@ -12,123 +15,251 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1/dist/chartjs-chart-financial.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <header class="header">
-            <div class="logo">
-                <h1>📈 Trading System</h1>
-                <p class="tagline">AI-Powered Stock & Options Analysis</p>
+    <!-- App Layout with Fixed Sidebar -->
+    <div class="app-layout">
+        <!-- Left Sidebar (Fixed) -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-toggle">
+                <button class="hamburger-btn" id="hamburgerBtn">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
             </div>
-            <div class="api-status" id="apiStatus">
-                <span class="status-indicator"></span>
-                <span class="status-text">Checking API...</span>
-            </div>
-        </header>
+            <nav class="sidebar-nav" id="sidebarNav">
+                <ul class="sidebar-menu">
+                    <li><a href="#" class="sidebar-link active" data-tab="sentiment">Sentiment Analysis</a></li>
+                    <li><a href="#" class="sidebar-link" data-tab="earnings">Quarterly Earnings</a></li>
+                    <li><a href="#" class="sidebar-link" data-tab="reports">Trend Break Reports</a></li>
+                    <li><a href="#" class="sidebar-link" data-tab="options">Options Analysis</a></li>
+                    <li><a href="#" class="sidebar-link" data-tab="trading">Trade Execution</a></li>
+                    <li><a href="#" class="sidebar-link" data-tab="longterm">Long Term Trading Watchlist</a></li>
+                    <li><a href="#" class="sidebar-link" data-tab="watchlist">Intra-Day Trading Watchlist</a></li>
+                    <li><a href="#" class="sidebar-link" data-tab="trend">Trend Prediction</a></li>
+                    <li><a href="#" class="sidebar-link" data-tab="indicators">Indicator Guide</a></li>
+                    <li><a href="#" class="sidebar-link" data-tab="portfolio">Portfolio Tracker</a></li>
+                    <li><a href="#" class="sidebar-link" data-tab="forex">Forex Correlations</a></li>
+                    <li><a href="#" class="sidebar-link" data-tab="stats">Performance Stats</a></li>
+                </ul>
+            </nav>
+        </aside>
 
-        <!-- Dashboard Widgets -->
-        <section class="dashboard-section" id="dashboardSection">
-            <h2 class="dashboard-title">Market Dashboard</h2>
-            <p class="dashboard-subtitle">Real-time market overview &mdash; auto-refreshes every 5 minutes</p>
-
-            <div class="dashboard-grid">
-                <!-- Widget 1: Market Sentiment -->
-                <div class="widget-card" id="widgetMarketSentiment">
-                    <div class="widget-header">
-                        <h3 class="widget-title">Market Sentiment</h3>
-                        <span class="widget-badge" id="marketSentimentBadge">Loading...</span>
+        <!-- Main App Container -->
+        <div class="app-container">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <div class="logo">
+                        <h1 class="logo-text"><span class="logo-alpha">Alpha</span><span class="logo-break">Break</span></h1>
+                        <p class="tagline">AI-Powered Stock & Options Analysis</p>
                     </div>
-                    <div class="widget-body">
+                </div>
+                <div class="header-right">
+                    <span class="current-page-title" id="currentPageTitle">Sentiment Analysis</span>
+                    <div class="api-status" id="apiStatus">
+                        <span class="status-indicator"></span>
+                        <span class="status-text">Checking API...</span>
+                    </div>
+                </div>
+            </header>
+
+        <!-- Persistent Market Sentiment Widget -->
+        <section class="persistent-sentiment" id="persistentSentiment">
+            <div class="widget-card widget-card-wide widget-market-hero" id="widgetMarketSentiment">
+                <div class="widget-header">
+                    <h3 class="widget-title">Market Sentiment</h3>
+                    <div class="timeframe-selector" id="timeframeSelector">
+                        <label class="timeframe-option">
+                            <input type="radio" name="chartTimeframe" value="daily" checked>
+                            <span>Daily</span>
+                        </label>
+                        <label class="timeframe-option">
+                            <input type="radio" name="chartTimeframe" value="weekly">
+                            <span>Weekly</span>
+                        </label>
+                        <label class="timeframe-option">
+                            <input type="radio" name="chartTimeframe" value="hourly">
+                            <span>Hourly</span>
+                        </label>
+                        <label class="timeframe-option">
+                            <input type="radio" name="chartTimeframe" value="10min">
+                            <span>10 Min</span>
+                        </label>
+                    </div>
+                    <span class="widget-badge" id="marketSentimentBadge">Loading...</span>
+                </div>
+                <div class="widget-body market-sentiment-body">
+                    <div class="market-sentiment-hero">
                         <div class="sentiment-display" id="marketSentimentDisplay">
                             <div class="sentiment-label" id="marketSentimentLabel">--</div>
                             <div class="sentiment-confidence" id="marketSentimentConfidence"></div>
                         </div>
-                        <div class="widget-chart-container">
-                            <canvas id="marketSentimentChart"></canvas>
-                        </div>
                         <div class="widget-indicators" id="marketSentimentIndicators"></div>
                         <div class="widget-context" id="marketSentimentContext"></div>
                     </div>
-                    <div class="widget-footer">
-                        <span class="widget-updated" id="marketSentimentUpdated"></span>
-                    </div>
-                </div>
-
-                <!-- Widget 2: Sector Sentiment -->
-                <div class="widget-card" id="widgetSectorSentiment">
-                    <div class="widget-header">
-                        <h3 class="widget-title">Sector Sentiment</h3>
-                        <select id="sectorSelector" class="sector-select">
-                            <option value="all">All Sectors</option>
-                        </select>
-                    </div>
-                    <div class="widget-body">
-                        <div class="sector-grid" id="sectorGrid"></div>
-                        <div class="widget-chart-container" id="sectorChartContainer" style="display:none;">
-                            <canvas id="sectorChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="widget-footer">
-                        <span class="widget-updated" id="sectorSentimentUpdated"></span>
-                    </div>
-                </div>
-
-                <!-- Widget 3: VIX & Index Sentiment -->
-                <div class="widget-card" id="widgetIndexSentiment">
-                    <div class="widget-header">
-                        <h3 class="widget-title">VIX &amp; Index Sentiment</h3>
-                    </div>
-                    <div class="widget-body">
-                        <div class="vix-display" id="vixDisplay">
-                            <div class="vix-value" id="vixValue">--</div>
-                            <div class="vix-fear-label" id="vixFearLabel">Loading...</div>
-                            <div class="vix-description" id="vixDescription"></div>
-                        </div>
-                        <div class="index-sentiment-grid" id="indexSentimentGrid"></div>
-                        <div class="inverse-etf-section" id="inverseEtfSection">
-                            <h4>Inverse ETF Signal</h4>
-                            <div class="inverse-etf-sentiment" id="inverseEtfSentiment"></div>
-                        </div>
-                    </div>
-                    <div class="widget-footer">
-                        <span class="widget-updated" id="indexSentimentUpdated"></span>
-                    </div>
-                </div>
-
-                <!-- Widget 4: Commodities & Crypto -->
-                <div class="widget-card widget-card-wide" id="widgetCommoditiesCrypto">
-                    <div class="widget-header">
-                        <h3 class="widget-title">Commodities &amp; Crypto</h3>
-                        <div class="asset-tabs" id="assetTabs">
-                            <button class="asset-tab active" data-asset="GC=F">Gold</button>
-                            <button class="asset-tab" data-asset="SI=F">Silver</button>
-                            <button class="asset-tab" data-asset="ETH-USD">ETH</button>
-                            <button class="asset-tab" data-asset="BTC-USD">BTC</button>
-                        </div>
-                    </div>
-                    <div class="widget-body">
-                        <div class="asset-summary-grid" id="assetSummaryGrid"></div>
+                    <div class="market-sentiment-chart">
                         <div class="widget-chart-container widget-chart-large">
-                            <canvas id="commodityCryptoChart"></canvas>
+                            <canvas id="marketSentimentChart"></canvas>
                         </div>
                     </div>
-                    <div class="widget-footer">
-                        <span class="widget-updated" id="commodityCryptoUpdated"></span>
-                    </div>
+                </div>
+                <div class="widget-footer">
+                    <span class="widget-updated" id="marketSentimentUpdated"></span>
                 </div>
             </div>
         </section>
 
-        <!-- Main Content -->
+        <!-- Main Content Area -->
         <main class="main-content">
-            <!-- Tabs -->
-            <div class="tabs">
-                <button class="tab-button" data-tab="trend">Trend Break Prediction</button>
-                <button class="tab-button" data-tab="options">Options Analysis</button>
-                <button class="tab-button active" data-tab="reports">Reports</button>
-                <button class="tab-button" data-tab="watchlist">Watchlist</button>
-                <button class="tab-button" data-tab="earnings">Quarterly Earnings</button>
-                <button class="tab-button" data-tab="longterm">Long Term Trading</button>
-                <button class="tab-button" data-tab="stats">Performance Stats</button>
+            <!-- Sentiment Analysis Tab (Default) -->
+            <div class="tab-content active" id="sentimentTab">
+                <div class="dashboard-grid">
+                    <!-- Sector Sentiment -->
+                    <div class="widget-card" id="widgetSectorSentiment">
+                        <div class="widget-header">
+                            <h3 class="widget-title">Sector Sentiment</h3>
+                            <select id="sectorSelector" class="sector-select">
+                                <option value="all">All Sectors</option>
+                            </select>
+                        </div>
+                        <div class="widget-body">
+                            <div class="sector-grid" id="sectorGrid"></div>
+                            <div class="sector-chart-wrapper" id="sectorChartContainer" style="display:none;">
+                                <canvas id="sectorChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="widget-footer">
+                            <span class="widget-updated" id="sectorSentimentUpdated"></span>
+                        </div>
+                    </div>
+
+                    <!-- VIX & Index Sentiment -->
+                    <div class="widget-card" id="widgetIndexSentiment">
+                        <div class="widget-header">
+                            <h3 class="widget-title">VIX &amp; Index Sentiment</h3>
+                        </div>
+                        <div class="widget-body">
+                            <div class="vix-display-new" id="vixDisplay">
+                                <div class="vix-main-row">
+                                    <div class="vix-info">
+                                        <div class="vix-market-type" id="vixFearLabel">Loading...</div>
+                                        <div class="vix-number-row">
+                                            <span class="vix-label">VIX:</span>
+                                            <span class="vix-value-small" id="vixValue">--</span>
+                                        </div>
+                                    </div>
+                                    <div class="vix-chart-container">
+                                        <canvas id="vixSparkline" width="100" height="40"></canvas>
+                                    </div>
+                                </div>
+                                <div class="vix-description" id="vixDescription"></div>
+                            </div>
+                            <div class="index-sentiment-grid" id="indexSentimentGrid"></div>
+                            <div class="inverse-etf-section" id="inverseEtfSection">
+                                <h4>Inverse ETF Signal</h4>
+                                <div class="inverse-etf-sentiment" id="inverseEtfSentiment"></div>
+                                <p class="widget-blurb">Inverse ETFs (SQQQ, SPXU, SDOW) move opposite to their benchmark indices. When these show bullish signals while indices show bearish, it confirms downward momentum. Use as a hedge indicator or to validate trend reversals.</p>
+                            </div>
+                        </div>
+                        <div class="widget-footer">
+                            <span class="widget-updated" id="indexSentimentUpdated"></span>
+                        </div>
+                    </div>
+
+                    <!-- Commodities & Crypto -->
+                    <div class="widget-card widget-card-wide" id="widgetCommoditiesCrypto">
+                        <div class="widget-header">
+                            <h3 class="widget-title">Commodities &amp; Crypto</h3>
+                            <p class="widget-header-blurb">Commodities typically move inverse to USD strength. When DXY rises, gold/silver often fall as they're priced in dollars. Crypto correlates loosely with risk-on sentiment.</p>
+                            <div class="asset-tabs" id="assetTabs">
+                                <button class="asset-tab active" data-asset="GC=F">Gold</button>
+                                <button class="asset-tab" data-asset="SI=F">Silver</button>
+                                <button class="asset-tab" data-asset="ETH-USD">ETH</button>
+                                <button class="asset-tab" data-asset="BTC-USD">BTC</button>
+                            </div>
+                        </div>
+                        <div class="widget-body">
+                            <div class="asset-summary-grid" id="assetSummaryGrid"></div>
+                            <div class="widget-chart-container widget-chart-large">
+                                <canvas id="commodityCryptoChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="widget-footer">
+                            <span class="widget-updated" id="commodityCryptoUpdated"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div class="tab-content" id="reportsTab">
+                <div class="card">
+                    <!-- Reports Header Row -->
+                    <div class="report-header-row">
+                        <div class="report-header-left">
+                            <h2>Trend Break Reports</h2>
+                            <p class="description">80%+ probability trend breaks with indicators and options data</p>
+                        </div>
+                        <div class="report-header-right">
+                            <!-- Compact Summary Stats -->
+                            <div class="report-stats-compact" id="reportSummaryBar"></div>
+                            <!-- Compact Filters -->
+                            <div class="report-filters-compact">
+                                <select id="reportDirectionFilter" class="report-filter-compact">
+                                    <option value="">Direction</option>
+                                    <option value="bullish">Bullish</option>
+                                    <option value="bearish">Bearish</option>
+                                </select>
+                                <select id="reportSectorFilter" class="report-filter-compact">
+                                    <option value="">Sector</option>
+                                    <option value="Technology">Tech</option>
+                                    <option value="Health Care">Health</option>
+                                    <option value="Financials">Finance</option>
+                                    <option value="Consumer Discretionary">Cons Disc</option>
+                                    <option value="Communication Services">Comm</option>
+                                    <option value="Industrials">Industrial</option>
+                                    <option value="Consumer Staples">Staples</option>
+                                    <option value="Energy">Energy</option>
+                                    <option value="Utilities">Utilities</option>
+                                    <option value="Materials">Materials</option>
+                                    <option value="Real Estate">Real Est</option>
+                                </select>
+                                <label class="report-checkbox-compact">
+                                    <input type="checkbox" id="reportAlertsOnly">
+                                    <span>Alerts</span>
+                                </label>
+                            </div>
+                            <!-- Frequency Tabs -->
+                            <div class="report-frequency-compact">
+                                <button class="freq-tab-compact active" data-frequency="daily">Daily</button>
+                                <button class="freq-tab-compact" data-frequency="hourly">Hourly</button>
+                                <button class="freq-tab-compact" data-frequency="10min">10m</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Report Table -->
+                    <div class="table-container">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Ticker</th>
+                                    <th>Probability</th>
+                                    <th>Direction</th>
+                                    <th>Price</th>
+                                    <th>Change</th>
+                                    <th>Sector</th>
+                                    <th>Indicators</th>
+                                    <th>Options</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportTableBody">
+                                <tr><td colspan="9" class="report-loading">Select a frequency to load report.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <!-- Trend Break Tab -->
@@ -332,82 +463,6 @@
                 </div>
             </div>
 
-            <!-- Reports Tab -->
-            <div class="tab-content active" id="reportsTab">
-                <div class="card">
-                    <h2>Trend Break Reports</h2>
-                    <p class="description">Automated scans of securities with 80%+ trend break probability. Includes indicators, sector sentiment, and options data.</p>
-
-                    <!-- Frequency Sub-tabs -->
-                    <div class="report-frequency-tabs">
-                        <button class="freq-tab active" data-frequency="daily">Daily (9AM EST)</button>
-                        <button class="freq-tab" data-frequency="hourly">Hourly</button>
-                        <button class="freq-tab" data-frequency="10min">10-Minute</button>
-                    </div>
-
-                    <!-- Filters -->
-                    <div class="report-controls">
-                        <div class="report-filter-group">
-                            <label for="reportDirectionFilter">Direction</label>
-                            <select id="reportDirectionFilter" class="report-filter-select">
-                                <option value="">All</option>
-                                <option value="bullish">Bullish</option>
-                                <option value="bearish">Bearish</option>
-                            </select>
-                        </div>
-                        <div class="report-filter-group">
-                            <label for="reportSectorFilter">Sector</label>
-                            <select id="reportSectorFilter" class="report-filter-select">
-                                <option value="">All Sectors</option>
-                                <option value="Technology">Technology</option>
-                                <option value="Health Care">Health Care</option>
-                                <option value="Financials">Financials</option>
-                                <option value="Consumer Discretionary">Consumer Disc.</option>
-                                <option value="Communication Services">Communication</option>
-                                <option value="Industrials">Industrials</option>
-                                <option value="Consumer Staples">Consumer Staples</option>
-                                <option value="Energy">Energy</option>
-                                <option value="Utilities">Utilities</option>
-                                <option value="Materials">Materials</option>
-                                <option value="Real Estate">Real Estate</option>
-                            </select>
-                        </div>
-                        <div class="report-filter-group report-toggle-group">
-                            <label for="reportAlertsOnly">
-                                <input type="checkbox" id="reportAlertsOnly">
-                                Recent Alerts Only
-                            </label>
-                        </div>
-                        <button id="reportApplyFilters" class="btn btn-primary btn-sm">Apply</button>
-                    </div>
-
-                    <!-- Summary Bar -->
-                    <div class="report-summary" id="reportSummaryBar"></div>
-
-                    <!-- Report Table -->
-                    <div class="table-container">
-                        <table class="report-table">
-                            <thead>
-                                <tr>
-                                    <th>Ticker</th>
-                                    <th>Probability</th>
-                                    <th>Direction</th>
-                                    <th>Price</th>
-                                    <th>Change</th>
-                                    <th>Sector</th>
-                                    <th>Indicators</th>
-                                    <th>Options</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody id="reportTableBody">
-                                <tr><td colspan="9" class="report-loading">Select a frequency to load report.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
             <!-- Watchlist Tab -->
             <div class="tab-content" id="watchlistTab">
                 <div class="card">
@@ -443,21 +498,6 @@
                     <h2>Quarterly Earnings Calendar</h2>
                     <p class="description">Upcoming earnings for top 100 stocks by volume. Add custom tickers to track alongside.</p>
 
-                    <!-- Add Custom Ticker Form -->
-                    <form id="earningsAddForm" class="earnings-add-form">
-                        <input
-                            type="text"
-                            id="earningsTickerInput"
-                            placeholder="Add ticker (e.g., AAPL)"
-                            maxlength="5"
-                            pattern="[A-Za-z]{1,5}"
-                        >
-                        <button type="submit" class="btn btn-primary">Add to Calendar</button>
-                    </form>
-
-                    <!-- Custom Tickers Display -->
-                    <div class="earnings-custom-tickers" id="earningsCustomTickers"></div>
-
                     <!-- Futures Context Bar -->
                     <div class="earnings-futures-bar" id="earningsFuturesBar">
                         <span class="futures-label">E-mini S&amp;P 500 Futures (ES=F):</span>
@@ -468,25 +508,6 @@
                     <!-- Loading State -->
                     <div class="earnings-loading" id="earningsLoading">
                         <p>Loading earnings calendar...</p>
-                    </div>
-
-                    <!-- Calendar Table -->
-                    <div class="table-container" id="earningsTableContainer" style="display: none;">
-                        <table class="earnings-calendar-table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Ticker</th>
-                                    <th>EPS Estimate</th>
-                                    <th>EPS Actual</th>
-                                    <th>Surprise %</th>
-                                    <th>Status</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody id="earningsTableBody">
-                            </tbody>
-                        </table>
                     </div>
 
                     <!-- Detail Panel (shown when row is expanded) -->
@@ -513,6 +534,483 @@
                         <div class="earnings-news-section">
                             <h4>Recent News</h4>
                             <div class="earnings-news-grid" id="earningsNewsGrid"></div>
+                        </div>
+                    </div>
+
+                    <!-- Calendar Table -->
+                    <div class="table-container" id="earningsTableContainer" style="display: none;">
+                        <table class="earnings-calendar-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Ticker</th>
+                                    <th>EPS Estimate</th>
+                                    <th>EPS Actual</th>
+                                    <th>Surprise %</th>
+                                    <th>Status</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="earningsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Add Custom Ticker Form (below calendar) -->
+                    <form id="earningsAddForm" class="earnings-add-form">
+                        <input
+                            type="text"
+                            id="earningsTickerInput"
+                            placeholder="Add ticker (e.g., AAPL)"
+                            maxlength="5"
+                            pattern="[A-Za-z]{1,5}"
+                        >
+                        <button type="submit" class="btn btn-primary">Add to Calendar</button>
+                    </form>
+
+                    <!-- Custom Tickers Display -->
+                    <div class="earnings-custom-tickers" id="earningsCustomTickers"></div>
+                </div>
+            </div>
+
+            <!-- Trade Execution Tab (Proof of Concept) -->
+            <div class="tab-content" id="tradingTab">
+                <div class="card">
+                    <h2>Trade Execution</h2>
+                    <p class="description">Brokerage integration proof of concept. Connect to supported brokerages to execute trades directly from this platform.</p>
+
+                    <!-- Connection Status Banner -->
+                    <div class="trading-status-banner" id="tradingStatusBanner">
+                        <div class="trading-status-icon connected"></div>
+                        <div class="trading-status-info">
+                            <span class="trading-status-label">Connected to:</span>
+                            <span class="trading-status-broker">Charles Schwab (Paper Trading)</span>
+                        </div>
+                        <div class="trading-status-actions">
+                            <button class="btn btn-sm" id="disconnectBrokerBtn">Disconnect</button>
+                        </div>
+                    </div>
+
+                    <!-- POC Notice -->
+                    <div class="trading-poc-notice">
+                        <strong>Proof of Concept:</strong> This interface demonstrates how brokerage integration would work.
+                        All data shown is simulated. In production, this would connect via OAuth 2.0 to supported brokerages
+                        (Schwab, Interactive Brokers, Alpaca, E*TRADE, Tradier).
+                    </div>
+
+                    <!-- Account Overview -->
+                    <div class="trading-account-section">
+                        <h3>Account Overview</h3>
+                        <div class="trading-account-grid">
+                            <div class="trading-account-card">
+                                <div class="trading-account-label">Account Value</div>
+                                <div class="trading-account-value" id="accountValue">$125,432.87</div>
+                            </div>
+                            <div class="trading-account-card">
+                                <div class="trading-account-label">Cash Available</div>
+                                <div class="trading-account-value" id="cashAvailable">$34,521.50</div>
+                            </div>
+                            <div class="trading-account-card">
+                                <div class="trading-account-label">Buying Power</div>
+                                <div class="trading-account-value" id="buyingPower">$69,043.00</div>
+                            </div>
+                            <div class="trading-account-card">
+                                <div class="trading-account-label">Day's P&L</div>
+                                <div class="trading-account-value positive" id="dayPnL">+$1,234.56</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Trade Entry Form -->
+                    <div class="trading-entry-section">
+                        <h3>Place Order</h3>
+                        <div class="trading-entry-grid">
+                            <!-- Left: Order Form -->
+                            <div class="trading-order-form">
+                                <div class="trading-form-row">
+                                    <div class="trading-form-group">
+                                        <label>Symbol</label>
+                                        <input type="text" id="tradeSymbol" placeholder="e.g., AAPL" class="trading-input">
+                                    </div>
+                                    <div class="trading-form-group">
+                                        <label>Action</label>
+                                        <select id="tradeAction" class="trading-select">
+                                            <option value="buy">Buy</option>
+                                            <option value="sell">Sell</option>
+                                            <option value="buy_to_open">Buy to Open (Options)</option>
+                                            <option value="sell_to_close">Sell to Close (Options)</option>
+                                            <option value="sell_to_open">Sell to Open (Options)</option>
+                                            <option value="buy_to_close">Buy to Close (Options)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="trading-form-row">
+                                    <div class="trading-form-group">
+                                        <label>Quantity</label>
+                                        <input type="number" id="tradeQuantity" placeholder="100" min="1" class="trading-input">
+                                    </div>
+                                    <div class="trading-form-group">
+                                        <label>Order Type</label>
+                                        <select id="tradeOrderType" class="trading-select">
+                                            <option value="market">Market</option>
+                                            <option value="limit">Limit</option>
+                                            <option value="stop">Stop</option>
+                                            <option value="stop_limit">Stop Limit</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="trading-form-row" id="limitPriceRow">
+                                    <div class="trading-form-group">
+                                        <label>Limit Price</label>
+                                        <input type="number" id="tradeLimitPrice" placeholder="0.00" step="0.01" class="trading-input">
+                                    </div>
+                                    <div class="trading-form-group" id="stopPriceGroup" style="display: none;">
+                                        <label>Stop Price</label>
+                                        <input type="number" id="tradeStopPrice" placeholder="0.00" step="0.01" class="trading-input">
+                                    </div>
+                                </div>
+                                <div class="trading-form-row">
+                                    <div class="trading-form-group">
+                                        <label>Time in Force</label>
+                                        <select id="tradeTimeInForce" class="trading-select">
+                                            <option value="day">Day</option>
+                                            <option value="gtc">Good Till Canceled</option>
+                                            <option value="ioc">Immediate or Cancel</option>
+                                            <option value="fok">Fill or Kill</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <!-- Options Fields (hidden by default) -->
+                                <div class="trading-options-fields" id="tradingOptionsFields" style="display: none;">
+                                    <div class="trading-form-row">
+                                        <div class="trading-form-group">
+                                            <label>Expiration</label>
+                                            <input type="date" id="tradeExpiration" class="trading-input">
+                                        </div>
+                                        <div class="trading-form-group">
+                                            <label>Strike Price</label>
+                                            <input type="number" id="tradeStrike" placeholder="150.00" step="0.50" class="trading-input">
+                                        </div>
+                                    </div>
+                                    <div class="trading-form-row">
+                                        <div class="trading-form-group">
+                                            <label>Option Type</label>
+                                            <select id="tradeOptionType" class="trading-select">
+                                                <option value="call">Call</option>
+                                                <option value="put">Put</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="trading-form-actions">
+                                    <button class="btn btn-primary" id="previewOrderBtn">Preview Order</button>
+                                    <button class="btn" id="clearOrderBtn">Clear</button>
+                                </div>
+                            </div>
+
+                            <!-- Right: Quote & Order Preview -->
+                            <div class="trading-quote-panel">
+                                <div class="trading-quote-box" id="tradingQuoteBox">
+                                    <p class="trading-quote-placeholder">Enter a symbol to see quote</p>
+                                </div>
+                                <div class="trading-order-preview" id="tradingOrderPreview" style="display: none;">
+                                    <h4>Order Preview</h4>
+                                    <div class="trading-preview-details" id="tradingPreviewDetails"></div>
+                                    <div class="trading-preview-actions">
+                                        <button class="btn btn-primary" id="submitOrderBtn">Submit Order</button>
+                                        <button class="btn" id="cancelPreviewBtn">Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Current Positions -->
+                    <div class="trading-positions-section">
+                        <h3>Current Positions</h3>
+                        <div class="table-container">
+                            <table class="trading-positions-table">
+                                <thead>
+                                    <tr>
+                                        <th>Symbol</th>
+                                        <th>Qty</th>
+                                        <th>Avg Cost</th>
+                                        <th>Current</th>
+                                        <th>Market Value</th>
+                                        <th>P&L</th>
+                                        <th>P&L %</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tradingPositionsBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Recent Orders -->
+                    <div class="trading-orders-section">
+                        <h3>Recent Orders</h3>
+                        <div class="table-container">
+                            <table class="trading-orders-table">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Symbol</th>
+                                        <th>Action</th>
+                                        <th>Qty</th>
+                                        <th>Type</th>
+                                        <th>Price</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tradingOrdersBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Supported Brokerages Info -->
+                    <div class="trading-brokers-section">
+                        <h3>Supported Brokerages</h3>
+                        <p class="description">The following brokerages offer APIs that enable programmatic trading:</p>
+                        <div class="trading-brokers-grid">
+                            <div class="trading-broker-card">
+                                <div class="trading-broker-name">Charles Schwab</div>
+                                <div class="trading-broker-features">OAuth 2.0, REST API, Stocks, Options, ETFs</div>
+                                <div class="trading-broker-status available">API Available</div>
+                            </div>
+                            <div class="trading-broker-card">
+                                <div class="trading-broker-name">Interactive Brokers</div>
+                                <div class="trading-broker-features">TWS API, Client Portal API, Full Market Access</div>
+                                <div class="trading-broker-status available">API Available</div>
+                            </div>
+                            <div class="trading-broker-card">
+                                <div class="trading-broker-name">Alpaca</div>
+                                <div class="trading-broker-features">REST API, WebSocket, Commission-Free, Paper Trading</div>
+                                <div class="trading-broker-status available">API Available</div>
+                            </div>
+                            <div class="trading-broker-card">
+                                <div class="trading-broker-name">E*TRADE</div>
+                                <div class="trading-broker-features">OAuth 1.0a, REST API, Stocks, Options</div>
+                                <div class="trading-broker-status available">API Available</div>
+                            </div>
+                            <div class="trading-broker-card">
+                                <div class="trading-broker-name">Tradier</div>
+                                <div class="trading-broker-features">REST API, OAuth 2.0, Developer-Friendly</div>
+                                <div class="trading-broker-status available">API Available</div>
+                            </div>
+                            <div class="trading-broker-card">
+                                <div class="trading-broker-name">Robinhood</div>
+                                <div class="trading-broker-features">Unofficial API only</div>
+                                <div class="trading-broker-status limited">No Official API</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Portfolio Tracker Tab -->
+            <div class="tab-content" id="portfolioTab">
+                <div class="card">
+                    <h2>Theoretical Portfolio Tracker</h2>
+                    <p class="description">Paper trading portfolio to validate prediction model effectiveness. Starting balance: $100,000 USD.</p>
+
+                    <!-- Portfolio Overview Cards -->
+                    <div class="portfolio-overview">
+                        <div class="portfolio-overview-grid">
+                            <div class="portfolio-card portfolio-card-primary">
+                                <div class="portfolio-card-label">Total Portfolio Value</div>
+                                <div class="portfolio-card-value" id="portfolioTotalValue">$100,000.00</div>
+                                <div class="portfolio-card-change" id="portfolioTotalChange">+$0.00 (0.00%)</div>
+                            </div>
+                            <div class="portfolio-card">
+                                <div class="portfolio-card-label">Cash Balance</div>
+                                <div class="portfolio-card-value" id="portfolioCashBalance">$100,000.00</div>
+                                <div class="portfolio-card-sub" id="portfolioCashPct">100% of portfolio</div>
+                            </div>
+                            <div class="portfolio-card">
+                                <div class="portfolio-card-label">Long-Term Holdings</div>
+                                <div class="portfolio-card-value" id="portfolioLongTermValue">$0.00</div>
+                                <div class="portfolio-card-sub" id="portfolioLongTermPct">Target: 75%</div>
+                            </div>
+                            <div class="portfolio-card">
+                                <div class="portfolio-card-label">Swing Positions</div>
+                                <div class="portfolio-card-value" id="portfolioSwingValue">$0.00</div>
+                                <div class="portfolio-card-sub" id="portfolioSwingPct">Target: 25%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Performance Chart -->
+                    <div class="portfolio-chart-section">
+                        <div class="portfolio-section-header">
+                            <h3>Performance History</h3>
+                            <div class="portfolio-chart-controls">
+                                <select id="portfolioChartRange" class="portfolio-select">
+                                    <option value="7">7 Days</option>
+                                    <option value="30" selected>30 Days</option>
+                                    <option value="90">90 Days</option>
+                                    <option value="365">1 Year</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="portfolio-chart-container">
+                            <canvas id="portfolioPerformanceChart"></canvas>
+                        </div>
+                        <div class="portfolio-stats-row">
+                            <div class="portfolio-stat">
+                                <span class="portfolio-stat-label">Win Rate</span>
+                                <span class="portfolio-stat-value" id="portfolioWinRate">--</span>
+                            </div>
+                            <div class="portfolio-stat">
+                                <span class="portfolio-stat-label">Total Trades</span>
+                                <span class="portfolio-stat-value" id="portfolioTotalTrades">0</span>
+                            </div>
+                            <div class="portfolio-stat">
+                                <span class="portfolio-stat-label">Daily P&L</span>
+                                <span class="portfolio-stat-value" id="portfolioDailyPnL">$0.00</span>
+                            </div>
+                            <div class="portfolio-stat">
+                                <span class="portfolio-stat-label">Total P&L</span>
+                                <span class="portfolio-stat-value" id="portfolioTotalPnL">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Allocation Breakdown -->
+                    <div class="portfolio-allocation-section">
+                        <div class="portfolio-allocation-grid">
+                            <div class="portfolio-allocation-chart">
+                                <h4>Allocation Breakdown</h4>
+                                <div class="portfolio-allocation-canvas-container">
+                                    <canvas id="portfolioAllocationChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="portfolio-allocation-rules">
+                                <h4>Position Sizing Rules</h4>
+                                <ul class="portfolio-rules-list">
+                                    <li><span class="rule-label">Max per stock:</span> 5% of portfolio</li>
+                                    <li><span class="rule-label">Max per option:</span> 2% of portfolio</li>
+                                    <li><span class="rule-label">Min cash reserve:</span> 20%</li>
+                                    <li><span class="rule-label">Stock stop-loss:</span> 7% below entry</li>
+                                    <li><span class="rule-label">Option stop-loss:</span> 50% of premium</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Holdings Tables -->
+                    <div class="portfolio-holdings-section">
+                        <h3>Current Holdings</h3>
+
+                        <!-- Long-Term Holdings -->
+                        <div class="portfolio-holdings-group">
+                            <h4>Long-Term Positions (75% Target)</h4>
+                            <div class="table-container">
+                                <table class="portfolio-holdings-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Symbol</th>
+                                            <th>Qty</th>
+                                            <th>Avg Cost</th>
+                                            <th>Current</th>
+                                            <th>Market Value</th>
+                                            <th>P&L</th>
+                                            <th>P&L %</th>
+                                            <th>Signal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="portfolioLongTermBody">
+                                        <tr class="portfolio-empty-row">
+                                            <td colspan="8">No long-term positions yet</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Swing Positions -->
+                        <div class="portfolio-holdings-group">
+                            <h4>Swing Positions (25% Target)</h4>
+                            <div class="table-container">
+                                <table class="portfolio-holdings-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Symbol</th>
+                                            <th>Qty</th>
+                                            <th>Avg Cost</th>
+                                            <th>Current</th>
+                                            <th>Market Value</th>
+                                            <th>P&L</th>
+                                            <th>P&L %</th>
+                                            <th>Signal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="portfolioSwingBody">
+                                        <tr class="portfolio-empty-row">
+                                            <td colspan="8">No swing positions yet</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Transactions -->
+                    <div class="portfolio-transactions-section">
+                        <h3>Recent Transactions</h3>
+                        <div class="table-container">
+                            <table class="portfolio-transactions-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Symbol</th>
+                                        <th>Action</th>
+                                        <th>Type</th>
+                                        <th>Qty</th>
+                                        <th>Price</th>
+                                        <th>Total</th>
+                                        <th>P&L</th>
+                                        <th>Signal</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="portfolioTransactionsBody">
+                                    <tr class="portfolio-empty-row">
+                                        <td colspan="9">No transactions yet</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Pending Signals -->
+                    <div class="portfolio-signals-section">
+                        <h3>Pending Signals</h3>
+                        <p class="description">Signals queued for automatic execution by the Airflow DAG at 9 AM EST.</p>
+                        <div class="table-container">
+                            <table class="portfolio-signals-table">
+                                <thead>
+                                    <tr>
+                                        <th>Ticker</th>
+                                        <th>Signal Type</th>
+                                        <th>Action</th>
+                                        <th>Holding Type</th>
+                                        <th>Strength</th>
+                                        <th>Price</th>
+                                        <th>Expires</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="portfolioSignalsBody">
+                                    <tr class="portfolio-empty-row">
+                                        <td colspan="8">No pending signals</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -619,6 +1117,125 @@
                 </div>
             </div>
 
+            <!-- Indicator Guide Tab -->
+            <div class="tab-content" id="indicatorsTab">
+                <div class="card">
+                    <h2>Indicator Guide</h2>
+                    <p class="description">Understanding technical indicators and what their signals mean for the market.</p>
+
+                    <!-- Indicator Cards Container -->
+                    <div class="indicator-guide-container" id="indicatorGuideContainer">
+                        <p class="indicator-loading">Loading indicator data...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Forex Correlations Tab -->
+            <div class="tab-content" id="forexTab">
+                <div class="card">
+                    <h2>Forex Correlation Analysis</h2>
+                    <p class="description">Currency pair correlations and trend break analysis. Identifies patterns between forex pairs to inform equity positioning.</p>
+
+                    <!-- Summary Stats -->
+                    <div class="forex-summary-section">
+                        <div class="forex-summary-stats" id="forexSummaryStats">
+                            <p class="loading-text">Loading summary...</p>
+                        </div>
+                        <div class="forex-pattern-counts" id="forexPatternCounts"></div>
+                    </div>
+
+                    <!-- Pairs Table -->
+                    <div class="forex-section">
+                        <h3>Currency Pairs</h3>
+                        <p class="section-subtitle">Click a pair to view its price chart</p>
+                        <div class="forex-table-wrapper">
+                            <table class="forex-table">
+                                <thead>
+                                    <tr>
+                                        <th>Pair</th>
+                                        <th>Currencies</th>
+                                        <th>Data Start</th>
+                                        <th>Records</th>
+                                        <th>Years</th>
+                                        <th>Model</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="forexPairsBody">
+                                    <tr><td colspan="6" class="loading-text">Loading pairs...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Chart Section (hidden until pair selected) -->
+                    <div class="forex-chart-container" id="forexChartContainer" style="display:none;">
+                        <h3 id="forexChartTitle">Select a pair to view chart</h3>
+                        <div class="forex-chart-wrapper">
+                            <canvas id="forexPairChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Correlations Table -->
+                    <div class="forex-section">
+                        <h3>Pair Correlations</h3>
+                        <div class="forex-controls">
+                            <select id="forexStrengthFilter" class="forex-filter">
+                                <option value="">All Strengths</option>
+                                <option value="strong">Strong Only</option>
+                                <option value="mid">Mid Only</option>
+                                <option value="weak">Weak Only</option>
+                            </select>
+                            <div class="forex-thresholds" id="forexThresholds"></div>
+                        </div>
+                        <div class="forex-table-wrapper">
+                            <table class="forex-table">
+                                <thead>
+                                    <tr>
+                                        <th>Pair A</th>
+                                        <th>Pair B</th>
+                                        <th>Correlation</th>
+                                        <th>Strength</th>
+                                        <th>Lead/Lag</th>
+                                        <th>Data Points</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="forexCorrelationsBody">
+                                    <tr><td colspan="6" class="loading-text">Loading correlations...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Trend Breaks Table -->
+                    <div class="forex-section">
+                        <h3>Notable Movements (Trend Breaks)</h3>
+                        <div class="forex-controls">
+                            <select id="forexPairFilter" class="forex-filter">
+                                <option value="">All Pairs</option>
+                            </select>
+                        </div>
+                        <div class="forex-table-wrapper">
+                            <table class="forex-table">
+                                <thead>
+                                    <tr>
+                                        <th>Pair</th>
+                                        <th>Date</th>
+                                        <th>Direction</th>
+                                        <th>Probability</th>
+                                        <th>Price</th>
+                                        <th>5d Move</th>
+                                        <th>Indicators</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="forexTrendBreaksBody">
+                                    <tr><td colspan="7" class="loading-text">Loading trend breaks...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Performance Stats Tab -->
             <div class="tab-content" id="statsTab">
                 <div class="card">
@@ -701,27 +1318,32 @@
             </div>
         </main>
 
-        <!-- Error Display -->
-        <div id="errorDisplay" class="error-display" style="display: none;">
-            <div class="error-content">
-                <span class="error-icon">⚠️</span>
-                <span class="error-message" id="errorMessage"></span>
-                <button class="error-close" onclick="closeError()">×</button>
-            </div>
+            <!-- Footer -->
+            <footer class="footer">
+                <p><span class="footer-logo"><span class="logo-alpha">Alpha</span><span class="logo-break">Break</span></span> v1.0 | Powered by XGBoost & TimescaleDB</p>
+                <p class="disclaimer">For informational purposes only. Not financial advice.</p>
+            </footer>
         </div>
-
-        <!-- Footer -->
-        <footer class="footer">
-            <p>Trading System v1.0 | Powered by XGBoost & TimescaleDB</p>
-            <p class="disclaimer">⚠️ For informational purposes only. Not financial advice.</p>
-        </footer>
     </div>
 
-    <script src="app.js?v=2"></script>
-    <script src="dashboard.js?v=2"></script>
-    <script src="reports.js?v=2"></script>
-    <script src="watchlist.js?v=2"></script>
-    <script src="earnings.js?v=2"></script>
-    <script src="longterm.js?v=2"></script>
+    <!-- Error Display -->
+    <div id="errorDisplay" class="error-display" style="display: none;">
+        <div class="error-content">
+            <span class="error-icon">!</span>
+            <span class="error-message" id="errorMessage"></span>
+            <button class="error-close" onclick="closeError()">×</button>
+        </div>
+    </div>
+
+    <script src="app.js?v=3"></script>
+    <script src="dashboard.js?v=3"></script>
+    <script src="reports.js?v=3"></script>
+    <script src="watchlist.js?v=3"></script>
+    <script src="earnings.js?v=3"></script>
+    <script src="longterm.js?v=3"></script>
+    <script src="indicators.js?v=1"></script>
+    <script src="trading.js?v=1"></script>
+    <script src="portfolio.js?v=1"></script>
+    <script src="forex.js?v=1"></script>
 </body>
 </html>
