@@ -2,7 +2,7 @@
 
 // Configuration
 const CONFIG = {
-    API_BASE_URL: 'http://3.140.78.15:5000',
+    API_BASE_URL: '', // Empty for relative URLs (works with nginx proxy)
     API_KEY: '', // Empty for development mode (no API key required)
 };
 
@@ -26,6 +26,10 @@ const PAGE_TITLES = {
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize authentication first
+    if (typeof Auth !== 'undefined') {
+        Auth.init();
+    }
     initializeSidebar();
     initializeForms();
     checkApiHealth();
@@ -400,14 +404,18 @@ function displayStatsResults(data) {
     resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-// API request helper
+// API request helper with JWT support
 async function apiRequest(endpoint, method = 'GET', body = null) {
     const headers = {
         'Content-Type': 'application/json',
     };
 
-    // Only include API key header if one is configured
-    if (CONFIG.API_KEY) {
+    // Add JWT token if authenticated
+    if (typeof Auth !== 'undefined' && Auth.isAuthenticated && Auth.accessToken) {
+        headers['Authorization'] = `Bearer ${Auth.accessToken}`;
+    }
+    // Fallback to API key if configured
+    else if (CONFIG.API_KEY) {
         headers['X-API-Key'] = CONFIG.API_KEY;
     }
 
@@ -420,7 +428,18 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
         options.body = JSON.stringify(body);
     }
 
-    return fetch(`${CONFIG.API_BASE_URL}${endpoint}`, options);
+    let response = await fetch(`${CONFIG.API_BASE_URL}${endpoint}`, options);
+
+    // Handle 401 - try token refresh
+    if (response.status === 401 && typeof Auth !== 'undefined' && Auth.isAuthenticated) {
+        const refreshed = await Auth.refreshAccessToken();
+        if (refreshed) {
+            headers['Authorization'] = `Bearer ${Auth.accessToken}`;
+            response = await fetch(`${CONFIG.API_BASE_URL}${endpoint}`, options);
+        }
+    }
+
+    return response;
 }
 
 // Utility: Set loading state

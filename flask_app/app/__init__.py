@@ -80,6 +80,8 @@ def create_app(config_name='development'):
     from app.routes.longterm import longterm_bp
     from app.routes.portfolio import portfolio_bp
     from app.routes.forex import forex_bp
+    from app.routes.auth import auth_bp
+    from app.routes.user import user_bp
 
     app.register_blueprint(health_bp, url_prefix='/api')
     app.register_blueprint(predictions_bp, url_prefix='/api')
@@ -92,6 +94,8 @@ def create_app(config_name='development'):
     app.register_blueprint(longterm_bp, url_prefix='/api')
     app.register_blueprint(portfolio_bp, url_prefix='/api')
     app.register_blueprint(forex_bp, url_prefix='/api')
+    app.register_blueprint(auth_bp, url_prefix='/api')
+    app.register_blueprint(user_bp, url_prefix='/api')
 
     # Error handlers
     @app.errorhandler(404)

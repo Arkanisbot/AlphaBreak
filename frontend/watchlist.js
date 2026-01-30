@@ -1,7 +1,8 @@
 // ============================================================================
 // Watchlist Tab — User Security Watchlist
 // ============================================================================
-// Manages a localStorage-persisted watchlist of tickers.
+// Manages watchlist of tickers with server sync for authenticated users
+// and localStorage fallback for anonymous users.
 // Each ticker shows: price, trend break, sector, indicators, options.
 
 const Watchlist = {
@@ -11,11 +12,12 @@ const Watchlist = {
     charts: {},
     autoRefreshTimer: null,
     REFRESH_INTERVAL: 60 * 1000, // 1 minute
+    syncing: false, // Prevent concurrent sync operations
 
     // ── Initialization ──────────────────────────────────────────────────
 
-    init() {
-        this.loadFromStorage();
+    async init() {
+        await this.loadFromStorage();
         this.setupForm();
         this.render();
 
@@ -48,7 +50,28 @@ const Watchlist = {
 
     // ── Persistence ─────────────────────────────────────────────────────
 
-    loadFromStorage() {
+    async loadFromStorage() {
+        // If authenticated, load from server
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated) {
+            try {
+                const response = await apiRequest('/api/user/watchlist');
+                if (response.ok) {
+                    const data = await response.json();
+                    this.tickers = data.tickers || [];
+                    // Also update localStorage as cache
+                    this.saveToLocalStorage();
+                    return;
+                }
+            } catch (err) {
+                console.warn('Failed to load watchlist from server, using localStorage:', err);
+            }
+        }
+
+        // Fall back to localStorage
+        this.loadFromLocalStorage();
+    },
+
+    loadFromLocalStorage() {
         try {
             const stored = localStorage.getItem(this.STORAGE_KEY);
             this.tickers = stored ? JSON.parse(stored) : [];
@@ -58,16 +81,118 @@ const Watchlist = {
     },
 
     saveToStorage() {
+        // Always save to localStorage as cache
+        this.saveToLocalStorage();
+
+        // If authenticated, also sync to server (fire-and-forget)
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated) {
+            // Server sync is handled by add/remove methods directly
+            // This is just for the localStorage cache
+        }
+    },
+
+    saveToLocalStorage() {
         try {
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.tickers));
         } catch (e) {
-            console.warn('Failed to save watchlist:', e);
+            console.warn('Failed to save watchlist to localStorage:', e);
+        }
+    },
+
+    // ── Server Sync Methods ────────────────────────────────────────────
+
+    async addTickerToServer(ticker) {
+        if (typeof Auth === 'undefined' || !Auth.isAuthenticated) return true;
+
+        try {
+            const response = await apiRequest('/api/user/watchlist', 'POST', {
+                tickers: [ticker]
+            });
+            return response.ok;
+        } catch (err) {
+            console.warn('Failed to add ticker to server:', err);
+            return false;
+        }
+    },
+
+    async removeTickerFromServer(ticker) {
+        if (typeof Auth === 'undefined' || !Auth.isAuthenticated) return true;
+
+        try {
+            const response = await apiRequest(`/api/user/watchlist/${ticker}`, 'DELETE');
+            return response.ok;
+        } catch (err) {
+            console.warn('Failed to remove ticker from server:', err);
+            return false;
+        }
+    },
+
+    async migrateToServer() {
+        // Called after login to merge localStorage watchlist with server
+        if (typeof Auth === 'undefined' || !Auth.isAuthenticated) return;
+        if (this.syncing) return;
+
+        this.syncing = true;
+
+        try {
+            // Load current localStorage watchlist
+            const localTickers = [];
+            try {
+                const stored = localStorage.getItem(this.STORAGE_KEY);
+                if (stored) {
+                    localTickers.push(...JSON.parse(stored));
+                }
+            } catch {}
+
+            if (localTickers.length === 0) {
+                // Nothing to migrate, just load from server
+                await this.loadFromStorage();
+                this.render();
+                if (this.tickers.length > 0) {
+                    this.fetchAllData();
+                }
+                return;
+            }
+
+            // Call migrate endpoint to merge localStorage with server
+            const response = await apiRequest('/api/user/watchlist/migrate', 'POST', {
+                tickers: localTickers
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.tickers = data.tickers || [];
+                this.saveToLocalStorage();
+                console.log('Watchlist migrated to server:', this.tickers.length, 'tickers');
+            } else {
+                // Failed to migrate, just load from server
+                await this.loadFromStorage();
+            }
+
+            this.render();
+            if (this.tickers.length > 0) {
+                this.fetchAllData();
+            }
+        } catch (err) {
+            console.error('Watchlist migration failed:', err);
+        } finally {
+            this.syncing = false;
+        }
+    },
+
+    async reloadFromServer() {
+        // Called after login/logout to refresh watchlist
+        await this.loadFromStorage();
+        this.data = {}; // Clear cached data
+        this.render();
+        if (this.tickers.length > 0) {
+            this.fetchAllData();
         }
     },
 
     // ── Ticker Management ───────────────────────────────────────────────
 
-    addTicker(ticker) {
+    async addTicker(ticker) {
         ticker = ticker.toUpperCase().trim();
         if (!ticker || ticker.length > 5) return;
         if (!/^[A-Z]{1,5}(-[A-Z])?$/.test(ticker)) return;
@@ -82,14 +207,18 @@ const Watchlist = {
             return;
         }
 
+        // Add locally first for immediate UI feedback
         this.tickers.push(ticker);
         this.saveToStorage();
         this.render();
         this.fetchSingleTicker(ticker);
         this.startAutoRefresh();
+
+        // Sync to server (async, non-blocking)
+        this.addTickerToServer(ticker);
     },
 
-    removeTicker(ticker) {
+    async removeTicker(ticker) {
         this.tickers = this.tickers.filter(t => t !== ticker);
         delete this.data[ticker];
         this.saveToStorage();
@@ -99,6 +228,9 @@ const Watchlist = {
             clearInterval(this.autoRefreshTimer);
             this.autoRefreshTimer = null;
         }
+
+        // Sync to server (async, non-blocking)
+        this.removeTickerFromServer(ticker);
     },
 
     // ── Data Fetching ───────────────────────────────────────────────────

@@ -548,3 +548,275 @@ def store_ticker_earnings(ticker, entries):
             cursor.execute(meta_query, (ticker,))
     except Exception as e:
         logger.warning(f"Failed to cache earnings for {ticker}: {e}")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# User Authentication helpers
+# ──────────────────────────────────────────────────────────────────────────────
+
+def create_user(email, password_hash, display_name=None):
+    """
+    Create a new user account.
+
+    Args:
+        email: User's email address
+        password_hash: Bcrypt-hashed password
+        display_name: Optional display name
+
+    Returns:
+        Dict with user info including public_id, or None if email exists
+    """
+    query = """
+        INSERT INTO users (email, password_hash, display_name)
+        VALUES (%s, %s, %s)
+        RETURNING id, public_id, email, display_name, is_active, is_premium, created_at
+    """
+    try:
+        with db_manager.get_cursor(commit=True) as cursor:
+            cursor.execute(query, (email.lower(), password_hash, display_name))
+            row = cursor.fetchone()
+            if row:
+                return {
+                    'id': row[0],
+                    'public_id': str(row[1]),
+                    'email': row[2],
+                    'display_name': row[3],
+                    'is_active': row[4],
+                    'is_premium': row[5],
+                    'created_at': row[6].isoformat() if row[6] else None,
+                }
+    except Exception as e:
+        if 'unique constraint' in str(e).lower() or 'duplicate key' in str(e).lower():
+            logger.debug(f"User already exists: {email}")
+            return None
+        logger.error(f"Failed to create user: {e}")
+        raise
+    return None
+
+
+def get_user_by_email(email):
+    """
+    Get user by email address.
+
+    Returns:
+        Dict with user info including password_hash, or None if not found
+    """
+    query = """
+        SELECT id, public_id, email, password_hash, display_name,
+               is_active, is_premium, last_login_at, created_at
+        FROM users
+        WHERE email = %s AND is_active = TRUE
+    """
+    rows = db_manager.execute_query(query, (email.lower(),))
+    if rows and rows[0]:
+        row = rows[0]
+        return {
+            'id': row[0],
+            'public_id': str(row[1]),
+            'email': row[2],
+            'password_hash': row[3],
+            'display_name': row[4],
+            'is_active': row[5],
+            'is_premium': row[6],
+            'last_login_at': row[7].isoformat() if row[7] else None,
+            'created_at': row[8].isoformat() if row[8] else None,
+        }
+    return None
+
+
+def get_user_by_public_id(public_id):
+    """
+    Get user by public UUID.
+
+    Returns:
+        Dict with user info (no password_hash), or None if not found
+    """
+    query = """
+        SELECT id, public_id, email, display_name, is_active, is_premium, created_at
+        FROM users
+        WHERE public_id = %s AND is_active = TRUE
+    """
+    rows = db_manager.execute_query(query, (public_id,))
+    if rows and rows[0]:
+        row = rows[0]
+        return {
+            'id': row[0],
+            'public_id': str(row[1]),
+            'email': row[2],
+            'display_name': row[3],
+            'is_active': row[4],
+            'is_premium': row[5],
+            'created_at': row[6].isoformat() if row[6] else None,
+        }
+    return None
+
+
+def update_user_last_login(user_id):
+    """Update user's last login timestamp."""
+    query = "UPDATE users SET last_login_at = NOW() WHERE id = %s"
+    try:
+        with db_manager.get_cursor(commit=True) as cursor:
+            cursor.execute(query, (user_id,))
+    except Exception as e:
+        logger.warning(f"Failed to update last login: {e}")
+
+
+def store_refresh_token(user_id, token_hash, expires_at, device_info=None, ip_address=None):
+    """
+    Store a refresh token hash in the database.
+
+    Args:
+        user_id: Internal user ID (integer)
+        token_hash: SHA-256 hash of the refresh token
+        expires_at: Token expiration datetime
+        device_info: Optional device/browser info
+        ip_address: Optional IP address
+    """
+    query = """
+        INSERT INTO refresh_tokens (user_id, token_hash, expires_at, device_info, ip_address)
+        VALUES (%s, %s, %s, %s, %s)
+    """
+    try:
+        with db_manager.get_cursor(commit=True) as cursor:
+            cursor.execute(query, (user_id, token_hash, expires_at, device_info, ip_address))
+    except Exception as e:
+        logger.error(f"Failed to store refresh token: {e}")
+        raise
+
+
+def get_refresh_token(token_hash):
+    """
+    Get refresh token info by hash.
+
+    Returns:
+        Dict with token info, or None if not found/expired/revoked
+    """
+    query = """
+        SELECT rt.id, rt.user_id, rt.expires_at, rt.revoked_at, u.public_id, u.email
+        FROM refresh_tokens rt
+        JOIN users u ON rt.user_id = u.id
+        WHERE rt.token_hash = %s
+          AND rt.expires_at > NOW()
+          AND rt.revoked_at IS NULL
+          AND u.is_active = TRUE
+    """
+    rows = db_manager.execute_query(query, (token_hash,))
+    if rows and rows[0]:
+        row = rows[0]
+        return {
+            'id': row[0],
+            'user_id': row[1],
+            'expires_at': row[2],
+            'revoked_at': row[3],
+            'public_id': str(row[4]),
+            'email': row[5],
+        }
+    return None
+
+
+def revoke_refresh_token(token_hash):
+    """Revoke a specific refresh token."""
+    query = "UPDATE refresh_tokens SET revoked_at = NOW() WHERE token_hash = %s"
+    try:
+        with db_manager.get_cursor(commit=True) as cursor:
+            cursor.execute(query, (token_hash,))
+    except Exception as e:
+        logger.warning(f"Failed to revoke refresh token: {e}")
+
+
+def revoke_all_user_tokens(user_id):
+    """Revoke all refresh tokens for a user (e.g., on password change)."""
+    query = "UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = %s AND revoked_at IS NULL"
+    try:
+        with db_manager.get_cursor(commit=True) as cursor:
+            cursor.execute(query, (user_id,))
+    except Exception as e:
+        logger.warning(f"Failed to revoke all user tokens: {e}")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# User Watchlist helpers
+# ──────────────────────────────────────────────────────────────────────────────
+
+def get_user_watchlist(user_id):
+    """
+    Get all tickers in a user's watchlist.
+
+    Args:
+        user_id: Internal user ID (integer)
+
+    Returns:
+        List of dicts with ticker info
+    """
+    query = """
+        SELECT ticker, notes, added_at
+        FROM user_watchlists
+        WHERE user_id = %s
+        ORDER BY added_at DESC
+    """
+    rows = db_manager.execute_query(query, (user_id,))
+    return [
+        {
+            'ticker': row[0],
+            'notes': row[1],
+            'added_at': row[2].isoformat() if row[2] else None,
+        }
+        for row in (rows or [])
+    ]
+
+
+def add_to_user_watchlist(user_id, ticker, notes=None):
+    """
+    Add a ticker to user's watchlist.
+
+    Returns:
+        True if added, False if already exists
+    """
+    query = """
+        INSERT INTO user_watchlists (user_id, ticker, notes)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (user_id, ticker) DO NOTHING
+        RETURNING id
+    """
+    try:
+        with db_manager.get_cursor(commit=True) as cursor:
+            cursor.execute(query, (user_id, ticker.upper(), notes))
+            return cursor.fetchone() is not None
+    except Exception as e:
+        logger.warning(f"Failed to add to watchlist: {e}")
+        return False
+
+
+def remove_from_user_watchlist(user_id, ticker):
+    """
+    Remove a ticker from user's watchlist.
+
+    Returns:
+        True if removed, False if not found
+    """
+    query = "DELETE FROM user_watchlists WHERE user_id = %s AND ticker = %s RETURNING id"
+    try:
+        with db_manager.get_cursor(commit=True) as cursor:
+            cursor.execute(query, (user_id, ticker.upper()))
+            return cursor.fetchone() is not None
+    except Exception as e:
+        logger.warning(f"Failed to remove from watchlist: {e}")
+        return False
+
+
+def merge_watchlist(user_id, tickers):
+    """
+    Merge a list of tickers into user's watchlist (add new ones only).
+
+    Args:
+        user_id: Internal user ID
+        tickers: List of ticker symbols
+
+    Returns:
+        Number of new tickers added
+    """
+    added = 0
+    for ticker in tickers:
+        if add_to_user_watchlist(user_id, ticker):
+            added += 1
+    return added

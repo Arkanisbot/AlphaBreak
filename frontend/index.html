@@ -60,6 +60,16 @@
                         <span class="status-indicator"></span>
                         <span class="status-text">Checking API...</span>
                     </div>
+                    <!-- Auth buttons (when not logged in) -->
+                    <div class="auth-actions" id="authActions">
+                        <button class="btn btn-sm btn-ghost" id="authSignInBtn">Sign In</button>
+                        <button class="btn btn-sm btn-primary" id="authSignUpBtn">Sign Up</button>
+                    </div>
+                    <!-- User menu (when logged in) -->
+                    <div class="auth-user-menu" id="authUserMenu" style="display: none;">
+                        <span class="auth-user-name" id="authUserName"></span>
+                        <button class="btn btn-sm btn-ghost" id="authSignOutBtn">Sign Out</button>
+                    </div>
                 </div>
             </header>
 
@@ -1142,7 +1152,7 @@
                             <h3>US Dollar Index (DXY) vs Major Pairs</h3>
                             <div class="forex-timeframe-toggle">
                                 <label class="radio-btn">
-                                    <input type="radio" name="forexTimeframe" value="10min" checked>
+                                    <input type="radio" name="forexTimeframe" value="10min">
                                     <span>10 Min</span>
                                 </label>
                                 <label class="radio-btn">
@@ -1150,7 +1160,7 @@
                                     <span>Hourly</span>
                                 </label>
                                 <label class="radio-btn">
-                                    <input type="radio" name="forexTimeframe" value="daily">
+                                    <input type="radio" name="forexTimeframe" value="daily" checked>
                                     <span>Daily</span>
                                 </label>
                             </div>
@@ -1504,6 +1514,57 @@
         </div>
     </div>
 
+    <!-- Authentication Modal -->
+    <div class="auth-modal-overlay" id="authModalOverlay" style="display: none;">
+        <div class="auth-modal">
+            <button class="auth-modal-close" id="authModalClose">&times;</button>
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="loginTab">Sign In</button>
+                <button class="auth-tab" id="registerTab">Sign Up</button>
+            </div>
+
+            <!-- Login Form -->
+            <div class="auth-form-container" id="loginFormContainer">
+                <form id="loginForm" class="auth-form">
+                    <div class="auth-form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" required placeholder="you@example.com">
+                    </div>
+                    <div class="auth-form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" required placeholder="Your password">
+                    </div>
+                    <div class="auth-error" id="loginError"></div>
+                    <button type="submit" class="btn btn-primary auth-submit">Sign In</button>
+                </form>
+            </div>
+
+            <!-- Register Form -->
+            <div class="auth-form-container" id="registerFormContainer" style="display: none;">
+                <form id="registerForm" class="auth-form">
+                    <div class="auth-form-group">
+                        <label for="registerEmail">Email</label>
+                        <input type="email" id="registerEmail" required placeholder="you@example.com">
+                    </div>
+                    <div class="auth-form-group">
+                        <label for="registerDisplayName">Display Name (optional)</label>
+                        <input type="text" id="registerDisplayName" placeholder="John Doe">
+                    </div>
+                    <div class="auth-form-group">
+                        <label for="registerPassword">Password</label>
+                        <input type="password" id="registerPassword" required minlength="8" placeholder="Min 8 characters">
+                    </div>
+                    <div class="auth-form-group">
+                        <label for="registerConfirmPassword">Confirm Password</label>
+                        <input type="password" id="registerConfirmPassword" required placeholder="Confirm password">
+                    </div>
+                    <div class="auth-error" id="registerError"></div>
+                    <button type="submit" class="btn btn-primary auth-submit">Create Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Error Display -->
     <div id="errorDisplay" class="error-display" style="display: none;">
         <div class="error-content">
@@ -1513,7 +1574,8 @@
         </div>
     </div>
 
-    <script src="app.js?v=3"></script>
+    <script src="auth.js?v=1"></script>
+    <script src="app.js?v=4"></script>
     <script src="dashboard.js?v=3"></script>
     <script src="reports.js?v=3"></script>
     <script src="watchlist.js?v=3"></script>

@@ -6,7 +6,7 @@
 const Forex = {
     charts: {},
     selectedPair: null,
-    currentTimeframe: '10min',
+    currentTimeframe: 'daily',
 
     // Chart colors for USD pairs
     CHART_COLORS: [

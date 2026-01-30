@@ -37,6 +37,16 @@ class Config:
     # Scheduler
     SCHEDULER_API_ENABLED = True
 
+    # JWT Authentication
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'jwt-dev-secret-change-in-production'
+    JWT_ACCESS_EXPIRES = 900  # 15 minutes
+    JWT_REFRESH_EXPIRES = 604800  # 7 days
+    JWT_ALGORITHM = 'HS256'
+    BCRYPT_ROUNDS = 12
+
+    # Password requirements
+    PASSWORD_MIN_LENGTH = 8
+
 
 class DevelopmentConfig(Config):
     """Development configuration"""
