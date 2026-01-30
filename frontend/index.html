@@ -1136,7 +1136,32 @@
                     <h2>Forex Correlation Analysis</h2>
                     <p class="description">Currency pair correlations and trend break analysis. Identifies patterns between forex pairs to inform equity positioning.</p>
 
-                    <!-- Summary Stats -->
+                    <!-- USD Pairs Chart (replaces market sentiment) -->
+                    <div class="forex-section forex-main-chart-section">
+                        <div class="forex-chart-header">
+                            <h3>US Dollar Index (Top 5 USD Pairs)</h3>
+                            <div class="forex-timeframe-toggle">
+                                <label class="radio-btn">
+                                    <input type="radio" name="forexTimeframe" value="10min" checked>
+                                    <span>10 Min</span>
+                                </label>
+                                <label class="radio-btn">
+                                    <input type="radio" name="forexTimeframe" value="hourly">
+                                    <span>Hourly</span>
+                                </label>
+                                <label class="radio-btn">
+                                    <input type="radio" name="forexTimeframe" value="daily">
+                                    <span>Daily</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="forex-main-chart-wrapper">
+                            <canvas id="forexUsdChart"></canvas>
+                        </div>
+                        <div class="forex-chart-legend" id="forexChartLegend"></div>
+                    </div>
+
+                    <!-- Summary Stats Row -->
                     <div class="forex-summary-section">
                         <div class="forex-summary-stats" id="forexSummaryStats">
                             <p class="loading-text">Loading summary...</p>
@@ -1144,34 +1169,12 @@
                         <div class="forex-pattern-counts" id="forexPatternCounts"></div>
                     </div>
 
-                    <!-- Pairs Table -->
-                    <div class="forex-section">
-                        <h3>Currency Pairs</h3>
-                        <p class="section-subtitle">Click a pair to view its price chart</p>
-                        <div class="forex-table-wrapper">
-                            <table class="forex-table">
-                                <thead>
-                                    <tr>
-                                        <th>Pair</th>
-                                        <th>Currencies</th>
-                                        <th>Data Start</th>
-                                        <th>Records</th>
-                                        <th>Years</th>
-                                        <th>Model</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="forexPairsBody">
-                                    <tr><td colspan="6" class="loading-text">Loading pairs...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Chart Section (hidden until pair selected) -->
-                    <div class="forex-chart-container" id="forexChartContainer" style="display:none;">
-                        <h3 id="forexChartTitle">Select a pair to view chart</h3>
-                        <div class="forex-chart-wrapper">
-                            <canvas id="forexPairChart"></canvas>
+                    <!-- Recent Notable Movements with Correlated Pairs -->
+                    <div class="forex-section forex-movements-widget">
+                        <h3>Recent Movements & Correlated Pairs</h3>
+                        <p class="section-subtitle">Notable movements and which pairs historically move together</p>
+                        <div class="forex-movements-grid" id="forexMovementsGrid">
+                            <p class="loading-text">Loading recent movements...</p>
                         </div>
                     </div>
 
@@ -1231,6 +1234,151 @@
                                     <tr><td colspan="7" class="loading-text">Loading trend breaks...</td></tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+
+                    <!-- Pairs Table (moved down) -->
+                    <div class="forex-section forex-pairs-section">
+                        <h3>All Currency Pairs</h3>
+                        <p class="section-subtitle">Click a pair to view its individual chart</p>
+                        <div class="forex-table-wrapper">
+                            <table class="forex-table">
+                                <thead>
+                                    <tr>
+                                        <th>Pair</th>
+                                        <th>Currencies</th>
+                                        <th>Data Start</th>
+                                        <th>Records</th>
+                                        <th>Years</th>
+                                        <th>Model</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="forexPairsBody">
+                                    <tr><td colspan="6" class="loading-text">Loading pairs...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Individual Pair Chart (hidden until pair selected) -->
+                    <div class="forex-chart-container" id="forexChartContainer" style="display:none;">
+                        <h3 id="forexChartTitle">Select a pair to view chart</h3>
+                        <div class="forex-chart-wrapper">
+                            <canvas id="forexPairChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Currency Legend -->
+                    <div class="forex-section forex-legend-section">
+                        <h3>Currency Reference Guide</h3>
+                        <div class="forex-currency-legend" id="forexCurrencyLegend">
+                            <div class="currency-grid">
+                                <div class="currency-item">
+                                    <span class="currency-code">USD</span>
+                                    <span class="currency-name">United States Dollar</span>
+                                    <span class="currency-pairs">EUR/USD, USD/JPY, GBP/USD</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">EUR</span>
+                                    <span class="currency-name">Euro</span>
+                                    <span class="currency-pairs">EUR/USD, EUR/GBP, EUR/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">JPY</span>
+                                    <span class="currency-name">Japanese Yen</span>
+                                    <span class="currency-pairs">USD/JPY, EUR/JPY, GBP/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">GBP</span>
+                                    <span class="currency-name">British Pound Sterling</span>
+                                    <span class="currency-pairs">GBP/USD, EUR/GBP, GBP/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">CHF</span>
+                                    <span class="currency-name">Swiss Franc</span>
+                                    <span class="currency-pairs">USD/CHF, EUR/CHF, CHF/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">CAD</span>
+                                    <span class="currency-name">Canadian Dollar</span>
+                                    <span class="currency-pairs">USD/CAD, EUR/CAD, CAD/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">AUD</span>
+                                    <span class="currency-name">Australian Dollar</span>
+                                    <span class="currency-pairs">AUD/USD, EUR/AUD, AUD/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">NZD</span>
+                                    <span class="currency-name">New Zealand Dollar</span>
+                                    <span class="currency-pairs">NZD/USD, EUR/NZD, NZD/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">CNY</span>
+                                    <span class="currency-name">Chinese Yuan</span>
+                                    <span class="currency-pairs">USD/CNY, EUR/CNY, CNY/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">HKD</span>
+                                    <span class="currency-name">Hong Kong Dollar</span>
+                                    <span class="currency-pairs">USD/HKD, EUR/HKD, HKD/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">SGD</span>
+                                    <span class="currency-name">Singapore Dollar</span>
+                                    <span class="currency-pairs">USD/SGD, EUR/SGD, SGD/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">SEK</span>
+                                    <span class="currency-name">Swedish Krona</span>
+                                    <span class="currency-pairs">USD/SEK, EUR/SEK, SEK/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">NOK</span>
+                                    <span class="currency-name">Norwegian Krone</span>
+                                    <span class="currency-pairs">USD/NOK, EUR/NOK, NOK/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">DKK</span>
+                                    <span class="currency-name">Danish Krone</span>
+                                    <span class="currency-pairs">USD/DKK, EUR/DKK, DKK/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">MXN</span>
+                                    <span class="currency-name">Mexican Peso</span>
+                                    <span class="currency-pairs">USD/MXN, EUR/MXN, MXN/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">BRL</span>
+                                    <span class="currency-name">Brazilian Real</span>
+                                    <span class="currency-pairs">USD/BRL, EUR/BRL, BRL/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">ZAR</span>
+                                    <span class="currency-name">South African Rand</span>
+                                    <span class="currency-pairs">USD/ZAR, EUR/ZAR, ZAR/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">INR</span>
+                                    <span class="currency-name">Indian Rupee</span>
+                                    <span class="currency-pairs">USD/INR, EUR/INR, INR/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">KRW</span>
+                                    <span class="currency-name">South Korean Won</span>
+                                    <span class="currency-pairs">USD/KRW, EUR/KRW, KRW/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">THB</span>
+                                    <span class="currency-name">Thai Baht</span>
+                                    <span class="currency-pairs">USD/THB, EUR/THB, THB/JPY</span>
+                                </div>
+                                <div class="currency-item">
+                                    <span class="currency-code">MYR</span>
+                                    <span class="currency-name">Malaysian Ringgit</span>
+                                    <span class="currency-pairs">USD/MYR, EUR/MYR, MYR/JPY</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

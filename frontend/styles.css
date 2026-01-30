@@ -4929,3 +4929,305 @@ select option {
 .break-row .negative {
     color: #ef5350;
 }
+
+/* USD Main Chart Section */
+.forex-main-chart-section {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+.forex-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.forex-chart-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.forex-timeframe-toggle {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    padding: 4px;
+}
+
+.forex-timeframe-toggle .radio-btn {
+    display: block;
+}
+
+.forex-timeframe-toggle .radio-btn input {
+    display: none;
+}
+
+.forex-timeframe-toggle .radio-btn span {
+    display: block;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.forex-timeframe-toggle .radio-btn input:checked + span {
+    background: var(--primary-color);
+    color: #fff;
+}
+
+.forex-timeframe-toggle .radio-btn span:hover {
+    color: var(--text-primary);
+}
+
+.forex-main-chart-wrapper {
+    height: 280px;
+    position: relative;
+}
+
+.forex-chart-legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+
+.chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+/* Recent Movements Widget */
+.forex-movements-widget {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+.forex-movements-widget h3 {
+    margin: 0 0 4px 0;
+}
+
+.forex-movements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.movement-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.movement-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.movement-pair {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.movement-direction {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.movement-direction.positive {
+    background: rgba(38, 166, 154, 0.2);
+    color: #26a69a;
+}
+
+.movement-direction.negative {
+    background: rgba(239, 83, 80, 0.2);
+    color: #ef5350;
+}
+
+.movement-details {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.movement-change.positive {
+    color: #26a69a;
+}
+
+.movement-change.negative {
+    color: #ef5350;
+}
+
+.movement-correlated {
+    font-size: 0.8rem;
+}
+
+.correlated-label {
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.correlated-pairs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.correlated-pair {
+    display: flex;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+}
+
+.correlated-pair.positive-corr {
+    background: rgba(38, 166, 154, 0.15);
+}
+
+.correlated-pair.negative-corr {
+    background: rgba(239, 83, 80, 0.15);
+}
+
+.cp-pair {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.cp-corr {
+    color: var(--text-muted);
+}
+
+.no-corr {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Currency Legend */
+.forex-legend-section {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 24px;
+}
+
+.forex-legend-section h3 {
+    margin: 0 0 16px 0;
+}
+
+.currency-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.currency-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    border-left: 3px solid var(--primary-color);
+}
+
+.currency-code {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    font-family: 'SF Mono', Monaco, monospace;
+}
+
+.currency-name {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.currency-pairs {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Forex Summary Section */
+.forex-summary-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.forex-summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+}
+
+.forex-stat-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 12px;
+    text-align: center;
+}
+
+.forex-stat-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    font-family: 'SF Mono', Monaco, monospace;
+}
+
+.forex-stat-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-top: 4px;
+}
+
+/* Error and Empty Text */
+.error-text {
+    color: #ef5350;
+    font-size: 0.85rem;
+}
+
+.empty-text {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 20px;
+}

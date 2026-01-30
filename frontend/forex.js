@@ -6,17 +6,30 @@
 const Forex = {
     charts: {},
     selectedPair: null,
+    currentTimeframe: '10min',
+
+    // Chart colors for USD pairs
+    CHART_COLORS: [
+        '#4fc3f7',  // Light blue - EUR/USD
+        '#f06292',  // Pink - USD/JPY
+        '#81c784',  // Green - GBP/USD
+        '#ffb74d',  // Orange - USD/CHF
+        '#ba68c8',  // Purple - USD/CAD
+    ],
 
     // ──────────────────────────────────────────────────────────
     // INITIALIZATION
     // ──────────────────────────────────────────────────────────
 
     init() {
+        this.loadUsdChart();
         this.loadSummary();
+        this.loadRecentMovements();
         this.loadPairs();
         this.loadCorrelations();
         this.loadTrendBreaks();
         this.setupFilters();
+        this.setupTimeframeToggle();
     },
 
     setupFilters() {
@@ -33,6 +46,199 @@ const Forex = {
                 this.loadTrendBreaks(pairFilter.value);
             });
         }
+    },
+
+    setupTimeframeToggle() {
+        const radios = document.querySelectorAll('input[name="forexTimeframe"]');
+        radios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.currentTimeframe = e.target.value;
+                this.loadUsdChart();
+            });
+        });
+    },
+
+    // ──────────────────────────────────────────────────────────
+    // USD PAIRS CHART (Main Chart)
+    // ──────────────────────────────────────────────────────────
+
+    async loadUsdChart() {
+        const canvas = document.getElementById('forexUsdChart');
+        const legendEl = document.getElementById('forexChartLegend');
+        if (!canvas) return;
+
+        try {
+            const response = await apiRequest(`/api/forex/usd-chart?timeframe=${this.currentTimeframe}`, 'GET');
+            if (!response.ok) throw new Error('Failed to load USD chart data');
+
+            const data = await response.json();
+            this.renderUsdChart(data);
+            this.renderChartLegend(data.pairs, legendEl);
+        } catch (error) {
+            console.error('USD Chart load failed:', error);
+            if (legendEl) {
+                legendEl.innerHTML = `<span class="error-text">Failed to load chart data</span>`;
+            }
+        }
+    },
+
+    renderUsdChart(data) {
+        const canvas = document.getElementById('forexUsdChart');
+        if (!canvas || !data.chart_data || data.chart_data.length === 0) return;
+
+        // Destroy existing chart
+        if (this.charts.usdChart) {
+            this.charts.usdChart.destroy();
+        }
+
+        const ctx = canvas.getContext('2d');
+
+        // Build datasets for each pair
+        const datasets = data.pairs.map((pair, idx) => {
+            const chartData = data.chart_data.map(d => ({
+                x: new Date(d.timestamp),
+                y: d[pair.replace('/', '_')],
+            })).filter(d => d.y != null);
+
+            return {
+                label: pair,
+                data: chartData,
+                borderColor: this.CHART_COLORS[idx % this.CHART_COLORS.length],
+                backgroundColor: 'transparent',
+                fill: false,
+                tension: 0.2,
+                pointRadius: 0,
+                borderWidth: 2,
+            };
+        });
+
+        // Configure time unit based on timeframe
+        let timeUnit = 'hour';
+        if (this.currentTimeframe === 'daily') {
+            timeUnit = 'day';
+        } else if (this.currentTimeframe === '10min') {
+            timeUnit = 'minute';
+        }
+
+        this.charts.usdChart = new Chart(ctx, {
+            type: 'line',
+            data: { datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: { display: false }, // We use custom legend
+                    tooltip: {
+                        backgroundColor: '#1c2030',
+                        titleColor: '#e2e8f0',
+                        bodyColor: '#8b95a5',
+                        callbacks: {
+                            label: (context) => {
+                                const value = context.parsed.y;
+                                if (value != null) {
+                                    return `${context.dataset.label}: ${value.toFixed(4)}`;
+                                }
+                                return '';
+                            },
+                        },
+                    },
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: { unit: timeUnit },
+                        grid: { color: '#2a2e3960' },
+                        ticks: { color: '#8b95a5', maxRotation: 0 },
+                    },
+                    y: {
+                        position: 'right',
+                        grid: { color: '#2a2e3960' },
+                        ticks: { color: '#8b95a5' },
+                    },
+                },
+            },
+        });
+    },
+
+    renderChartLegend(pairs, container) {
+        if (!container || !pairs) return;
+
+        container.innerHTML = pairs.map((pair, idx) => {
+            const color = this.CHART_COLORS[idx % this.CHART_COLORS.length];
+            return `
+                <span class="chart-legend-item">
+                    <span class="legend-dot" style="background:${color}"></span>
+                    ${pair}
+                </span>
+            `;
+        }).join('');
+    },
+
+    // ──────────────────────────────────────────────────────────
+    // RECENT MOVEMENTS WITH CORRELATIONS
+    // ──────────────────────────────────────────────────────────
+
+    async loadRecentMovements() {
+        const container = document.getElementById('forexMovementsGrid');
+        if (!container) return;
+
+        try {
+            const response = await apiRequest('/api/forex/recent-movements', 'GET');
+            if (!response.ok) throw new Error('Failed to load recent movements');
+
+            const data = await response.json();
+            this.renderRecentMovements(data.movements || []);
+        } catch (error) {
+            container.innerHTML = `<p class="error-text">Failed to load movements: ${error.message}</p>`;
+        }
+    },
+
+    renderRecentMovements(movements) {
+        const container = document.getElementById('forexMovementsGrid');
+        if (!container) return;
+
+        if (movements.length === 0) {
+            container.innerHTML = '<p class="empty-text">No recent notable movements found.</p>';
+            return;
+        }
+
+        container.innerHTML = movements.map(move => {
+            const dirClass = move.direction === 'bullish' ? 'positive' : 'negative';
+            const arrow = move.direction === 'bullish' ? '↑' : '↓';
+
+            // Render correlated pairs
+            const correlatedHtml = (move.correlated_pairs || []).map(cp => {
+                const corrSign = cp.correlation >= 0 ? '+' : '';
+                const corrClass = cp.correlation >= 0 ? 'positive-corr' : 'negative-corr';
+                return `
+                    <div class="correlated-pair ${corrClass}">
+                        <span class="cp-pair">${cp.pair}</span>
+                        <span class="cp-corr">${corrSign}${(cp.correlation * 100).toFixed(0)}%</span>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="movement-card">
+                    <div class="movement-header">
+                        <span class="movement-pair">${move.pair}</span>
+                        <span class="movement-direction ${dirClass}">${arrow} ${move.direction.toUpperCase()}</span>
+                    </div>
+                    <div class="movement-details">
+                        <span class="movement-date">${move.date}</span>
+                        <span class="movement-change ${dirClass}">${move.change_pct >= 0 ? '+' : ''}${move.change_pct?.toFixed(2) || '--'}%</span>
+                    </div>
+                    <div class="movement-correlated">
+                        <div class="correlated-label">Strongly Correlated:</div>
+                        <div class="correlated-pairs">${correlatedHtml || '<span class="no-corr">None</span>'}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
     },
 
     // ──────────────────────────────────────────────────────────

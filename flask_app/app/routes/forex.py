@@ -3,11 +3,13 @@ Forex Routes
 ============
 Endpoints for forex correlation model and data:
 
-1. GET /api/forex/pairs           -- List all forex pairs
-2. GET /api/forex/data/<pair>     -- Historical data for a pair
-3. GET /api/forex/correlations    -- Correlation matrix
-4. GET /api/forex/trend-breaks    -- Trend breaks for all pairs
-5. GET /api/forex/summary         -- Summary statistics
+1. GET /api/forex/pairs              -- List all forex pairs
+2. GET /api/forex/data/<pair>        -- Historical data for a pair
+3. GET /api/forex/correlations       -- Correlation matrix
+4. GET /api/forex/trend-breaks       -- Trend breaks for all pairs
+5. GET /api/forex/summary            -- Summary statistics
+6. GET /api/forex/usd-chart          -- USD pairs chart data (10min/hourly/daily)
+7. GET /api/forex/recent-movements   -- Recent notable movements with correlated pairs
 """
 
 import logging
@@ -362,4 +364,197 @@ def get_forex_summary():
 
     except Exception as e:
         logger.error(f"Forex summary error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# GET /api/forex/usd-chart
+# ──────────────────────────────────────────────────────────────────────────────
+
+@forex_bp.route('/forex/usd-chart', methods=['GET'])
+@log_request
+@require_api_key
+def get_forex_usd_chart():
+    """
+    Get USD pairs chart data for the top 5 pairs by volume.
+
+    Query params:
+        timeframe: '10min', 'hourly', or 'daily' (default: '10min')
+
+    Returns normalized price data for multiple USD pairs.
+    """
+    timeframe = request.args.get('timeframe', '10min')
+
+    # Map timeframes to day ranges and intervals
+    timeframe_config = {
+        '10min': {'days': 1, 'interval': 'minute'},
+        'hourly': {'days': 7, 'interval': 'hour'},
+        'daily': {'days': 90, 'interval': 'day'},
+    }
+
+    config = timeframe_config.get(timeframe, timeframe_config['10min'])
+    days = config['days']
+
+    # Top 5 USD pairs by typical volume
+    USD_PAIRS = ['EUR/USD', 'USD/JPY', 'GBP/USD', 'USD/CHF', 'USD/CAD']
+
+    try:
+        db = _get_db_manager()
+        if db is None:
+            return jsonify({'error': 'Database not available'}), 503
+
+        # Get data for each pair
+        chart_data = {}
+        all_dates = set()
+
+        for pair in USD_PAIRS:
+            pair_col = pair.replace('/', '_')
+
+            rows = db.execute_query("""
+                SELECT date, close
+                FROM forex_daily_data
+                WHERE pair = %s
+                  AND date >= NOW() - INTERVAL '%s days'
+                ORDER BY date ASC
+            """, (pair, days))
+
+            if rows:
+                for row in rows:
+                    date_str = row[0].isoformat() if row[0] else None
+                    if date_str:
+                        all_dates.add(date_str)
+                        if date_str not in chart_data:
+                            chart_data[date_str] = {'timestamp': date_str}
+                        chart_data[date_str][pair_col] = float(row[1]) if row[1] else None
+
+        # Normalize prices to percentage change from first value
+        sorted_dates = sorted(all_dates)
+        if sorted_dates:
+            first_values = {}
+            for pair in USD_PAIRS:
+                pair_col = pair.replace('/', '_')
+                for d in sorted_dates:
+                    if d in chart_data and chart_data[d].get(pair_col) is not None:
+                        first_values[pair_col] = chart_data[d][pair_col]
+                        break
+
+            # Convert to percentage change from first value
+            for d in sorted_dates:
+                for pair in USD_PAIRS:
+                    pair_col = pair.replace('/', '_')
+                    if pair_col in first_values and chart_data[d].get(pair_col) is not None:
+                        first_val = first_values[pair_col]
+                        current_val = chart_data[d][pair_col]
+                        # Percentage change normalized to 100
+                        chart_data[d][pair_col] = 100 + ((current_val - first_val) / first_val * 100)
+
+        # Convert to list sorted by timestamp
+        result_data = [chart_data[d] for d in sorted_dates]
+
+        return jsonify({
+            'pairs': USD_PAIRS,
+            'timeframe': timeframe,
+            'chart_data': result_data,
+            'count': len(result_data),
+        })
+
+    except Exception as e:
+        logger.error(f"Forex USD chart error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# GET /api/forex/recent-movements
+# ──────────────────────────────────────────────────────────────────────────────
+
+@forex_bp.route('/forex/recent-movements', methods=['GET'])
+@log_request
+@require_api_key
+def get_forex_recent_movements():
+    """
+    Get recent notable movements with their correlated pairs.
+
+    Returns the most recent 5 notable movements and for each,
+    the top 3 strongly correlated pairs (prioritizing pairs not
+    already represented).
+    """
+    limit = request.args.get('limit', 5, type=int)
+    limit = min(max(limit, 1), 10)
+
+    try:
+        db = _get_db_manager()
+        if db is None:
+            return jsonify({'error': 'Database not available'}), 503
+
+        # Get recent notable movements
+        breaks_rows = db.execute_query("""
+            SELECT pair, break_date, break_direction, movement_pct, price_at_break
+            FROM forex_trend_breaks
+            WHERE break_date >= NOW() - INTERVAL '30 days'
+            ORDER BY break_date DESC, ABS(movement_pct) DESC
+            LIMIT %s
+        """, (limit,))
+
+        # Get correlation matrix for looking up related pairs
+        corr_rows = db.execute_query("""
+            SELECT pair_a, pair_b, correlation_all, pattern_strength
+            FROM forex_correlations
+            WHERE calculation_date = (SELECT MAX(calculation_date) FROM forex_correlations)
+              AND pattern_strength IN ('strong', 'mid')
+            ORDER BY ABS(correlation_all) DESC
+        """)
+
+        # Build correlation lookup
+        correlations = {}
+        for row in (corr_rows or []):
+            pair_a, pair_b, corr, strength = row[0], row[1], row[2], row[3]
+            if pair_a not in correlations:
+                correlations[pair_a] = []
+            if pair_b not in correlations:
+                correlations[pair_b] = []
+            correlations[pair_a].append({'pair': pair_b, 'correlation': float(corr) if corr else 0, 'strength': strength})
+            correlations[pair_b].append({'pair': pair_a, 'correlation': float(corr) if corr else 0, 'strength': strength})
+
+        # Build movement response with correlated pairs
+        movements = []
+        seen_pairs = set()
+
+        for row in (breaks_rows or []):
+            pair, date, direction, change_pct, price = row
+
+            # Get correlated pairs (prioritize ones not already seen)
+            pair_correlations = correlations.get(pair, [])
+
+            # Sort by: 1) not seen yet, 2) absolute correlation strength
+            sorted_corr = sorted(
+                pair_correlations,
+                key=lambda x: (x['pair'] in seen_pairs, -abs(x['correlation']))
+            )[:3]
+
+            correlated = [
+                {'pair': c['pair'], 'correlation': c['correlation'], 'strength': c['strength']}
+                for c in sorted_corr
+            ]
+
+            # Track seen pairs
+            seen_pairs.add(pair)
+            for c in correlated:
+                seen_pairs.add(c['pair'])
+
+            movements.append({
+                'pair': pair,
+                'date': date.isoformat() if date else None,
+                'direction': direction,
+                'change_pct': float(change_pct) if change_pct else None,
+                'price': float(price) if price else None,
+                'correlated_pairs': correlated,
+            })
+
+        return jsonify({
+            'movements': movements,
+            'count': len(movements),
+        })
+
+    except Exception as e:
+        logger.error(f"Forex recent movements error: {e}")
         return jsonify({'error': str(e)}), 500
