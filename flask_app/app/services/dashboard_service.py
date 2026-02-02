@@ -524,14 +524,16 @@ def compute_sector_sentiments():
     """
     Compute sentiment for each GICS sector via sector ETFs.
     Uses CCI + Stochastic on weekly data.
+    Returns weekly (52 weeks), daily, and hourly chart data.
     """
     import time
     sectors = []
 
     for sector_name, etf_symbol in SECTOR_ETFS.items():
         try:
-            df = _fetch_yfinance_data(etf_symbol, period='1y', interval='1wk')
-            if df.empty or len(df) < 20:
+            # Fetch weekly data (2 years to get 52+ weeks)
+            df_weekly = _fetch_yfinance_data(etf_symbol, period='2y', interval='1wk')
+            if df_weekly.empty or len(df_weekly) < 20:
                 sectors.append({
                     'name': sector_name,
                     'sentiment': 'NEUTRAL',
@@ -541,15 +543,17 @@ def compute_sector_sentiments():
                     'stochastic_k': None,
                     'weekly_change_pct': 0,
                     'weekly_chart_data': [],
+                    'daily_chart_data': [],
+                    'hourly_chart_data': [],
                 })
                 continue
 
-            # Calculate indicators
-            cci = _calculate_cci(df, length=20)
-            stoch_k, stoch_d = _calculate_stochastic(df)
-            rsi = _calculate_rsi(df)
-            sma_20 = _calculate_sma(df['Close'], 20)
-            sma_50 = _calculate_sma(df['Close'], 50) if len(df) >= 50 else pd.Series(np.nan, index=df.index)
+            # Calculate indicators on weekly data
+            cci = _calculate_cci(df_weekly, length=20)
+            stoch_k, stoch_d = _calculate_stochastic(df_weekly)
+            rsi = _calculate_rsi(df_weekly)
+            sma_20 = _calculate_sma(df_weekly['Close'], 20)
+            sma_50 = _calculate_sma(df_weekly['Close'], 50) if len(df_weekly) >= 50 else pd.Series(np.nan, index=df_weekly.index)
 
             latest_cci = float(cci.iloc[-1]) if not np.isnan(cci.iloc[-1]) else 0.0
             latest_k = float(stoch_k.iloc[-1]) if not np.isnan(stoch_k.iloc[-1]) else 50.0
@@ -563,19 +567,46 @@ def compute_sector_sentiments():
             )
 
             # Weekly change
-            if len(df) >= 2:
-                prev_close = float(df['Close'].iloc[-2])
-                curr_close = float(df['Close'].iloc[-1])
+            if len(df_weekly) >= 2:
+                prev_close = float(df_weekly['Close'].iloc[-2])
+                curr_close = float(df_weekly['Close'].iloc[-1])
                 weekly_change = ((curr_close - prev_close) / prev_close * 100) if prev_close else 0
             else:
                 weekly_change = 0
 
-            # Chart data (last 12 weeks)
-            chart_df = df.tail(12)
-            chart_data = [{
+            # Weekly chart data (last 52 weeks)
+            weekly_chart_df = df_weekly.tail(52)
+            weekly_chart_data = [{
                 'date': row['date'].strftime('%Y-%m-%d') if hasattr(row['date'], 'strftime') else str(row['date'])[:10],
+                'open': round(float(row['Open']), 2),
+                'high': round(float(row['High']), 2),
+                'low': round(float(row['Low']), 2),
                 'close': round(float(row['Close']), 2),
-            } for _, row in chart_df.iterrows()]
+            } for _, row in weekly_chart_df.iterrows()]
+
+            # Fetch daily data (90 days)
+            df_daily = _fetch_yfinance_data(etf_symbol, period='3mo', interval='1d')
+            daily_chart_data = []
+            if not df_daily.empty:
+                daily_chart_data = [{
+                    'date': row['date'].strftime('%Y-%m-%d') if hasattr(row['date'], 'strftime') else str(row['date'])[:10],
+                    'open': round(float(row['Open']), 2),
+                    'high': round(float(row['High']), 2),
+                    'low': round(float(row['Low']), 2),
+                    'close': round(float(row['Close']), 2),
+                } for _, row in df_daily.iterrows()]
+
+            # Fetch hourly data (last 7 days)
+            df_hourly = _fetch_yfinance_data(etf_symbol, period='7d', interval='1h')
+            hourly_chart_data = []
+            if not df_hourly.empty:
+                hourly_chart_data = [{
+                    'date': row['date'].strftime('%Y-%m-%d %H:%M:%S') if hasattr(row['date'], 'strftime') else str(row['date']),
+                    'open': round(float(row['Open']), 2),
+                    'high': round(float(row['High']), 2),
+                    'low': round(float(row['Low']), 2),
+                    'close': round(float(row['Close']), 2),
+                } for _, row in df_hourly.iterrows()]
 
             sectors.append({
                 'name': sector_name,
@@ -585,7 +616,9 @@ def compute_sector_sentiments():
                 'cci_value': round(latest_cci, 1),
                 'stochastic_k': round(latest_k, 1),
                 'weekly_change_pct': round(weekly_change, 1),
-                'weekly_chart_data': chart_data,
+                'weekly_chart_data': weekly_chart_data,
+                'daily_chart_data': daily_chart_data,
+                'hourly_chart_data': hourly_chart_data,
             })
 
             time.sleep(0.3)  # Rate limit protection
@@ -601,6 +634,8 @@ def compute_sector_sentiments():
                 'stochastic_k': None,
                 'weekly_change_pct': 0,
                 'weekly_chart_data': [],
+                'daily_chart_data': [],
+                'hourly_chart_data': [],
             })
 
     return {

@@ -820,6 +820,53 @@ select option {
     to { transform: translateX(0); }
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+   Snackbar Notifications
+   ────────────────────────────────────────────────────────────────────────── */
+
+#snackbar {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    min-width: 250px;
+    max-width: 500px;
+    padding: 14px 20px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-align: center;
+    z-index: 2000;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+#snackbar.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.snackbar-success {
+    background: var(--success-color);
+    color: white;
+}
+
+.snackbar-error {
+    background: var(--danger-color);
+    color: white;
+}
+
+.snackbar-info {
+    background: var(--accent);
+    color: white;
+}
+
+.snackbar-warning {
+    background: var(--warning-color);
+    color: var(--text-primary);
+}
+
 .error-content {
     background: var(--danger-color);
     color: white;
@@ -1499,6 +1546,29 @@ select option {
     background: var(--bg-surface);
     color: var(--text-muted);
     border: 1px solid var(--border-color);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+/* Clickable indicator chips (links to indicator guide) */
+a.indicator-chip {
+    cursor: pointer;
+}
+
+a.indicator-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border-color: var(--accent);
+}
+
+a.indicator-chip.bullish:hover {
+    border-color: var(--success-color);
+    background: rgba(38, 166, 154, 0.1);
+}
+
+a.indicator-chip.bearish:hover {
+    border-color: var(--danger-color);
+    background: rgba(239, 83, 80, 0.1);
 }
 
 .indicator-chip.bullish { color: var(--success-color); border-color: rgba(38, 166, 154, 0.3); }
@@ -3477,12 +3547,52 @@ select option {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     overflow: hidden;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Highlight market sentiment indicators */
+.indicator-card.market-sentiment-indicator {
+    border-left: 3px solid var(--accent);
+}
+
+/* Flash highlight animation when navigating to an indicator */
+.indicator-card.highlight-flash {
+    animation: flashHighlight 2s ease;
+}
+
+@keyframes flashHighlight {
+    0%, 100% {
+        box-shadow: none;
+    }
+    50% {
+        box-shadow: 0 0 0 4px var(--accent-opacity);
+        border-color: var(--accent);
+    }
 }
 
 .indicator-card-header {
     padding: 14px 20px;
     background: var(--bg-elevated);
     border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+/* Market Sentiment badge on indicator cards */
+.market-sentiment-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    background: var(--accent-opacity);
+    color: var(--accent);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
 }
 
 .indicator-card-title {
@@ -4823,6 +4933,36 @@ select option {
 
 .forex-pair-row.selected {
     background: rgba(79, 195, 247, 0.1);
+}
+
+/* Forex Pair Inline Chart Popup */
+.forex-pair-detail-row {
+    background: var(--bg-surface);
+}
+
+.forex-pair-detail-panel {
+    padding: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.forex-pair-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.forex-pair-detail-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.forex-pair-chart-wrapper {
+    height: 400px;
+    position: relative;
 }
 
 .forex-empty {

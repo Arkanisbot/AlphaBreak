@@ -402,25 +402,61 @@ def _fetch_news(ticker):
         if news_items and len(news_items) > 0:
             for item in news_items[:5]:
                 try:
+                    # Handle new yfinance API structure with nested content
+                    content = item.get('content', item)  # Fallback to top-level if no content
+
+                    # Get title
+                    title = content.get('title', item.get('title', ''))
+
+                    # Get publisher
+                    publisher = ''
+                    if 'provider' in content:
+                        publisher = content['provider'].get('displayName', '')
+                    elif 'provider' in item:
+                        publisher = item['provider'].get('displayName', '')
+                    else:
+                        publisher = item.get('publisher', '')
+
+                    # Get link
+                    link = ''
+                    if 'canonicalUrl' in content:
+                        link = content['canonicalUrl'].get('url', '')
+                    elif 'canonicalUrl' in item:
+                        link = item['canonicalUrl'].get('url', '')
+                    else:
+                        link = item.get('link', '')
+
+                    # Get thumbnail
                     thumbnail = None
-                    # Handle different thumbnail formats
-                    if 'thumbnail' in item and item['thumbnail']:
-                        resolutions = item['thumbnail'].get('resolutions', [])
-                        if resolutions:
+                    thumb_obj = content.get('thumbnail', item.get('thumbnail'))
+                    if thumb_obj and isinstance(thumb_obj, dict):
+                        resolutions = thumb_obj.get('resolutions', [])
+                        if resolutions and len(resolutions) > 0:
                             thumbnail = resolutions[0].get('url')
 
+                    # Get publish time
                     publish_time = None
-                    if 'providerPublishTime' in item:
+                    if 'pubDate' in content:
+                        # New format: ISO string
+                        try:
+                            from dateutil import parser
+                            dt = parser.parse(content['pubDate'])
+                            publish_time = dt.isoformat()
+                        except:
+                            publish_time = content['pubDate']
+                    elif 'providerPublishTime' in item:
+                        # Old format: Unix timestamp
                         publish_time = datetime.fromtimestamp(item['providerPublishTime']).isoformat()
 
                     results.append({
-                        'title': item.get('title', ''),
-                        'publisher': item.get('publisher', ''),
-                        'link': item.get('link', ''),
+                        'title': title,
+                        'publisher': publisher,
+                        'link': link,
                         'publish_time': publish_time,
                         'thumbnail': thumbnail,
                     })
-                except Exception:
+                except Exception as e:
+                    logger.debug(f"Failed to parse news item: {e}")
                     continue
     except Exception as e:
         logger.debug(f"yfinance news failed for {ticker}: {e}")

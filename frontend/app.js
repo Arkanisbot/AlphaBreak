@@ -40,20 +40,45 @@ document.addEventListener('DOMContentLoaded', () => {
 function initializeSidebar() {
     const hamburgerBtn = document.getElementById('hamburgerBtn');
     const sidebar = document.getElementById('sidebar');
+    const appLayout = document.querySelector('.app-layout');
     const sidebarLinks = document.querySelectorAll('.sidebar-link');
     const tabContents = document.querySelectorAll('.tab-content');
 
-    // Toggle sidebar expansion
+    // Sidebar starts open by default
+    // Users can double-click hamburger to toggle it closed
+
+    // Toggle sidebar expansion (temporary overlay on mobile)
     function toggleSidebar() {
         sidebar.classList.toggle('expanded');
+    }
+
+    // Toggle sidebar completely closed/open (persistent)
+    function toggleSidebarClosed() {
+        const isClosed = sidebar.classList.toggle('closed');
+        appLayout.classList.toggle('sidebar-closed');
+        localStorage.setItem('sidebarClosed', isClosed);
     }
 
     function closeSidebar() {
         sidebar.classList.remove('expanded');
     }
 
-    // Hamburger button click
-    hamburgerBtn.addEventListener('click', toggleSidebar);
+    // Hamburger button click - single click expands, double click toggles closed
+    let clickTimeout = null;
+    hamburgerBtn.addEventListener('click', (e) => {
+        if (clickTimeout) {
+            // Double click - toggle sidebar closed/open
+            clearTimeout(clickTimeout);
+            clickTimeout = null;
+            toggleSidebarClosed();
+        } else {
+            // Single click - toggle expansion
+            clickTimeout = setTimeout(() => {
+                toggleSidebar();
+                clickTimeout = null;
+            }, 250);
+        }
+    });
 
     // Sidebar link clicks
     sidebarLinks.forEach(link => {
@@ -73,10 +98,10 @@ function initializeSidebar() {
 
             state.activeTab = tabName;
 
-            // Hide persistent sentiment widget on forex tab
+            // Hide persistent sentiment widget on forex and portfolio tabs
             const persistentSentiment = document.getElementById('persistentSentiment');
             if (persistentSentiment) {
-                persistentSentiment.style.display = tabName === 'forex' ? 'none' : '';
+                persistentSentiment.style.display = (tabName === 'forex' || tabName === 'portfolio') ? 'none' : '';
             }
 
             // Close sidebar after selection
@@ -296,6 +321,22 @@ function displayOptionsResults(data) {
     document.getElementById('optionsResultTimestamp').textContent =
         new Date(data.timestamp).toLocaleString();
 
+    // Setup "+ Watch" button
+    const watchBtn = document.getElementById('optionsAddToWatchlist');
+    if (watchBtn) {
+        // Remove old listeners by replacing the element
+        const newWatchBtn = watchBtn.cloneNode(true);
+        watchBtn.parentNode.replaceChild(newWatchBtn, watchBtn);
+
+        newWatchBtn.addEventListener('click', () => {
+            if (typeof Watchlist !== 'undefined' && Watchlist.addTicker) {
+                Watchlist.addTicker(data.ticker);
+            } else {
+                showSnackbar(`Watchlist not available`, 'error');
+            }
+        });
+    }
+
     // Update strategy
     const analysis = data.analysis;
     document.getElementById('strategyName').textContent =
@@ -488,5 +529,26 @@ function formatPercentage(value) {
     return `${(value * 100).toFixed(2)}%`;
 }
 
+// Global Snackbar notification
+function showSnackbar(message, type = 'info') {
+    // Create snackbar if it doesn't exist
+    let snackbar = document.getElementById('snackbar');
+    if (!snackbar) {
+        snackbar = document.createElement('div');
+        snackbar.id = 'snackbar';
+        document.body.appendChild(snackbar);
+    }
+
+    // Set message and type
+    snackbar.textContent = message;
+    snackbar.className = `snackbar snackbar-${type} show`;
+
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+        snackbar.classList.remove('show');
+    }, 3000);
+}
+
 // Export for use in HTML
 window.closeError = closeError;
+window.showSnackbar = showSnackbar;

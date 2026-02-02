@@ -514,15 +514,207 @@ const Forex = {
     },
 
     async selectPair(pair) {
+        // Toggle off if same pair
+        if (this.selectedPair === pair) {
+            this.closePairDetail();
+            return;
+        }
+
+        // Close any existing detail row
+        this.closePairDetail();
+
         this.selectedPair = pair;
 
-        // Highlight selected row
-        document.querySelectorAll('.forex-pair-row').forEach(row => {
-            row.classList.toggle('selected', row.dataset.pair === pair);
+        // Find the clicked row
+        const selectedRow = document.querySelector(`.forex-pair-row[data-pair="${pair}"]`);
+        if (!selectedRow) return;
+
+        // Highlight the selected row
+        selectedRow.classList.add('selected');
+
+        // Create inline detail row
+        const detailRow = document.createElement('tr');
+        detailRow.className = 'forex-pair-detail-row';
+        detailRow.id = 'forexPairDetailRow';
+        detailRow.innerHTML = `
+            <td colspan="6">
+                <div class="forex-pair-detail-panel">
+                    <div class="forex-pair-detail-header">
+                        <h3>${pair} — Price Chart with DXY</h3>
+                        <button class="btn btn-sm" onclick="Forex.closePairDetail()">Close</button>
+                    </div>
+                    <div class="forex-pair-chart-wrapper">
+                        <canvas id="forexPairInlineChart"></canvas>
+                    </div>
+                </div>
+            </td>
+        `;
+
+        // Insert detail row after the selected row
+        selectedRow.after(detailRow);
+
+        // Scroll to the detail row
+        detailRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        // Load chart data
+        await this.loadPairInlineChart(pair);
+    },
+
+    closePairDetail() {
+        // Remove inline detail row
+        const detailRow = document.getElementById('forexPairDetailRow');
+        if (detailRow) {
+            detailRow.remove();
+        }
+
+        // Remove highlight from selected row
+        document.querySelectorAll('.forex-pair-row.selected').forEach(r => r.classList.remove('selected'));
+
+        // Destroy chart
+        if (this.charts.pairInlineChart) {
+            this.charts.pairInlineChart.destroy();
+            delete this.charts.pairInlineChart;
+        }
+
+        this.selectedPair = null;
+    },
+
+    async loadPairInlineChart(pair) {
+        const canvas = document.getElementById('forexPairInlineChart');
+        if (!canvas) return;
+
+        try {
+            // Fetch pair data and DXY data in parallel
+            const [pairResponse, dxyResponse] = await Promise.all([
+                apiRequest(`/api/forex/data/${encodeURIComponent(pair)}?days=365`, 'GET'),
+                apiRequest('/api/forex/usd-chart?timeframe=daily', 'GET')
+            ]);
+
+            if (!pairResponse.ok) throw new Error('Failed to load pair data');
+
+            const pairData = await pairResponse.json();
+            const dxyData = dxyResponse.ok ? await dxyResponse.json() : null;
+
+            this.renderPairInlineChart(pair, pairData.data || [], dxyData);
+        } catch (error) {
+            console.error('Inline chart load failed:', error);
+        }
+    },
+
+    renderPairInlineChart(pair, pairData, dxyData) {
+        const canvas = document.getElementById('forexPairInlineChart');
+        if (!canvas || pairData.length === 0) return;
+
+        // Destroy existing chart
+        if (this.charts.pairInlineChart) {
+            this.charts.pairInlineChart.destroy();
+        }
+
+        const ctx = canvas.getContext('2d');
+
+        // Prepare pair data
+        const pairChartData = pairData.map(d => ({
+            x: new Date(d.date),
+            y: d.close,
+        }));
+
+        const datasets = [];
+
+        // Add DXY as background if available - calculate from chart_data
+        if (dxyData && dxyData.chart_data && dxyData.chart_data.length > 0 && dxyData.pairs) {
+            // Calculate DXY proxy (weighted average of USD pairs)
+            const dxyChartData = dxyData.chart_data.map(d => {
+                let sum = 0;
+                let count = 0;
+                dxyData.pairs.forEach(pair => {
+                    const val = d[pair.replace('/', '_')];
+                    if (val != null) {
+                        // For XXX/USD pairs (EUR/USD, GBP/USD), invert to show USD strength
+                        // For USD/XXX pairs, use as-is
+                        const isUsdBase = pair.startsWith('USD/');
+                        sum += isUsdBase ? val : (200 - val); // Invert XXX/USD pairs
+                        count++;
+                    }
+                });
+                return {
+                    x: new Date(d.timestamp),
+                    y: count > 0 ? sum / count : null,
+                };
+            }).filter(d => d.y != null);
+
+            datasets.push({
+                label: 'DXY (US Dollar Index)',
+                data: dxyChartData,
+                borderColor: this.DXY_BORDER,
+                backgroundColor: this.DXY_COLOR,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 0,
+                yAxisID: 'y1',
+                order: 2,
+            });
+        }
+
+        // Add pair data on top
+        datasets.push({
+            label: pair,
+            data: pairChartData,
+            borderColor: '#4fc3f7',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            tension: 0.1,
+            pointRadius: 0,
+            yAxisID: 'y',
+            order: 1,
         });
 
-        // Load chart for selected pair
-        await this.loadPairChart(pair);
+        this.charts.pairInlineChart = new Chart(ctx, {
+            type: 'line',
+            data: { datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: { color: '#8b95a5', font: { size: 11 } }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1c2030',
+                        titleColor: '#e2e8f0',
+                        bodyColor: '#8b95a5',
+                        borderColor: '#2a2e39',
+                        borderWidth: 1,
+                    },
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: { unit: 'month' },
+                        grid: { color: '#2a2e3960' },
+                        ticks: { color: '#8b95a5', font: { size: 10 } },
+                    },
+                    y: {
+                        type: 'linear',
+                        position: 'left',
+                        title: { display: true, text: pair, color: '#8b95a5' },
+                        grid: { color: '#2a2e3960' },
+                        ticks: { color: '#8b95a5', font: { size: 10 } },
+                    },
+                    y1: {
+                        type: 'linear',
+                        position: 'right',
+                        title: { display: true, text: 'DXY', color: '#8b95a5' },
+                        grid: { display: false },
+                        ticks: { color: '#8b95a5', font: { size: 10 } },
+                    },
+                },
+            },
+        });
     },
 
     // ──────────────────────────────────────────────────────────

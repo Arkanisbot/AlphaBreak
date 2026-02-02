@@ -6,13 +6,14 @@ const IndicatorGuide = {
     indicators: [],
 
     // Indicator display names and order
+    // usedInMarketSentiment: true marks indicators shown in the Market Sentiment widget
     indicatorMeta: {
-        'CCI': { name: 'CCI (Commodity Channel Index)', order: 1 },
-        'RSI': { name: 'RSI (Relative Strength Index)', order: 2 },
-        'SMA Crossover': { name: 'SMA Crossover (20/50)', order: 3 },
-        'Stochastic': { name: 'Stochastic Oscillator', order: 4 },
+        'CCI': { name: 'CCI (Commodity Channel Index)', order: 1, usedInMarketSentiment: true },
+        'RSI': { name: 'RSI (Relative Strength Index)', order: 2, usedInMarketSentiment: true },
+        'SMA Crossover': { name: 'SMA Crossover (20/50)', order: 3, usedInMarketSentiment: true },
+        'Stochastic': { name: 'Stochastic Oscillator', order: 4, usedInMarketSentiment: true },
         'ADX': { name: 'ADX (Average Directional Index)', order: 5 },
-        'TLEV': { name: 'TLEV (Volume Momentum)', order: 6 },
+        'TLEV': { name: 'TLEV (Volume Momentum)', order: 6, usedInMarketSentiment: true },
         'VIX': { name: 'VIX (Volatility Index)', order: 7 },
         'PCR': { name: 'Put/Call Ratio', order: 8 },
     },
@@ -97,11 +98,19 @@ const IndicatorGuide = {
 
         container.innerHTML = this.indicators.map(indicator => {
             const displayName = this.indicatorMeta[indicator.name]?.name || indicator.name;
+            const meta = this.indicatorMeta[indicator.name];
+            const isMarketSentiment = meta?.usedInMarketSentiment || false;
+
+            // Create ID for linking (lowercase, remove spaces/special chars)
+            const indicatorId = `indicator-${indicator.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+            const cardClass = isMarketSentiment ? 'indicator-card market-sentiment-indicator' : 'indicator-card';
+            const badge = isMarketSentiment ? '<span class="market-sentiment-badge" title="Used in Market Sentiment widget">Market Sentiment</span>' : '';
 
             return `
-                <div class="indicator-card">
+                <div class="${cardClass}" id="${indicatorId}">
                     <div class="indicator-card-header">
                         <h3 class="indicator-card-title">${displayName}</h3>
+                        ${badge}
                     </div>
                     <div class="indicator-card-body">
                         <div class="indicator-columns">

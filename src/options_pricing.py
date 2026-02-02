@@ -585,6 +585,65 @@ def get_option_prices(
     return opt.calls, opt.puts
 
 
+def get_options_within_days(symbol: str, max_days: int = 90) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Get all options expiring within the specified number of days.
+
+    Args:
+        symbol: Stock ticker symbol
+        max_days: Maximum days until expiration (default 90)
+
+    Returns:
+        Tuple of (combined_calls_df, combined_puts_df) with expiry column added
+    """
+    import datetime
+    ticker = yf.Ticker(symbol)
+    expirations = ticker.options
+
+    if not expirations:
+        raise ValueError(f"No options available for {symbol}")
+
+    # Filter expiries within max_days
+    today = datetime.datetime.now().date()
+    cutoff_date = today + datetime.timedelta(days=max_days)
+
+    valid_expiries = []
+    for exp_str in expirations:
+        exp_date = datetime.datetime.strptime(exp_str, '%Y-%m-%d').date()
+        if today <= exp_date <= cutoff_date:
+            valid_expiries.append(exp_str)
+
+    if not valid_expiries:
+        # If no options within range, use the nearest one
+        valid_expiries = [expirations[0]]
+
+    # Fetch options for all valid expiries
+    all_calls = []
+    all_puts = []
+
+    for expiry in valid_expiries:
+        try:
+            opt = ticker.option_chain(expiry)
+            calls_df = opt.calls.copy()
+            puts_df = opt.puts.copy()
+
+            # Add expiry column
+            calls_df['expiry'] = expiry
+            puts_df['expiry'] = expiry
+
+            all_calls.append(calls_df)
+            all_puts.append(puts_df)
+        except Exception as e:
+            print(f"Warning: Failed to fetch options for {expiry}: {e}")
+            continue
+
+    # Combine all dataframes
+    combined_calls = pd.concat(all_calls, ignore_index=True) if all_calls else pd.DataFrame()
+    combined_puts = pd.concat(all_puts, ignore_index=True) if all_puts else pd.DataFrame()
+
+    return combined_calls, combined_puts
+
+
 def get_all_option_expirations(symbol: str) -> list:
     """
     Get all available option expiration dates for a symbol.
@@ -1028,15 +1087,33 @@ def analyze_option_pricing(
         volatility = float(volatility.iloc[0])
     else:
         volatility = float(volatility)
+
+    # Validate volatility
+    if np.isnan(volatility) or volatility <= 0:
+        print(f"WARNING: Invalid volatility ({volatility}), using default 0.30 (30%)")
+        volatility = 0.30
     print(f"Annualized volatility: {volatility:.2%}")
 
-    # Step 3: Get option chain
-    print("\nStep 3: Retrieving option chain...")
+    # Step 3: Get option chain (all options within 90 days)
+    print("\nStep 3: Retrieving option chain (up to 90 days out)...")
     try:
-        calls, puts = get_option_prices(ticker, expiry_date)
-        if expiry_date is None:
-            stock = yf.Ticker(ticker)
-            expiry_date = stock.options[0]
+        calls, puts = get_options_within_days(ticker, max_days=90)
+        print(f"Found {len(calls)} call options and {len(puts)} put options across multiple expiries")
+
+        # If specific expiry_date was requested, filter for that
+        if expiry_date:
+            calls = calls[calls['expiry'] == expiry_date] if 'expiry' in calls.columns else calls
+            puts = puts[puts['expiry'] == expiry_date] if 'expiry' in puts.columns else puts
+            print(f"Filtered to expiry {expiry_date}: {len(calls)} calls, {len(puts)} puts")
+        else:
+            # Use the nearest expiry for time calculation
+            if not calls.empty and 'expiry' in calls.columns:
+                expiry_date = calls['expiry'].iloc[0]
+            elif not puts.empty and 'expiry' in puts.columns:
+                expiry_date = puts['expiry'].iloc[0]
+            else:
+                stock = yf.Ticker(ticker)
+                expiry_date = stock.options[0]
     except Exception as e:
         print(f"Error getting option chain: {e}")
         return None
@@ -1044,11 +1121,21 @@ def analyze_option_pricing(
     # Step 4: Calculate time to expiry
     print("\nStep 4: Calculating time to expiry...")
     time_to_expiry = calculate_time_to_expiry(end_date, expiry_date)
+
+    # Validate time to expiry
+    if np.isnan(time_to_expiry) or time_to_expiry <= 0:
+        print(f"WARNING: Invalid time_to_expiry ({time_to_expiry}), using minimum 1 day")
+        time_to_expiry = 1.0 / 365.0
     print(f"Time to expiry: {time_to_expiry:.4f} years ({time_to_expiry*365:.0f} days)")
 
     # Step 5: Get dynamic risk-free rate
     print("\nStep 5: Fetching risk-free rate...")
     risk_free_rate = get_risk_free_rate(time_to_expiry)
+
+    # Validate risk-free rate
+    if np.isnan(risk_free_rate) or risk_free_rate < 0:
+        print(f"WARNING: Invalid risk_free_rate ({risk_free_rate}), using default 0.045 (4.5%)")
+        risk_free_rate = 0.045
     print(f"Risk-free rate: {risk_free_rate:.2%}")
 
     # Step 5b: Get CBOE sentiment context
@@ -1081,16 +1168,36 @@ def analyze_option_pricing(
             K = opt['strike']
             market_price = opt['lastPrice']
 
+            # Calculate time to expiry for this specific option
+            opt_expiry = opt.get('expiry', expiry_date)
+            opt_time_to_expiry = calculate_time_to_expiry(end_date, opt_expiry)
+
+            # Validate time to expiry
+            if np.isnan(opt_time_to_expiry) or opt_time_to_expiry <= 0:
+                opt_time_to_expiry = 1.0 / 365.0
+
+            # Get risk-free rate for this option's time to expiry
+            opt_risk_free_rate = get_risk_free_rate(opt_time_to_expiry)
+            if np.isnan(opt_risk_free_rate) or opt_risk_free_rate < 0:
+                opt_risk_free_rate = risk_free_rate  # Use default
+
             if pricing_model == 'american':
-                theoretical = binomial_tree_american(current_price, K, risk_free_rate, time_to_expiry, volatility, 'call')
+                theoretical = binomial_tree_american(current_price, K, opt_risk_free_rate, opt_time_to_expiry, volatility, 'call')
             else:
-                theoretical = black_scholes_call(current_price, K, risk_free_rate, time_to_expiry, volatility)
+                theoretical = black_scholes_call(current_price, K, opt_risk_free_rate, opt_time_to_expiry, volatility)
+
+            # Validate theoretical price
+            if np.isnan(theoretical) or theoretical < 0:
+                print(f"WARNING: Invalid theoretical price for call strike {K}, expiry {opt_expiry}: {theoretical}")
+                theoretical = market_price  # Use market price as fallback
 
             mispricing = ((market_price - theoretical) / theoretical * 100) if theoretical > 0 else 0
 
             row = {
                 'type': 'CALL',
                 'strike': K,
+                'expiry': opt_expiry,
+                'days_to_expiry': int(opt_time_to_expiry * 365),
                 'market_price': market_price,
                 'theoretical_price': theoretical,
                 'mispricing_%': mispricing,
@@ -1122,16 +1229,36 @@ def analyze_option_pricing(
             K = opt['strike']
             market_price = opt['lastPrice']
 
+            # Calculate time to expiry for this specific option
+            opt_expiry = opt.get('expiry', expiry_date)
+            opt_time_to_expiry = calculate_time_to_expiry(end_date, opt_expiry)
+
+            # Validate time to expiry
+            if np.isnan(opt_time_to_expiry) or opt_time_to_expiry <= 0:
+                opt_time_to_expiry = 1.0 / 365.0
+
+            # Get risk-free rate for this option's time to expiry
+            opt_risk_free_rate = get_risk_free_rate(opt_time_to_expiry)
+            if np.isnan(opt_risk_free_rate) or opt_risk_free_rate < 0:
+                opt_risk_free_rate = risk_free_rate  # Use default
+
             if pricing_model == 'american':
-                theoretical = binomial_tree_american(current_price, K, risk_free_rate, time_to_expiry, volatility, 'put')
+                theoretical = binomial_tree_american(current_price, K, opt_risk_free_rate, opt_time_to_expiry, volatility, 'put')
             else:
-                theoretical = black_scholes_put(current_price, K, risk_free_rate, time_to_expiry, volatility)
+                theoretical = black_scholes_put(current_price, K, opt_risk_free_rate, opt_time_to_expiry, volatility)
+
+            # Validate theoretical price
+            if np.isnan(theoretical) or theoretical < 0:
+                print(f"WARNING: Invalid theoretical price for put strike {K}, expiry {opt_expiry}: {theoretical}")
+                theoretical = market_price  # Use market price as fallback
 
             mispricing = ((market_price - theoretical) / theoretical * 100) if theoretical > 0 else 0
 
             row = {
                 'type': 'PUT',
                 'strike': K,
+                'expiry': opt_expiry,
+                'days_to_expiry': int(opt_time_to_expiry * 365),
                 'market_price': market_price,
                 'theoretical_price': theoretical,
                 'mispricing_%': mispricing,

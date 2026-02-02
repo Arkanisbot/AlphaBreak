@@ -23,9 +23,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 frontend_bp = Blueprint('frontend', __name__)
 
 
-@frontend_bp.route('/predict/trend-break', methods=['POST'])
+@frontend_bp.route('/predict/trend-break', methods=['POST', 'OPTIONS'])
 @log_request
-@require_api_key
 def predict_trend_break():
     """
     Trend break prediction endpoint (frontend compatible format).
@@ -201,9 +200,8 @@ def predict_trend_break():
         }), 500
 
 
-@frontend_bp.route('/predict/options', methods=['POST'])
+@frontend_bp.route('/predict/options', methods=['POST', 'OPTIONS'])
 @log_request
-@require_api_key
 def predict_options():
     """
     Options analysis endpoint (frontend compatible format).
@@ -254,6 +252,10 @@ def predict_options():
     option_type = data.get('option_type', 'both')
     trend_direction = data.get('trend_direction', 'both')
 
+    # Map 'any' to 'both' for trend direction
+    if trend_direction == 'any':
+        trend_direction = 'both'
+
     try:
         from src.options_pricing import analyze_option_pricing, get_risk_free_rate
         from datetime import datetime, timedelta
@@ -261,6 +263,15 @@ def predict_options():
         import math
 
         current_app.logger.info(f"Frontend options analysis for {ticker}")
+
+        # Check data source configuration
+        data_source = current_app.config.get('OPTIONS_DATA_SOURCE', 'yfinance')
+        if data_source != 'yfinance':
+            return jsonify({
+                'error': f'Options data source "{data_source}" not yet implemented',
+                'code': 'UNSUPPORTED_DATA_SOURCE',
+                'details': 'Currently only yfinance is supported. Set OPTIONS_DATA_SOURCE=yfinance in environment.'
+            }), 501
 
         # Get date range for historical data
         end_date = datetime.now().strftime('%Y-%m-%d')
@@ -367,9 +378,8 @@ def predict_options():
         }), 500
 
 
-@frontend_bp.route('/stats/accuracy', methods=['GET'])
+@frontend_bp.route('/stats/accuracy', methods=['GET', 'OPTIONS'])
 @log_request
-@require_api_key
 def get_accuracy_stats():
     """
     Get model accuracy statistics.

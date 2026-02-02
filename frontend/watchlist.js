@@ -194,8 +194,14 @@ const Watchlist = {
 
     async addTicker(ticker) {
         ticker = ticker.toUpperCase().trim();
-        if (!ticker || ticker.length > 5) return;
-        if (!/^[A-Z]{1,5}(-[A-Z])?$/.test(ticker)) return;
+        if (!ticker || ticker.length > 5) {
+            this.showSnackbar('Invalid ticker format', 'error');
+            return;
+        }
+        if (!/^[A-Z]{1,5}(-[A-Z])?$/.test(ticker)) {
+            this.showSnackbar('Invalid ticker format', 'error');
+            return;
+        }
 
         if (this.tickers.includes(ticker)) {
             // Already in watchlist — flash the card
@@ -204,18 +210,32 @@ const Watchlist = {
                 card.classList.add('watchlist-flash');
                 setTimeout(() => card.classList.remove('watchlist-flash'), 600);
             }
+            this.showSnackbar(`${ticker} is already in watchlist`, 'info');
             return;
         }
 
-        // Add locally first for immediate UI feedback
-        this.tickers.push(ticker);
-        this.saveToStorage();
-        this.render();
-        this.fetchSingleTicker(ticker);
-        this.startAutoRefresh();
+        // Validate ticker exists by fetching data first
+        try {
+            const response = await apiRequest(`/api/watchlist/ticker/${ticker}`);
+            if (!response.ok) {
+                this.showSnackbar(`${ticker} is not a valid security or data unavailable`, 'error');
+                return;
+            }
+            const data = await response.json();
 
-        // Sync to server (async, non-blocking)
-        this.addTickerToServer(ticker);
+            // If we got here, ticker is valid - add it
+            this.tickers.push(ticker);
+            this.saveToStorage();
+            this.data[ticker] = data; // Cache the fetched data
+            this.render();
+            this.startAutoRefresh();
+            this.showSnackbar(`${ticker} added to watchlist`, 'success');
+
+            // Sync to server (async, non-blocking)
+            this.addTickerToServer(ticker);
+        } catch (err) {
+            this.showSnackbar(`Failed to validate ${ticker}`, 'error');
+        }
     },
 
     async removeTicker(ticker) {
@@ -580,6 +600,27 @@ const Watchlist = {
                 this.fetchAllData();
             }
         }, this.REFRESH_INTERVAL);
+    },
+
+    // ── Snackbar Notifications ─────────────────────────────────────────
+
+    showSnackbar(message, type = 'info') {
+        // Create snackbar if it doesn't exist
+        let snackbar = document.getElementById('snackbar');
+        if (!snackbar) {
+            snackbar = document.createElement('div');
+            snackbar.id = 'snackbar';
+            document.body.appendChild(snackbar);
+        }
+
+        // Set message and type
+        snackbar.textContent = message;
+        snackbar.className = `snackbar snackbar-${type} show`;
+
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            snackbar.classList.remove('show');
+        }, 3000);
     },
 };
 

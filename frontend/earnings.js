@@ -16,7 +16,6 @@ const Earnings = {
     init() {
         this.loadCustomTickers();
         this.setupForm();
-        this.setupDetailClose();
         this.loadCalendar();
     },
 
@@ -39,13 +38,6 @@ const Earnings = {
                 input.value = '';
             }
         });
-    },
-
-    setupDetailClose() {
-        const closeBtn = document.getElementById('earningsDetailClose');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => this.closeDetail());
-        }
     },
 
     // ──────────────────────────────────────────────────────────
@@ -216,39 +208,64 @@ const Earnings = {
     // ──────────────────────────────────────────────────────────
 
     async expandRow(ticker) {
-        const panel = document.getElementById('earningsDetailPanel');
-        if (!panel) return;
-
         // Toggle off if same ticker
-        if (this.expandedTicker === ticker && panel.style.display !== 'none') {
+        if (this.expandedTicker === ticker) {
             this.closeDetail();
             return;
         }
 
-        // Remove highlight from previously selected row
-        document.querySelectorAll('.earnings-row.selected').forEach(r => r.classList.remove('selected'));
+        // Close any existing detail row
+        this.closeDetail();
+
+        // Find the clicked row
+        const selectedRow = document.querySelector(`.earnings-row[data-ticker="${ticker}"]`);
+        if (!selectedRow) return;
 
         // Highlight the selected row
-        const selectedRow = document.querySelector(`.earnings-row[data-ticker="${ticker}"]`);
-        if (selectedRow) {
-            selectedRow.classList.add('selected');
-        }
-
+        selectedRow.classList.add('selected');
         this.expandedTicker = ticker;
-        document.getElementById('earningsDetailTicker').textContent = ticker + ' — Earnings Detail';
-        document.getElementById('cboeMetrics').innerHTML = '<p>Loading CBOE data...</p>';
-        document.getElementById('earningsNewsGrid').innerHTML = '<p>Loading news...</p>';
 
-        // Clear any previous chart
-        if (this.charts.earningsCandlestickChart) {
-            this.charts.earningsCandlestickChart.destroy();
-            delete this.charts.earningsCandlestickChart;
-        }
+        // Create detail row
+        const detailRow = document.createElement('tr');
+        detailRow.className = 'earnings-detail-row';
+        detailRow.id = 'earningsDetailRow';
+        detailRow.innerHTML = `
+            <td colspan="7">
+                <div class="earnings-detail-panel-inline">
+                    <div class="earnings-detail-header">
+                        <h3>${ticker} — Earnings Detail</h3>
+                        <button class="btn btn-sm" onclick="Earnings.closeDetail()">Close</button>
+                    </div>
+                    <div class="earnings-detail-grid">
+                        <!-- CBOE Activity -->
+                        <div class="earnings-cboe">
+                            <h4>CBOE Options Activity</h4>
+                            <div class="cboe-metrics" id="cboeMetrics"><p>Loading CBOE data...</p></div>
+                        </div>
+                        <!-- Candlestick Chart -->
+                        <div class="earnings-chart-container">
+                            <h4>3-Month Daily Chart</h4>
+                            <div class="chart-wrapper">
+                                <canvas id="earningsCandlestickChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- News Section -->
+                    <div class="earnings-news-section">
+                        <h4>Recent News</h4>
+                        <div class="earnings-news-grid" id="earningsNewsGrid"><p>Loading news...</p></div>
+                    </div>
+                </div>
+            </td>
+        `;
 
-        panel.style.display = 'block';
-        // Scroll panel into view at the top of the viewport
-        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Insert detail row after the selected row
+        selectedRow.after(detailRow);
 
+        // Scroll to the detail row
+        detailRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        // Load data
         try {
             const response = await apiRequest('/api/earnings/ticker/' + ticker, 'GET');
             if (!response.ok) throw new Error('Failed to load ticker detail');
@@ -263,8 +280,11 @@ const Earnings = {
     },
 
     closeDetail() {
-        const panel = document.getElementById('earningsDetailPanel');
-        if (panel) panel.style.display = 'none';
+        // Remove inline detail row
+        const detailRow = document.getElementById('earningsDetailRow');
+        if (detailRow) {
+            detailRow.remove();
+        }
 
         // Remove highlight from selected row
         document.querySelectorAll('.earnings-row.selected').forEach(r => r.classList.remove('selected'));

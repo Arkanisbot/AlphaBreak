@@ -47,6 +47,16 @@ class Config:
     # Password requirements
     PASSWORD_MIN_LENGTH = 8
 
+    # Data Source Configuration
+    # Options data source: 'yfinance', 'polygon', 'database'
+    OPTIONS_DATA_SOURCE = os.environ.get('OPTIONS_DATA_SOURCE', 'yfinance')
+
+    # Stock data source: 'yfinance', 'polygon', 'database'
+    STOCK_DATA_SOURCE = os.environ.get('STOCK_DATA_SOURCE', 'yfinance')
+
+    # Forex data source: 'yfinance', 'fred', 'database'
+    FOREX_DATA_SOURCE = os.environ.get('FOREX_DATA_SOURCE', 'yfinance')
+
 
 class DevelopmentConfig(Config):
     """Development configuration"""

@@ -6,6 +6,7 @@ const Dashboard = {
     refreshTimers: {},
     data: {},
     currentTimeframe: 'daily', // Default timeframe for market sentiment chart
+    currentSectorTimeframe: 'weekly', // Default timeframe for sector charts
 
     // ──────────────────────────────────────────────────────────
     // INITIALIZATION
@@ -48,6 +49,15 @@ const Dashboard = {
                 this.filterSectors(e.target.value);
             });
         }
+
+        // Sector timeframe selector
+        const sectorTimeframeRadios = document.querySelectorAll('input[name="sectorTimeframe"]');
+        sectorTimeframeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.currentSectorTimeframe = e.target.value;
+                this.updateCurrentSectorChart();
+            });
+        });
 
         document.querySelectorAll('.asset-tab').forEach(tab => {
             tab.addEventListener('click', (e) => {
@@ -158,15 +168,36 @@ const Dashboard = {
         document.getElementById('marketSentimentConfidence').textContent =
             Math.round(data.confidence * 100) + '% confidence';
 
-        // Indicator chips
+        // Indicator chips (clickable links to indicator guide)
         const indicatorsEl = document.getElementById('marketSentimentIndicators');
         indicatorsEl.innerHTML = '';
         if (data.indicators) {
             Object.entries(data.indicators).forEach(([name, info]) => {
-                const chip = document.createElement('span');
+                const chip = document.createElement('a');
                 chip.className = 'indicator-chip ' + info.signal;
                 chip.textContent = name.toUpperCase() + ': ' + info.signal;
-                chip.title = info.description || '';
+                chip.title = (info.description || '') + ' (click to view in Indicator Guide)';
+
+                // Create link to indicator guide
+                const indicatorId = `indicator-${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+                chip.href = '#';
+                chip.style.cursor = 'pointer';
+                chip.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Switch to indicators tab
+                    document.querySelector('[data-tab="indicators"]').click();
+                    // Wait for tab to load, then scroll to indicator
+                    setTimeout(() => {
+                        const indicatorCard = document.getElementById(indicatorId);
+                        if (indicatorCard) {
+                            indicatorCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            // Flash highlight
+                            indicatorCard.classList.add('highlight-flash');
+                            setTimeout(() => indicatorCard.classList.remove('highlight-flash'), 2000);
+                        }
+                    }, 100);
+                });
+
                 indicatorsEl.appendChild(chip);
             });
         }
@@ -293,18 +324,54 @@ const Dashboard = {
     },
 
     showSectorChart(sector) {
+        this.currentSector = sector; // Store current sector for timeframe switching
         const container = document.getElementById('sectorChartContainer');
         container.style.display = 'block';
-        if (sector.weekly_chart_data && sector.weekly_chart_data.length > 0) {
+        this.updateCurrentSectorChart();
+        // Update VIX & Index widget to react to sector selection
+        this.updateIndexWidgetForSector(sector);
+    },
+
+    updateCurrentSectorChart() {
+        if (!this.currentSector) return;
+
+        const sector = this.currentSector;
+        let chartData = [];
+        let timeUnit = 'week';
+        let timeFormat = 'MMM d';
+
+        // Select chart data based on timeframe
+        switch (this.currentSectorTimeframe) {
+            case 'hourly':
+                chartData = sector.hourly_chart_data || [];
+                timeUnit = 'hour';
+                timeFormat = 'MMM d HH:mm';
+                break;
+            case 'daily':
+                chartData = sector.daily_chart_data || [];
+                timeUnit = 'day';
+                timeFormat = 'MMM d';
+                break;
+            case 'weekly':
+            default:
+                chartData = sector.weekly_chart_data || [];
+                timeUnit = 'week';
+                timeFormat = 'MMM d';
+                break;
+        }
+
+        if (chartData.length > 0) {
             this.renderSectorCandlestickChart(
                 'sectorChart',
-                sector.weekly_chart_data,
-                sector.name
+                chartData,
+                sector.name,
+                timeUnit,
+                timeFormat
             );
         }
     },
 
-    renderSectorCandlestickChart(canvasId, chartData, sectorName) {
+    renderSectorCandlestickChart(canvasId, chartData, sectorName, timeUnit = 'week', timeFormat = 'MMM d') {
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
@@ -316,7 +383,7 @@ const Dashboard = {
         const hasOHLC = chartData[0] && chartData[0].open !== undefined;
 
         if (hasOHLC) {
-            // Render candlestick chart
+            // Render candlestick chart matching market sentiment style
             const timestamps = chartData.map(d => luxon.DateTime.fromISO(d.date).toMillis());
 
             const candlestickData = chartData.map((d, i) => ({
@@ -327,15 +394,38 @@ const Dashboard = {
                 c: d.close,
             }));
 
-            // SMA 10 overlay
+            // SMA 20 overlay (matching market sentiment)
             const smaData = [];
             for (let i = 0; i < chartData.length; i++) {
-                if (i >= 9) {
+                if (i >= 19) {
                     let sum = 0;
-                    for (let j = i - 9; j <= i; j++) {
+                    for (let j = i - 19; j <= i; j++) {
                         sum += chartData[j].close;
                     }
-                    smaData.push({ x: timestamps[i], y: sum / 10 });
+                    smaData.push({ x: timestamps[i], y: sum / 20 });
+                }
+            }
+
+            // Calculate support and resistance levels
+            const closes = chartData.map(d => d.close);
+            const highs = chartData.map(d => d.high);
+            const lows = chartData.map(d => d.low);
+
+            // Find recent peaks (local maxima)
+            const peaks = [];
+            for (let i = 2; i < highs.length - 2; i++) {
+                if (highs[i] > highs[i-1] && highs[i] > highs[i-2] &&
+                    highs[i] > highs[i+1] && highs[i] > highs[i+2]) {
+                    peaks.push({ x: timestamps[i], y: highs[i] });
+                }
+            }
+
+            // Find recent troughs (local minima)
+            const troughs = [];
+            for (let i = 2; i < lows.length - 2; i++) {
+                if (lows[i] < lows[i-1] && lows[i] < lows[i-2] &&
+                    lows[i] < lows[i+1] && lows[i] < lows[i+2]) {
+                    troughs.push({ x: timestamps[i], y: lows[i] });
                 }
             }
 
@@ -345,7 +435,7 @@ const Dashboard = {
                     data: candlestickData,
                 },
                 {
-                    label: 'SMA 10',
+                    label: 'SMA 20',
                     data: smaData,
                     type: 'line',
                     borderColor: '#f59e0b',
@@ -356,6 +446,40 @@ const Dashboard = {
                     order: 1,
                 },
             ];
+
+            // Add resistance line if we have >= 2 peaks
+            if (peaks.length >= 2) {
+                datasets.push({
+                    label: 'Resistance',
+                    data: peaks,
+                    type: 'line',
+                    borderColor: '#ef5350',
+                    borderWidth: 1.5,
+                    borderDash: [6, 3],
+                    pointRadius: 3,
+                    pointBackgroundColor: '#ef5350',
+                    fill: false,
+                    tension: 0,
+                    order: 2,
+                });
+            }
+
+            // Add support line if we have >= 2 troughs
+            if (troughs.length >= 2) {
+                datasets.push({
+                    label: 'Support',
+                    data: troughs,
+                    type: 'line',
+                    borderColor: '#26a69a',
+                    borderWidth: 1.5,
+                    borderDash: [6, 3],
+                    pointRadius: 3,
+                    pointBackgroundColor: '#26a69a',
+                    fill: false,
+                    tension: 0,
+                    order: 3,
+                });
+            }
 
             this.charts[canvasId] = new Chart(ctx, {
                 type: 'candlestick',
@@ -380,7 +504,7 @@ const Dashboard = {
                     scales: {
                         x: {
                             type: 'time',
-                            time: { unit: 'week', displayFormats: { week: 'MMM d' } },
+                            time: { unit: timeUnit, displayFormats: { [timeUnit]: timeFormat } },
                             grid: { display: false },
                             ticks: { maxTicksLimit: 8, font: { size: 10 }, color: '#8b95a5' },
                         },
@@ -406,6 +530,8 @@ const Dashboard = {
         if (sectorName === 'all') {
             document.querySelectorAll('.sector-pill').forEach(p => p.style.display = '');
             document.getElementById('sectorChartContainer').style.display = 'none';
+            // Reset VIX & Index widget to default state
+            this.updateIndexWidgetForSector(null);
         } else {
             const sector = this.data.sectorSentiment.sectors.find(s => s.name === sectorName);
             if (sector) this.showSectorChart(sector);
@@ -555,6 +681,61 @@ const Dashboard = {
         if (level.includes('Elevated')) return 'elevated';
         if (level.includes('Extreme')) return 'extreme';
         return 'normal';
+    },
+
+    updateIndexWidgetForSector(sector) {
+        const widgetTitle = document.querySelector('#widgetIndexSentiment .widget-title');
+        const indexCards = document.querySelectorAll('.index-card');
+
+        if (!sector) {
+            // Reset to default state
+            widgetTitle.textContent = 'VIX & Index Sentiment';
+            indexCards.forEach(card => {
+                card.style.opacity = '1';
+                card.style.border = '';
+            });
+            return;
+        }
+
+        // Update title to show selected sector
+        widgetTitle.textContent = `VIX & Index Sentiment - ${sector.name}`;
+
+        // Highlight indices based on sector sentiment correlation
+        indexCards.forEach(card => {
+            const indexSentimentBadge = card.querySelector('.index-sentiment-badge');
+            if (!indexSentimentBadge) return;
+
+            const indexSentiment = indexSentimentBadge.textContent.trim().toLowerCase();
+            const sectorSentiment = sector.sentiment.toLowerCase();
+
+            // Highlight if sentiments match
+            if (indexSentiment === sectorSentiment) {
+                card.style.border = '2px solid var(--accent)';
+                card.style.opacity = '1';
+            } else {
+                card.style.border = '';
+                card.style.opacity = '0.6';
+            }
+        });
+
+        // Add sector correlation info to VIX section
+        const vixDescription = document.getElementById('vixDescription');
+        if (vixDescription && this.data.indexSentiment) {
+            const matchingIndices = this.data.indexSentiment.indices
+                .filter(idx => idx.sentiment.toLowerCase() === sector.sentiment.toLowerCase())
+                .map(idx => idx.name);
+
+            let correlationText = '';
+            if (matchingIndices.length > 0) {
+                correlationText = ` <span style="color: var(--accent); font-weight: 600;">Correlated indices: ${matchingIndices.join(', ')}</span>`;
+            } else {
+                correlationText = ` <span style="color: var(--text-secondary);">No indices match ${sector.name} sentiment (${sector.sentiment})</span>`;
+            }
+
+            // Append to existing VIX description
+            const originalDescription = this.data.indexSentiment.vix?.description || '';
+            vixDescription.innerHTML = originalDescription + correlationText;
+        }
     },
 
     // ──────────────────────────────────────────────────────────

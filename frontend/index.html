@@ -128,6 +128,20 @@
                     <div class="widget-card" id="widgetSectorSentiment">
                         <div class="widget-header">
                             <h3 class="widget-title">Sector Sentiment</h3>
+                            <div class="timeframe-selector" id="sectorTimeframeSelector">
+                                <label class="timeframe-option">
+                                    <input type="radio" name="sectorTimeframe" value="hourly">
+                                    <span>Hourly</span>
+                                </label>
+                                <label class="timeframe-option">
+                                    <input type="radio" name="sectorTimeframe" value="daily">
+                                    <span>Daily</span>
+                                </label>
+                                <label class="timeframe-option">
+                                    <input type="radio" name="sectorTimeframe" value="weekly" checked>
+                                    <span>Weekly</span>
+                                </label>
+                            </div>
                             <select id="sectorSelector" class="sector-select">
                                 <option value="all">All Sectors</option>
                             </select>
@@ -423,6 +437,9 @@
                         <div class="result-card">
                             <div class="result-header">
                                 <span class="ticker-badge" id="optionsResultTicker"></span>
+                                <button class="btn btn-sm" id="optionsAddToWatchlist" title="Add to Intra-Day Trading Watchlist">
+                                    <span>+ Watch</span>
+                                </button>
                                 <span class="timestamp" id="optionsResultTimestamp"></span>
                             </div>
 
@@ -520,34 +537,7 @@
                         <p>Loading earnings calendar...</p>
                     </div>
 
-                    <!-- Detail Panel (shown when row is expanded) -->
-                    <div class="earnings-detail-panel" id="earningsDetailPanel" style="display: none;">
-                        <div class="earnings-detail-header">
-                            <h3 id="earningsDetailTicker"></h3>
-                            <button class="btn btn-sm" id="earningsDetailClose">Close</button>
-                        </div>
-                        <div class="earnings-detail-grid">
-                            <!-- CBOE Activity -->
-                            <div class="earnings-cboe" id="earningsDetailCBOE">
-                                <h4>CBOE Options Activity</h4>
-                                <div class="cboe-metrics" id="cboeMetrics"></div>
-                            </div>
-                            <!-- Candlestick Chart -->
-                            <div class="earnings-chart-container">
-                                <h4>3-Month Daily Chart</h4>
-                                <div class="chart-wrapper">
-                                    <canvas id="earningsCandlestickChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- News Section -->
-                        <div class="earnings-news-section">
-                            <h4>Recent News</h4>
-                            <div class="earnings-news-grid" id="earningsNewsGrid"></div>
-                        </div>
-                    </div>
-
-                    <!-- Calendar Table -->
+                    <!-- Calendar Table (detail panel now shown inline) -->
                     <div class="table-container" id="earningsTableContainer" style="display: none;">
                         <table class="earnings-calendar-table">
                             <thead>
@@ -566,20 +556,6 @@
                         </table>
                     </div>
 
-                    <!-- Add Custom Ticker Form (below calendar) -->
-                    <form id="earningsAddForm" class="earnings-add-form">
-                        <input
-                            type="text"
-                            id="earningsTickerInput"
-                            placeholder="Add ticker (e.g., AAPL)"
-                            maxlength="5"
-                            pattern="[A-Za-z]{1,5}"
-                        >
-                        <button type="submit" class="btn btn-primary">Add to Calendar</button>
-                    </form>
-
-                    <!-- Custom Tickers Display -->
-                    <div class="earnings-custom-tickers" id="earningsCustomTickers"></div>
                 </div>
             </div>
 
@@ -1575,11 +1551,11 @@
     </div>
 
     <script src="auth.js?v=1"></script>
-    <script src="app.js?v=4"></script>
-    <script src="dashboard.js?v=3"></script>
+    <script src="app.js?v=6"></script>
+    <script src="dashboard.js?v=5"></script>
     <script src="reports.js?v=3"></script>
     <script src="watchlist.js?v=3"></script>
-    <script src="earnings.js?v=3"></script>
+    <script src="earnings.js?v=4"></script>
     <script src="longterm.js?v=3"></script>
     <script src="indicators.js?v=1"></script>
     <script src="trading.js?v=1"></script>
