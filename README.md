@@ -77,7 +77,10 @@ Securities_prediction_model/
 └── docs/                         # Documentation
     ├── DATA_SOURCES_COMPARISON.md
     ├── KUBERNETES_MIGRATION_PLAN.md
-    └── GETTING_STARTED.md
+    ├── COMPLETED_FEATURES.md
+    ├── COMPREHENSIVE_FEATURE_DOCUMENTATION.md
+    └── setup guide/
+        └── SETUP_GUIDE.md        # Complete setup & deployment guide
 ```
 
 ## API Endpoints
@@ -226,7 +229,7 @@ Currently deployed on AWS EC2 with:
 - **Reverse Proxy**: Nginx with SSL (Let's Encrypt)
 - **Domain**: alphabreak.vip
 
-See [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) for deployment guide.
+See [docs/setup guide/SETUP_GUIDE.md](docs/setup%20guide/SETUP_GUIDE.md) for comprehensive setup and deployment guide (EC2, K8s, Docker).
 
 ## Roadmap
 
@@ -252,6 +255,35 @@ See [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) for deployment guide.
 | **Enterprise** | Bloomberg, Refinitiv | Tick data, $10k+/mo |
 
 See [docs/DATA_SOURCES_COMPARISON.md](docs/DATA_SOURCES_COMPARISON.md) for detailed comparison.
+
+## Documentation
+
+### Core Documentation
+
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture, component breakdown, technology stack, deployment architecture
+- **[DATA_ARCHITECTURE.md](docs/DATA_ARCHITECTURE.md)** - Database schema, TimescaleDB optimization, query patterns, storage estimates
+- **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Production deployment guide, infrastructure provisioning, service configuration, backup/recovery
+- **[API_DOCUMENTATION.md](docs/api/API_DOCUMENTATION.md)** - Complete API reference, request/response formats, authentication
+- **[SETUP_GUIDE.md](docs/setup/SETUP_GUIDE.md)** - Local development, Docker, K8s, EC2 quick start
+
+### Feature Documentation
+
+- **[COMPLETED_FEATURES.md](docs/COMPLETED_FEATURES.md)** - Production-ready features, deployment status, recent updates
+- **[COMPREHENSIVE_FEATURE_DOCUMENTATION.md](docs/COMPREHENSIVE_FEATURE_DOCUMENTATION.md)** - ML feature engineering (59 features), production metrics
+
+### Project Management
+
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history, all changes by release
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines and development workflow
+- **[ROADMAP.md](docs/ROADMAP.md)** - Future development plans and priorities
+
+### Specialized Guides
+
+- **[RELEASE_NOTES.md](docs/RELEASE_NOTES.md)** - Release process, templates, checklists
+- **[MODEL_TRAINING_GUIDE.md](docs/setup/MODEL_TRAINING_GUIDE.md)** - Training ML models
+- **[KUBERNETES_MIGRATION_PLAN.md](docs/setup/KUBERNETES_MIGRATION_PLAN.md)** - K8s migration strategy
+- **[DATA_SOURCES_COMPARISON.md](docs/DATA_SOURCES_COMPARISON.md)** - Data provider comparison
+- **[PULLBACK_MODEL_PLAN.md](docs/PULLBACK_MODEL_PLAN.md)** - Future model development
 
 ## Future Work
 

@@ -4,6 +4,94 @@ This guide walks you through setting up the project on a fresh machine. No AI as
 
 ---
 
+## ⚡ Quick Start (EC2 Production)
+
+**For fastest setup using the production EC2 instance:**
+
+### Prerequisites
+- Git installed
+- SSH key: `docs/security/trading-db-key.pem`
+
+### 1. Clone Repository
+```bash
+git clone https://github.com/SophistryDude/Securities_prediction_model.git
+cd Securities_prediction_model
+```
+
+### 2. Connect to EC2
+```bash
+ssh -i docs/security/trading-db-key.pem ubuntu@3.140.78.15
+```
+
+**Server Details:**
+- **Frontend**: http://3.140.78.15:8000
+- **API**: http://3.140.78.15:5000
+- **Airflow**: http://3.140.78.15:8080 (admin/admin123)
+- **Database**: PostgreSQL on localhost:5432 (from EC2)
+
+### 3. Deploy Code Changes
+
+**Frontend only:**
+```bash
+scp -i docs/security/trading-db-key.pem -r frontend/* ubuntu@3.140.78.15:~/frontend/
+```
+
+**Frontend + API:**
+```bash
+# Deploy frontend
+scp -i docs/security/trading-db-key.pem -r frontend/* ubuntu@3.140.78.15:~/frontend/
+
+# Deploy Flask app
+scp -i docs/security/trading-db-key.pem -r flask_app/* ubuntu@3.140.78.15:~/flask_app/
+
+# Restart API
+ssh -i docs/security/trading-db-key.pem ubuntu@3.140.78.15 "pkill gunicorn && cd /home/ubuntu/flask_app && ./start_flask.sh"
+```
+
+### 4. Common EC2 Commands
+
+```bash
+# Check service status
+ssh -i docs/security/trading-db-key.pem ubuntu@3.140.78.15 "sudo systemctl status airflow-scheduler airflow-webserver"
+
+# View logs
+ssh -i docs/security/trading-db-key.pem ubuntu@3.140.78.15 "tail -f /home/ubuntu/gunicorn.log"
+ssh -i docs/security/trading-db-key.pem ubuntu@3.140.78.15 "sudo journalctl -u airflow-scheduler -f"
+
+# Verify services
+curl http://3.140.78.15:5000/api/health
+curl http://3.140.78.15:8000
+```
+
+### 5. Deploy Script (Optional)
+
+Create `deploy.sh` in project root:
+
+```bash
+#!/bin/bash
+KEY="docs/security/trading-db-key.pem"
+HOST="ubuntu@3.140.78.15"
+
+echo "Deploying frontend..."
+scp -i $KEY -r frontend/* $HOST:~/frontend/
+
+echo "Deploying Flask API..."
+scp -i $KEY -r flask_app/* $HOST:~/flask_app/
+
+echo "Restarting API..."
+ssh -i $KEY $HOST "pkill gunicorn && cd ~/flask_app && ./start_flask.sh"
+
+echo "✅ Done! Check http://3.140.78.15:8000"
+```
+
+Run with: `bash deploy.sh`
+
+---
+
+**For complete local development setup or Kubernetes/Docker deployment, continue below...**
+
+---
+
 ## Table of Contents
 
 1. [Prerequisites](#prerequisites)
@@ -18,6 +106,7 @@ This guide walks you through setting up the project on a fresh machine. No AI as
 10. [Docker Deployment](#docker-deployment)
 11. [Kubernetes Deployment](#kubernetes-deployment)
 12. [Troubleshooting](#troubleshooting)
+13. [EC2 Production Guide](#ec2-production-guide)
 
 ---
 
@@ -495,7 +584,182 @@ lsof -i :5000                  # macOS/Linux
 
 ---
 
+## EC2 Production Guide
+
+### Branch Structure
+
+| Branch | Purpose | Frontend API URL |
+|--------|---------|------------------|
+| `main` | Production (EC2) | `http://3.140.78.15:5000` |
+| `localhost-dev` | Local development | `http://localhost:5001` |
+
+### Project Structure
+
+```
+Securities_prediction_model/
+├── frontend/           # Static HTML/JS frontend
+│   ├── index.html
+│   ├── app.js          # Main app (CONFIG.API_BASE_URL here)
+│   ├── forex.js        # Forex analysis
+│   ├── watchlist.js    # Watchlist management
+│   └── styles.css
+├── flask_app/          # Flask API backend
+│   ├── app/
+│   │   ├── routes/     # API endpoints
+│   │   │   ├── forex.py
+│   │   │   ├── options.py
+│   │   │   └── portfolio.py
+│   │   └── utils/      # Database, models
+│   ├── run_dev.py      # Development server
+│   └── wsgi.py         # Production entry point
+├── src/                # Data scripts (not deployed to EC2)
+├── docs/               # Documentation
+│   ├── security/       # SSH keys (gitignored)
+│   └── setup guide/    # Setup documentation
+└── kubernetes/         # K8s manifests (future use)
+```
+
+### Database Access from EC2
+
+```bash
+# Connect via SSH
+ssh -i docs/security/trading-db-key.pem ubuntu@3.140.78.15
+sudo -u postgres psql -d trading_data
+```
+
+### Database Access Remotely (SSH Tunnel)
+
+```bash
+# Terminal 1: Create tunnel
+ssh -i docs/security/trading-db-key.pem -L 5433:localhost:5432 ubuntu@3.140.78.15 -N
+
+# Terminal 2: Connect via tunnel
+psql -h localhost -p 5433 -U trading -d trading_data
+# Password is in .env.aws
+```
+
+**Database Stats:**
+- ~4 million stock price records
+- 461 tickers (S&P 500 + extras)
+- Data from 1980 to present
+- 15+ forex pairs with correlations
+- Portfolio holdings and signals
+
+### Update Tasks
+
+#### Update Frontend Code
+
+1. Edit files in `frontend/`
+2. Deploy: `scp -i docs/security/trading-db-key.pem -r frontend/* ubuntu@3.140.78.15:~/frontend/`
+3. Refresh browser (no restart needed)
+
+#### Update API Code
+
+1. Edit files in `flask_app/`
+2. Deploy: `scp -i docs/security/trading-db-key.pem -r flask_app/* ubuntu@3.140.78.15:~/flask_app/`
+3. Restart: `ssh -i docs/security/trading-db-key.pem ubuntu@3.140.78.15 "pkill gunicorn && cd ~/flask_app && ./start_flask.sh"`
+
+#### Add New Python Dependencies
+
+1. Add to `flask_app/requirements.txt`
+2. SSH into EC2:
+   ```bash
+   ssh -i docs/security/trading-db-key.pem ubuntu@3.140.78.15
+   cd ~/flask_app
+   source venv/bin/activate
+   pip install -r requirements.txt
+   pkill gunicorn && ./start_flask.sh
+   ```
+
+#### Update Airflow DAGs
+
+1. Edit files in local `dags/` directory
+2. Deploy: `scp -i docs/security/trading-db-key.pem -r dags/* ubuntu@3.140.78.15:~/dags/`
+3. Airflow auto-detects changes within 30 seconds (no restart needed)
+
+### EC2 Service Management
+
+```bash
+# Airflow services (systemd)
+sudo systemctl status airflow-scheduler
+sudo systemctl status airflow-webserver
+sudo systemctl restart airflow-scheduler
+sudo systemctl restart airflow-webserver
+
+# View Airflow logs
+sudo journalctl -u airflow-scheduler -f
+sudo journalctl -u airflow-webserver -f
+
+# Flask API (manual process)
+pkill gunicorn
+cd /home/ubuntu/flask_app && ./start_flask.sh
+
+# View Flask logs
+tail -f /home/ubuntu/gunicorn.log
+
+# PostgreSQL
+sudo systemctl status postgresql
+sudo systemctl restart postgresql
+```
+
+### EC2 Troubleshooting
+
+#### API Not Responding
+
+```bash
+ssh -i docs/security/trading-db-key.pem ubuntu@3.140.78.15
+ps aux | grep gunicorn
+tail -f /home/ubuntu/gunicorn.log
+```
+
+#### Airflow Not Running
+
+```bash
+ssh -i docs/security/trading-db-key.pem ubuntu@3.140.78.15
+sudo systemctl status airflow-scheduler
+sudo journalctl -u airflow-scheduler -n 50
+```
+
+#### Database Connection Issues
+
+```bash
+ssh -i docs/security/trading-db-key.pem ubuntu@3.140.78.15
+sudo systemctl status postgresql
+sudo -u postgres psql -c "SELECT 1"
+```
+
+#### Permission Denied on SSH
+
+```bash
+chmod 400 docs/security/trading-db-key.pem
+```
+
+#### Port 22 Blocked by ISP
+
+Some ISPs (Comcast, Cox) block outbound port 22. Solutions:
+- Use mobile hotspot
+- Use VPN
+- Request ISP to unblock port 22
+
+### Quick Reference
+
+| Task | Command |
+|------|---------|
+| SSH to EC2 | `ssh -i docs/security/trading-db-key.pem ubuntu@3.140.78.15` |
+| Deploy frontend | `scp -i docs/security/trading-db-key.pem -r frontend/* ubuntu@3.140.78.15:~/frontend/` |
+| Deploy API | `scp -i docs/security/trading-db-key.pem -r flask_app/* ubuntu@3.140.78.15:~/flask_app/` |
+| Restart API | `ssh ... "pkill gunicorn && cd ~/flask_app && ./start_flask.sh"` |
+| Restart Airflow | `ssh ... "sudo systemctl restart airflow-scheduler"` |
+| View API logs | `ssh ... "tail -f ~/gunicorn.log"` |
+| View Airflow logs | `ssh ... "sudo journalctl -u airflow-scheduler -f"` |
+| Check health | `curl http://3.140.78.15:5000/api/health` |
+| Access Airflow UI | http://3.140.78.15:8080 (admin/admin123) |
+| Access App | http://3.140.78.15:8000 |
+
+---
+
 ## Support
 
 For issues or questions:
 - GitHub Issues: https://github.com/SophistryDude/Securities_prediction_model/issues
+- See also: [COMPLETED_FEATURES.md](../COMPLETED_FEATURES.md) for production feature documentation

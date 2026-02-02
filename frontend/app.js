@@ -15,12 +15,16 @@ const state = {
 // Page titles for sidebar navigation
 const PAGE_TITLES = {
     sentiment: 'Sentiment Analysis',
-    reports: 'Trend Break Reports',
-    trend: 'Trend Prediction',
-    options: 'Options Analysis',
-    watchlist: 'Watchlist',
     earnings: 'Quarterly Earnings',
-    longterm: 'Long Term Trading',
+    reports: 'Trend Break Reports',
+    options: 'Options Analysis',
+    trading: 'Trade Execution',
+    longterm: 'Long Term Trading Watchlist',
+    watchlist: 'Intra-Day Trading Watchlist',
+    trend: 'Trend Prediction',
+    indicators: 'Indicator Guide',
+    portfolio: 'Portfolio Tracker',
+    forex: 'Forex Correlations',
     stats: 'Performance Stats',
 };
 
@@ -44,8 +48,15 @@ function initializeSidebar() {
     const sidebarLinks = document.querySelectorAll('.sidebar-link');
     const tabContents = document.querySelectorAll('.tab-content');
 
-    // Sidebar starts open by default
-    // Users can double-click hamburger to toggle it closed
+    // Restore sidebar state from localStorage
+    const wasClosed = localStorage.getItem('sidebarClosed') === 'true';
+    if (wasClosed) {
+        sidebar.classList.add('closed');
+        appLayout.classList.add('sidebar-closed');
+    } else {
+        // Sidebar starts expanded by default (unless it was closed)
+        sidebar.classList.add('expanded');
+    }
 
     // Toggle sidebar expansion (temporary overlay on mobile)
     function toggleSidebar() {

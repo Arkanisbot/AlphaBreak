@@ -50,6 +50,15 @@ const Forex = {
                 this.loadTrendBreaks(pairFilter.value);
             });
         }
+
+        // Expand/collapse notable movements
+        const expandBtn = document.getElementById('expandNotableMovements');
+        if (expandBtn) {
+            expandBtn.addEventListener('click', () => {
+                this.showingAllBreaks = !this.showingAllBreaks;
+                this.renderTrendBreaks(this.allTrendBreaks || []);
+            });
+        }
     },
 
     setupTimeframeToggle() {
@@ -584,9 +593,13 @@ const Forex = {
         if (!canvas) return;
 
         try {
+            // Convert pair to underscore format to avoid nginx encoded slash issues
+            // EUR/USD -> EUR_USD (backend handles both formats)
+            const pairParam = pair.replace('/', '_');
+
             // Fetch pair data and DXY data in parallel
             const [pairResponse, dxyResponse] = await Promise.all([
-                apiRequest(`/api/forex/data/${encodeURIComponent(pair)}?days=365`, 'GET'),
+                apiRequest(`/api/forex/data/${pairParam}?days=365`, 'GET'),
                 apiRequest('/api/forex/usd-chart?timeframe=daily', 'GET')
             ]);
 
@@ -603,7 +616,17 @@ const Forex = {
 
     renderPairInlineChart(pair, pairData, dxyData) {
         const canvas = document.getElementById('forexPairInlineChart');
-        if (!canvas || pairData.length === 0) return;
+        console.log('renderPairInlineChart called:', { pair, pairDataLength: pairData.length, hasDxyData: !!dxyData, hasCanvas: !!canvas });
+
+        if (!canvas) {
+            console.error('Canvas element not found!');
+            return;
+        }
+
+        if (pairData.length === 0) {
+            console.error('No pair data to display');
+            return;
+        }
 
         // Destroy existing chart
         if (this.charts.pairInlineChart) {
@@ -618,10 +641,13 @@ const Forex = {
             y: d.close,
         }));
 
+        console.log('Pair chart data points:', pairChartData.length);
+
         const datasets = [];
 
         // Add DXY as background if available - calculate from chart_data
         if (dxyData && dxyData.chart_data && dxyData.chart_data.length > 0 && dxyData.pairs) {
+            console.log('Processing DXY data:', { chartDataLength: dxyData.chart_data.length, pairsCount: dxyData.pairs.length });
             // Calculate DXY proxy (weighted average of USD pairs)
             const dxyChartData = dxyData.chart_data.map(d => {
                 let sum = 0;
@@ -667,6 +693,9 @@ const Forex = {
             yAxisID: 'y',
             order: 1,
         });
+
+        console.log('Creating chart with datasets:', datasets.length, 'datasets');
+        console.log('First dataset has', datasets[0].data.length, 'points');
 
         this.charts.pairInlineChart = new Chart(ctx, {
             type: 'line',
@@ -715,6 +744,8 @@ const Forex = {
                 },
             },
         });
+
+        console.log('Chart created successfully!', this.charts.pairInlineChart);
     },
 
     // ──────────────────────────────────────────────────────────
@@ -814,7 +845,36 @@ const Forex = {
             return;
         }
 
-        tbody.innerHTML = breaks.map(brk => {
+        // Sort by absolute movement percentage (most extreme movements first)
+        const sortedBreaks = [...breaks].sort((a, b) => {
+            const absA = Math.abs(a.movement_pct || 0);
+            const absB = Math.abs(b.movement_pct || 0);
+            return absB - absA;
+        });
+
+        // Store all breaks for expand functionality
+        this.allTrendBreaks = sortedBreaks;
+        this.showingAllBreaks = this.showingAllBreaks || false;
+
+        // Show top 10 by default, all if expanded
+        const breaksToShow = this.showingAllBreaks ? sortedBreaks : sortedBreaks.slice(0, 10);
+
+        // Show/hide expand button
+        const expandBtn = document.getElementById('expandNotableMovements');
+        const subtitle = document.getElementById('notableMovementsSubtitle');
+        if (expandBtn && sortedBreaks.length > 10) {
+            expandBtn.style.display = 'inline-block';
+            expandBtn.textContent = this.showingAllBreaks ? 'Show Top 10' : `Show All ${sortedBreaks.length} Movements`;
+            if (subtitle) {
+                subtitle.textContent = this.showingAllBreaks
+                    ? `Showing all ${sortedBreaks.length} movements`
+                    : 'Showing top 10 most extreme 5-day movements';
+            }
+        } else if (expandBtn) {
+            expandBtn.style.display = 'none';
+        }
+
+        tbody.innerHTML = breaksToShow.map(brk => {
             const dirClass = brk.break_direction === 'bullish' ? 'positive' : 'negative';
             const probPct = ((brk.break_probability || 0) * 100).toFixed(1);
 
@@ -828,7 +888,7 @@ const Forex = {
 
             return `
                 <tr class="break-row">
-                    <td><strong>${brk.pair}</strong></td>
+                    <td><strong class="clickable-pair" data-pair="${brk.pair}" style="cursor: pointer; color: var(--primary-color);">${brk.pair}</strong></td>
                     <td>${brk.break_date || '--'}</td>
                     <td class="${dirClass}">${(brk.break_direction || '--').toUpperCase()}</td>
                     <td><span class="prob-badge">${probPct}%</span></td>
@@ -838,6 +898,42 @@ const Forex = {
                 </tr>
             `;
         }).join('');
+
+        // Add click handlers for pair names
+        setTimeout(() => {
+            document.querySelectorAll('.clickable-pair').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    const pair = e.target.getAttribute('data-pair');
+                    this.scrollToPairInTable(pair);
+                });
+            });
+        }, 0);
+    },
+
+    scrollToPairInTable(pair) {
+        // Scroll to the All Currency Pairs section
+        const pairsSection = document.querySelector('.forex-pairs-section');
+        if (pairsSection) {
+            pairsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // Wait for scroll, then find and highlight the pair row
+            setTimeout(() => {
+                const pairRows = document.querySelectorAll('#forexPairsBody tr');
+                pairRows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length > 0 && cells[0].textContent.trim() === pair) {
+                        // Highlight the row temporarily
+                        row.style.backgroundColor = 'rgba(41, 98, 255, 0.2)';
+                        setTimeout(() => {
+                            row.style.backgroundColor = '';
+                        }, 2000);
+
+                        // Click it to show the chart
+                        row.click();
+                    }
+                });
+            }, 800);
+        }
     },
 
     // ──────────────────────────────────────────────────────────
@@ -852,7 +948,9 @@ const Forex = {
         container.style.display = 'block';
 
         try {
-            const response = await apiRequest(`/api/forex/data/${encodeURIComponent(pair)}?days=365`, 'GET');
+            // Convert pair to underscore format to avoid nginx encoded slash issues
+            const pairParam = pair.replace('/', '_');
+            const response = await apiRequest(`/api/forex/data/${pairParam}?days=365`, 'GET');
             if (!response.ok) throw new Error('Failed to load chart data');
 
             const data = await response.json();
