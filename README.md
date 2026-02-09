@@ -12,6 +12,23 @@ This application analyzes securities to predict trend breaks and identify mispri
 2. **Prediction Stage** - Uses XGBoost/LightGBM to predict when trend breaks will occur
 3. **Options Analysis Stage** - Identifies mispriced options aligned with predicted trends
 
+## Recent Updates
+
+### February 9, 2026 - Portfolio DAG & API Fixes
+- Fixed DAG database connection (was using Kubernetes DNS hostname instead of localhost)
+- Fixed DAG SQL queries to match actual database schema (`trend_breaks` table, `f13_stock_aggregates` columns)
+- Fixed Python import paths for EC2 deployment (was using Docker `/app/src` paths)
+- Fixed Flask portfolio service DB password default
+- Installed missing `yfinance` dependency in Airflow venv
+- Portfolio now actively holding 6 swing positions from bullish trend break signals
+
+### February 2, 2026 - Initial Deployment
+- Deployed Apache Airflow 2.8.1 for automated portfolio management
+- Extended options analysis to show all options expiring within 90 days
+- Fixed DXY inline chart data parsing with dual Y-axis visualization
+- Added real-time ticker validation and snackbar notifications for watchlist
+- Deployed SSL via Let's Encrypt on alphabreak.vip
+
 ## Live Features
 
 ### Web Dashboard
@@ -21,6 +38,7 @@ This application analyzes securities to predict trend breaks and identify mispri
 - **Earnings** - Upcoming earnings calendar with historical surprise data
 - **Long Term Trading** - Multi-week position analysis
 - **Forex** - Currency pair correlation analysis with DXY tracking
+- **Portfolio** - Automated portfolio with swing and long-term positions
 
 ### User Authentication
 - JWT-based authentication with bcrypt password hashing
@@ -53,7 +71,10 @@ Securities_prediction_model/
 │   │   │   ├── watchlist.py      # Watchlist data
 │   │   │   ├── earnings.py       # Earnings calendar
 │   │   │   ├── forex.py          # Forex endpoints
-│   │   │   └── options.py        # Options analysis
+│   │   │   ├── options.py        # Options analysis
+│   │   │   └── portfolio.py      # Portfolio management
+│   │   ├── services/
+│   │   │   └── portfolio_service.py # Portfolio DB access
 │   │   └── utils/
 │   │       ├── database.py       # PostgreSQL connection
 │   │       └── jwt_auth.py       # JWT token management
@@ -70,15 +91,20 @@ Securities_prediction_model/
 │   ├── forex.js                  # Forex correlation charts
 │   └── styles.css                # Dark theme styling
 │
-├── kubernetes/                   # Database schemas
+├── kubernetes/                   # Database schemas & Airflow
 │   ├── schema_auth.sql           # Users, tokens, watchlists
-│   └── schema_forex.sql          # Forex data tables
+│   ├── schema_forex.sql          # Forex data tables
+│   └── airflow/dags/
+│       └── portfolio_update_dag.py # Automated portfolio DAG
 │
 └── docs/                         # Documentation
-    ├── DATA_SOURCES_COMPARISON.md
-    ├── KUBERNETES_MIGRATION_PLAN.md
+    ├── ARCHITECTURE.md
+    ├── DATA_ARCHITECTURE.md
+    ├── DEPLOYMENT.md
     ├── COMPLETED_FEATURES.md
     ├── COMPREHENSIVE_FEATURE_DOCUMENTATION.md
+    ├── other/security/
+    │   └── trading-db-key.pem    # EC2 SSH key
     └── setup guide/
         └── SETUP_GUIDE.md        # Complete setup & deployment guide
 ```
@@ -111,6 +137,15 @@ Securities_prediction_model/
 | GET | `/api/earnings/calendar` | Earnings calendar |
 | GET | `/api/forex/usd-chart` | USD pairs chart data |
 | GET | `/api/forex/correlations` | Currency correlations |
+| GET | `/api/sentiment` | Market sentiment indicators |
+
+### Portfolio
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/portfolio/summary` | Portfolio overview |
+| GET | `/api/portfolio/holdings` | Current positions |
+| GET | `/api/portfolio/trades` | Trade history |
+| GET | `/api/portfolio/snapshots` | Historical snapshots |
 
 ## Key Features
 
@@ -164,6 +199,13 @@ Analyzes correlations between currency pairs to identify patterns that may infor
 | USD/CNY | 1981 | ~44 years |
 | EUR/USD | 1999 | ~26 years (Euro introduction) |
 | USD/MXN, USD/BRL, USD/INR, USD/KRW, etc. | Various | 20-30 years |
+
+### Portfolio Management (Airflow DAG)
+- Runs at **9:00 AM EST** on weekdays (Mon-Fri)
+- Trend break signals (80%+ probability) for swing trades
+- 13F institutional sentiment for long-term positions
+- 75% long-term / 25% swing allocation strategy
+- Automated stop-loss monitoring and daily snapshots
 
 ## Installation
 
@@ -219,15 +261,32 @@ JWT_SECRET_KEY=your-jwt-secret
 | `f13_holdings` | Individual holdings per filing |
 | `forex_daily_data` | Historical forex OHLCV |
 | `forex_correlations` | Pair-to-pair correlation matrix |
+| `portfolio_signals` | Trading signals from DAG |
+| `portfolio_holdings` | Current portfolio positions |
+| `portfolio_trades` | Trade execution history |
+| `portfolio_snapshots` | Daily portfolio value snapshots |
 
 ## Deployment
 
 Currently deployed on AWS EC2 with:
-- **Backend**: Gunicorn + Flask on port 5000
-- **Frontend**: Python HTTP server on port 8000
-- **Database**: PostgreSQL 14 with TimescaleDB
-- **Reverse Proxy**: Nginx with SSL (Let's Encrypt)
+- **Frontend**: Nginx with SSL (Let's Encrypt) on port 443
+- **Backend**: Gunicorn + Flask on port 5000 (proxied via Nginx at `/api/`)
+- **Database**: PostgreSQL 15 with TimescaleDB
+- **Scheduler**: Apache Airflow 2.8.1 (port 8080)
 - **Domain**: alphabreak.vip
+
+```bash
+# Connect to EC2
+ssh -i "Securities_prediction_model/docs/other/security/trading-db-key.pem" ubuntu@3.140.78.15
+
+# Restart Flask API
+pkill -f 'gunicorn.*5000'
+cd /home/ubuntu/flask_app && nohup bash start_gunicorn.sh > /home/ubuntu/gunicorn.log 2>&1 &
+
+# Restart Airflow (if needed)
+sudo systemctl restart airflow-scheduler
+sudo systemctl restart airflow-webserver
+```
 
 See [docs/setup guide/SETUP_GUIDE.md](docs/setup%20guide/SETUP_GUIDE.md) for comprehensive setup and deployment guide (EC2, K8s, Docker).
 
@@ -241,10 +300,11 @@ See [docs/setup guide/SETUP_GUIDE.md](docs/setup%20guide/SETUP_GUIDE.md) for com
 - [x] User authentication (JWT + bcrypt)
 - [x] Server-side watchlist sync
 - [x] Live web dashboard
-- [ ] Kubernetes migration with Airflow
+- [x] Airflow DAG for automated portfolio management
 - [ ] Push notifications for high-probability trades
 - [ ] Trading platform integration (Schwab/Robinhood)
 - [ ] Premium subscription tier with real-time data
+- [ ] Mobile app (React Native)
 
 ## Data Sources
 
@@ -285,13 +345,12 @@ See [docs/DATA_SOURCES_COMPARISON.md](docs/DATA_SOURCES_COMPARISON.md) for detai
 - **[DATA_SOURCES_COMPARISON.md](docs/DATA_SOURCES_COMPARISON.md)** - Data provider comparison
 - **[PULLBACK_MODEL_PLAN.md](docs/PULLBACK_MODEL_PLAN.md)** - Future model development
 
-## Future Work
-
-- **Pullback/Continuation Model** — Predict candlestick count after trend break, model pullback vs reversal
-- **Trading Platform Integration** — Direct connectivity to Schwab/Robinhood APIs
-- **Mobile App** — React Native companion app
-- **Premium Features** — Real-time data, advanced analytics, API access
-
 ## License
 
 MIT
+
+---
+
+**Last Updated**: February 9, 2026
+**Version**: 1.0.0
+**Status**: Production
