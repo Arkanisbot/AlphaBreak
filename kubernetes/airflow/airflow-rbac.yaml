@@ -1,0 +1,46 @@
+# Airflow RBAC for KubernetesExecutor
+# Grants the scheduler ServiceAccount permission to create/manage task pods
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: airflow-scheduler
+  namespace: trading-system
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: airflow-scheduler-role
+  namespace: trading-system
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["create", "get", "list", "watch", "delete", "patch", "update"]
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create", "get"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["list", "watch"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: airflow-scheduler-rolebinding
+  namespace: trading-system
+subjects:
+- kind: ServiceAccount
+  name: airflow-scheduler
+  namespace: trading-system
+roleRef:
+  kind: Role
+  name: airflow-scheduler-role
+  apiGroup: rbac.authorization.k8s.io

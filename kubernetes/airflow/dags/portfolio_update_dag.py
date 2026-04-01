@@ -5,8 +5,8 @@ Runs at 9:00 AM EST (14:00 UTC) on weekdays.
 Processes trend break signals and executes theoretical trades.
 
 Portfolio Allocation:
-- 75% Long-term investing (hold > 1 month)
-- 25% Intra-day swing trading (hold 1-5 days)
+- 65% Long-term investing (hold > 1 month)
+- 35% Swing trading (hold 1-5 days)
 
 Signal Sources:
 - Trend break reports (daily/hourly) for swing trading
@@ -22,7 +22,8 @@ import os
 import logging
 import json
 
-sys.path.insert(0, '/app')
+sys.path.insert(0, '/app/flask_app')
+sys.path.insert(0, '/app/src')
 
 logger = logging.getLogger(__name__)
 
@@ -49,21 +50,22 @@ dag = DAG(
 
 # Database connection
 DB_CONFIG = {
-    'host': os.getenv('DB_HOST', 'postgres-timeseries-service'),
+    'host': os.getenv('DB_HOST', '127.0.0.1'),
     'port': int(os.getenv('DB_PORT', 5432)),
     'database': os.getenv('DB_NAME', 'trading_data'),
     'user': os.getenv('DB_USER', 'trading'),
-    'password': os.getenv('DB_PASSWORD', 'change_me'),
+    'password': os.getenv('DB_PASSWORD', 'trading_password'),
 }
 
 # Portfolio configuration
 PORTFOLIO_CONFIG = {
-    'long_term_allocation': 0.75,
-    'swing_allocation': 0.25,
-    'max_position_pct': 0.05,
+    'long_term_allocation': 0.65,
+    'swing_allocation': 0.35,
+    'max_position_pct': 0.07,
     'min_cash_reserve_pct': 0.20,
     'trend_break_threshold': 0.80,  # 80% probability threshold
-    'max_trades_per_day': 10,
+    'max_swing_trades_per_day': 5,
+    'max_long_term_trades_per_day': 5,
 }
 
 
@@ -85,8 +87,8 @@ def check_market_day(**context):
 
 def fetch_trend_break_signals(**context):
     """
-    Fetch recent trend break signals from the reports table.
-    Creates portfolio signals for stocks with high probability breaks.
+    Fetch recent trend break signals from the trend_breaks table.
+    Creates portfolio signals for stocks with recent daily breaks.
     """
     import psycopg2
     from psycopg2.extras import RealDictCursor
@@ -96,41 +98,45 @@ def fetch_trend_break_signals(**context):
 
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            # Get latest daily trend break reports from last 24 hours
+            # Get latest daily trend breaks from last 30 days
             cur.execute("""
                 SELECT DISTINCT ON (ticker)
+                    id,
                     ticker,
-                    break_probability,
-                    break_direction,
-                    current_price,
-                    cci_value,
-                    rsi_value,
-                    adx_value,
-                    report_generated_at,
-                    report_id
-                FROM trend_break_reports
-                WHERE report_frequency = 'daily'
-                  AND report_generated_at >= NOW() - INTERVAL '24 hours'
-                  AND break_probability >= %s
-                ORDER BY ticker, report_generated_at DESC
-            """, (PORTFOLIO_CONFIG['trend_break_threshold'],))
+                    break_type,
+                    direction_after,
+                    price_at_break,
+                    magnitude,
+                    volume_ratio,
+                    trend_strength,
+                    timestamp
+                FROM trend_breaks
+                WHERE timeframe = 'daily'
+                  AND timestamp >= NOW() - INTERVAL '30 days'
+                ORDER BY ticker, timestamp DESC
+            """)
 
             for row in cur.fetchall():
-                signal_type = f"trend_break_{row['break_direction']}"
-                action = 'buy' if row['break_direction'] == 'bullish' else 'sell'
+                direction = 'bullish' if row['direction_after'] == 'increasing' else 'bearish'
+                signal_type = f"trend_break_{direction}"
+                action = 'buy' if direction == 'bullish' else 'sell'
+
+                # Use magnitude as signal strength proxy (normalize to 0.8-1.0)
+                mag = float(row['magnitude']) if row['magnitude'] else 0.5
+                signal_strength = min(1.0, max(0.8, 0.8 + mag * 0.02))
 
                 signals.append({
                     'ticker': row['ticker'],
                     'signal_type': signal_type,
                     'suggested_action': action,
-                    'holding_type': 'swing',  # Trend breaks are for swing trading
-                    'signal_strength': float(row['break_probability']),
-                    'signal_price': float(row['current_price']) if row['current_price'] else None,
+                    'holding_type': 'swing',
+                    'signal_strength': signal_strength,
+                    'signal_price': float(row['price_at_break']) if row['price_at_break'] else None,
                     'source_data': {
-                        'report_id': str(row['report_id']),
-                        'cci': float(row['cci_value']) if row['cci_value'] else None,
-                        'rsi': float(row['rsi_value']) if row['rsi_value'] else None,
-                        'adx': float(row['adx_value']) if row['adx_value'] else None,
+                        'break_id': row['id'],
+                        'break_type': row['break_type'],
+                        'magnitude': float(row['magnitude']) if row['magnitude'] else None,
+                        'volume_ratio': float(row['volume_ratio']) if row['volume_ratio'] else None,
                     }
                 })
 
@@ -149,7 +155,7 @@ def fetch_trend_break_signals(**context):
 def fetch_13f_signals(**context):
     """
     Fetch 13F institutional sentiment for long-term positions.
-    Looks for stocks with STRONG_BUY or BUY signals from institutional holdings.
+    Derives BUY/STRONG_BUY from institutional_sentiment score.
     """
     import psycopg2
     from psycopg2.extras import RealDictCursor
@@ -159,40 +165,50 @@ def fetch_13f_signals(**context):
 
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            # Get stocks with positive institutional sentiment
+            # Get stocks with positive institutional sentiment from most recent quarter
             cur.execute("""
                 SELECT
                     ticker,
-                    signal,
-                    total_shares,
-                    total_value_usd,
-                    funds_buying,
-                    funds_selling,
-                    net_change_shares,
-                    updated_at
+                    institutional_sentiment,
+                    total_shares_held,
+                    total_market_value,
+                    total_funds_holding,
+                    funds_initiated + funds_increased AS funds_buying,
+                    funds_decreased + funds_sold AS funds_selling,
+                    net_shares_change,
+                    report_quarter,
+                    created_at
                 FROM f13_stock_aggregates
-                WHERE signal IN ('STRONG_BUY', 'BUY')
-                  AND updated_at >= NOW() - INTERVAL '7 days'
-                  AND total_value_usd > 1000000  -- Min $1M institutional interest
-                ORDER BY total_value_usd DESC
+                WHERE report_quarter = (SELECT MAX(report_quarter) FROM f13_stock_aggregates)
+                  AND institutional_sentiment > 0.5
+                  AND total_market_value > 1000000
+                ORDER BY total_market_value DESC
                 LIMIT 20
             """)
 
             for row in cur.fetchall():
-                signal_strength = 0.9 if row['signal'] == 'STRONG_BUY' else 0.75
+                sentiment = float(row['institutional_sentiment'])
+                if sentiment > 1.0:
+                    signal_label = 'strong_buy'
+                    signal_strength = 0.9
+                else:
+                    signal_label = 'buy'
+                    signal_strength = 0.75
 
                 signals.append({
                     'ticker': row['ticker'],
-                    'signal_type': f"13f_{row['signal'].lower()}",
+                    'signal_type': f"13f_{signal_label}",
                     'suggested_action': 'buy',
-                    'holding_type': 'long_term',  # 13F signals are for long-term
+                    'holding_type': 'long_term',
                     'signal_strength': signal_strength,
                     'signal_price': None,  # Will fetch current price later
                     'source_data': {
-                        'institutional_value': float(row['total_value_usd']),
+                        'institutional_value': float(row['total_market_value']),
+                        'institutional_sentiment': sentiment,
                         'funds_buying': row['funds_buying'],
                         'funds_selling': row['funds_selling'],
-                        'net_shares_change': float(row['net_change_shares']) if row['net_change_shares'] else 0,
+                        'net_shares_change': int(row['net_shares_change']) if row['net_shares_change'] else 0,
+                        'report_quarter': row['report_quarter'],
                     }
                 })
 
@@ -261,13 +277,22 @@ def create_portfolio_signals(**context):
 
     try:
         with conn.cursor() as cur:
-            all_signals = trend_signals + f13_signals
+            # Separate signals by holding type and apply per-type limits
+            swing_signals = [s for s in trend_signals if s.get('holding_type') == 'swing']
+            long_term_signals = [s for s in f13_signals if s.get('holding_type') == 'long_term']
 
-            # Sort by signal strength (strongest first)
-            all_signals.sort(key=lambda x: x.get('signal_strength', 0), reverse=True)
+            swing_signals.sort(key=lambda x: x.get('signal_strength', 0), reverse=True)
+            long_term_signals.sort(key=lambda x: x.get('signal_strength', 0), reverse=True)
 
-            # Limit to max trades per day
-            all_signals = all_signals[:PORTFOLIO_CONFIG['max_trades_per_day']]
+            swing_signals = swing_signals[:PORTFOLIO_CONFIG['max_swing_trades_per_day']]
+            long_term_signals = long_term_signals[:PORTFOLIO_CONFIG['max_long_term_trades_per_day']]
+
+            all_signals = swing_signals + long_term_signals
+
+            logger.info(
+                f"Processing {len(swing_signals)} swing + {len(long_term_signals)} long-term signals "
+                f"(from {len(trend_signals)} trend + {len(f13_signals)} 13F raw signals)"
+            )
 
             for signal in all_signals:
                 ticker = signal['ticker']
@@ -301,8 +326,10 @@ def create_portfolio_signals(**context):
 
             conn.commit()
 
-        logger.info(f"Created {created_count} portfolio signals")
+        logger.info(f"Created {created_count} portfolio signals ({len(swing_signals)} swing, {len(long_term_signals)} long-term)")
         ti.xcom_push(key='signals_created', value=created_count)
+        ti.xcom_push(key='swing_signals_created', value=len(swing_signals))
+        ti.xcom_push(key='long_term_signals_created', value=len(long_term_signals))
 
     except Exception as e:
         logger.error(f"Error creating portfolio signals: {e}")
@@ -335,6 +362,9 @@ def process_signals(**context):
         signals = pm.get_pending_signals()
         logger.info(f"Processing {len(signals)} pending signals")
 
+        # Get current holdings to avoid duplicate buys and validate sells
+        current_holdings = {h['ticker']: h for h in pm.get_holdings()}
+
         for signal in signals:
             ticker = signal['ticker']
             current_price = prices.get(ticker, signal.get('signal_price'))
@@ -343,8 +373,33 @@ def process_signals(**context):
                 logger.warning(f"No price for {ticker}, skipping signal")
                 continue
 
-            # Skip sells for now (only process buys for new positions)
-            if signal['suggested_action'] != 'buy':
+            # For sell signals, only process if we hold the position
+            if signal['suggested_action'] == 'sell':
+                holding = current_holdings.get(ticker)
+                if not holding:
+                    logger.info(f"No position in {ticker} to sell, skipping bearish signal")
+                    # Mark as rejected so it doesn't stay pending forever
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            UPDATE portfolio_signals
+                            SET status = 'rejected', rejection_reason = 'No position held to sell',
+                                processed_at = NOW()
+                            WHERE signal_id = %s
+                        """, (str(signal['signal_id']),))
+                        conn.commit()
+                    continue
+
+            # For buy signals, skip if we already hold the stock
+            if signal['suggested_action'] == 'buy' and ticker in current_holdings:
+                logger.info(f"Already holding {ticker}, skipping duplicate buy signal")
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        UPDATE portfolio_signals
+                        SET status = 'rejected', rejection_reason = 'Already holding position',
+                            processed_at = NOW()
+                        WHERE signal_id = %s
+                    """, (str(signal['signal_id']),))
+                    conn.commit()
                 continue
 
             # Process the signal
@@ -621,6 +676,8 @@ def log_summary(**context):
     ti = context['ti']
 
     signals_created = ti.xcom_pull(key='signals_created', task_ids='create_portfolio_signals') or 0
+    swing_created = ti.xcom_pull(key='swing_signals_created', task_ids='create_portfolio_signals') or 0
+    lt_created = ti.xcom_pull(key='long_term_signals_created', task_ids='create_portfolio_signals') or 0
     executed_trades = ti.xcom_pull(key='executed_trades', task_ids='process_signals') or []
     stop_loss_sales = ti.xcom_pull(key='stop_loss_sales', task_ids='check_stop_losses') or []
     long_term_actions = ti.xcom_pull(key='long_term_actions', task_ids='manage_long_term_positions') or {}
@@ -631,7 +688,7 @@ def log_summary(**context):
 Date: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}
 
 Signals:
-  - Created: {signals_created}
+  - Created: {signals_created} ({swing_created} swing, {lt_created} long-term)
   - Executed new trades: {len(executed_trades)}
   - Stop-loss sales: {len(stop_loss_sales)}
 
@@ -668,13 +725,20 @@ New Trades Executed:
             summary += f"  - SELL {sale['ticker']}: {sale['quantity']} @ ${sale['price']:.2f} ({sale['loss_pct']:.2%})\n"
 
     if snapshot:
+        total_val = snapshot.get('total_value') or 0
+        daily_pnl = snapshot.get('daily_pnl') or 0
+        daily_pnl_pct = snapshot.get('daily_pnl_pct') or 0
+        total_pnl = snapshot.get('total_pnl') or 0
+        total_pnl_pct = snapshot.get('total_pnl_pct') or 0
+        positions = snapshot.get('positions') or 0
+        win_rate = snapshot.get('win_rate') or 0
         summary += f"""
 Portfolio Status:
-  - Total Value: ${snapshot.get('total_value', 0):.2f}
-  - Daily P&L: ${snapshot.get('daily_pnl', 0):.2f} ({snapshot.get('daily_pnl_pct', 0):.2%})
-  - Total P&L: ${snapshot.get('total_pnl', 0):.2f} ({snapshot.get('total_pnl_pct', 0):.2%})
-  - Open Positions: {snapshot.get('positions', 0)}
-  - Win Rate: {snapshot.get('win_rate', 0):.1%}
+  - Total Value: ${total_val:.2f}
+  - Daily P&L: ${daily_pnl:.2f} ({daily_pnl_pct:.2%})
+  - Total P&L: ${total_pnl:.2f} ({total_pnl_pct:.2%})
+  - Open Positions: {positions}
+  - Win Rate: {win_rate:.1%}
 """
 
     summary += "================================"

@@ -1,17 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres
+  name: airflow-postgres
   namespace: trading-system
+  labels:
+    app: airflow-postgres
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres
+      app: airflow-postgres
   template:
     metadata:
       labels:
-        app: postgres
+        app: airflow-postgres
     spec:
       containers:
       - name: postgres
@@ -36,41 +38,35 @@ spec:
             memory: "256Mi"
             cpu: "100m"
           limits:
-            memory: "1Gi"
-            cpu: "500m"
+            memory: "512Mi"
+            cpu: "250m"
         volumeMounts:
         - name: postgres-data
           mountPath: /var/lib/postgresql/data
         livenessProbe:
           exec:
-            command:
-            - pg_isready
-            - -U
-            - airflow
+            command: ["pg_isready", "-U", "airflow"]
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           exec:
-            command:
-            - pg_isready
-            - -U
-            - airflow
+            command: ["pg_isready", "-U", "airflow"]
           initialDelaySeconds: 5
           periodSeconds: 5
       volumes:
       - name: postgres-data
         persistentVolumeClaim:
-          claimName: postgres-pvc
+          claimName: airflow-postgres-pvc
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres-service
+  name: airflow-postgres
   namespace: trading-system
 spec:
   selector:
-    app: postgres
+    app: airflow-postgres
   ports:
   - protocol: TCP
     port: 5432
@@ -81,7 +77,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: postgres-pvc
+  name: airflow-postgres-pvc
   namespace: trading-system
 spec:
   accessModes:
@@ -89,4 +85,5 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  storageClassName: trading-storage
+  storageClassName: local-storage
+  volumeName: airflow-postgres-pv

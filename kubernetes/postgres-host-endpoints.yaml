@@ -1,0 +1,45 @@
+# Postgres Host Endpoints — Phase 1 Migration Bridge
+# =====================================================
+# Routes postgres-timeseries-service to the bare-metal PostgreSQL
+# running on the EC2 host (172.31.22.21:5432).
+#
+# This allows Flask API pods in k0s to connect to the existing
+# database while PostgreSQL is not yet containerized.
+#
+# IMPORTANT: Remove this file and delete the Endpoints object
+# when Phase 3 is complete (PostgreSQL moved into k0s).
+# At that point, postgres-timeseries-deployment.yaml takes over
+# and the service selector finds the postgres pod automatically.
+#
+# To remove after Phase 3:
+#   sudo k0s kubectl delete endpoints postgres-timeseries-service -n trading-system
+#   sudo k0s kubectl apply -f kubernetes/postgres-timeseries-deployment.yaml
+
+---
+# Remove the selector from the existing service so it won't
+# auto-resolve via pod labels — manual Endpoints object controls routing.
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-timeseries-service
+  namespace: trading-system
+spec:
+  # No selector — routing controlled by Endpoints object below
+  ports:
+  - protocol: TCP
+    port: 5432
+    targetPort: 5432
+  type: ClusterIP
+
+---
+# Manual Endpoints pointing to bare-metal PostgreSQL on EC2 host
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: postgres-timeseries-service
+  namespace: trading-system
+subsets:
+  - addresses:
+      - ip: 172.31.22.21    # EC2 private IP (node internal IP)
+    ports:
+      - port: 5432

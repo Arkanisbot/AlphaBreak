@@ -6,7 +6,7 @@ metadata:
   labels:
     app: trading-api
 spec:
-  replicas: 1  # Single replica for local development (saves memory)
+  replicas: 1
   selector:
     matchLabels:
       app: trading-api
@@ -18,7 +18,7 @@ spec:
       containers:
       - name: trading-api
         image: trading-api:latest
-        imagePullPolicy: Never  # Use local Docker image (Docker Desktop)
+        imagePullPolicy: Never  # Image built locally on EC2 via docker save | k0s ctr import
         ports:
         - containerPort: 5000
           name: http
@@ -71,7 +71,7 @@ spec:
             memory: "512Mi"
             cpu: "250m"
           limits:
-            memory: "2Gi"
+            memory: "1.5Gi"
             cpu: "1000m"
         volumeMounts:
         - name: models

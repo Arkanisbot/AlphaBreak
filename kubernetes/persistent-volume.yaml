@@ -1,7 +1,9 @@
-# Persistent Volumes for Local Docker Desktop Kubernetes
-# ======================================================
-# For local development, we use hostPath volumes that map to your Windows filesystem
-# Docker Desktop automatically handles the path translation
+# Persistent Volumes for EC2 k0s Single-Node Deployment
+# =======================================================
+# Uses hostPath volumes mapped to EC2 filesystem paths.
+# Node affinity pins volumes to the single k0s node.
+#
+# Node: ip-172-31-22-21
 
 ---
 apiVersion: v1
@@ -14,14 +16,20 @@ spec:
   capacity:
     storage: 10Gi
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   storageClassName: local-storage
   hostPath:
-    # Docker Desktop maps /run/desktop/mnt/host/c/ to C:\
-    # This points to your project's models directory
-    path: /run/desktop/mnt/host/c/Users/nicho/OneDrive/Desktop/code/Securities_prediction_model/models
+    path: /home/ubuntu/flask_app/models
     type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - ip-172-31-22-21
 
 ---
 apiVersion: v1
@@ -31,7 +39,7 @@ metadata:
   namespace: trading-system
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   resources:
     requests:
       storage: 10Gi
@@ -49,12 +57,20 @@ spec:
   capacity:
     storage: 5Gi
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   storageClassName: local-storage
   hostPath:
-    path: /run/desktop/mnt/host/c/Users/nicho/OneDrive/Desktop/code/Securities_prediction_model/logs
+    path: /home/ubuntu/flask_app/logs
     type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - ip-172-31-22-21
 
 ---
 apiVersion: v1
@@ -64,7 +80,7 @@ metadata:
   namespace: trading-system
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   resources:
     requests:
       storage: 5Gi
@@ -72,10 +88,78 @@ spec:
   volumeName: trading-logs-pv
 
 ---
-# StorageClass for local volumes
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: airflow-postgres-pv
+  labels:
+    type: local
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  hostPath:
+    path: /home/ubuntu/airflow-postgres-data
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - ip-172-31-22-21
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: timeseries-postgres-pv
+  labels:
+    type: local
+spec:
+  capacity:
+    storage: 15Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  hostPath:
+    path: /home/ubuntu/timeseries-postgres-data
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - ip-172-31-22-21
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: timeseries-postgres-pvc
+  namespace: trading-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 15Gi
+  storageClassName: local-storage
+  volumeName: timeseries-postgres-pv
+
+---
+# StorageClass for manual (static) provisioning
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: local-storage
 provisioner: kubernetes.io/no-provisioner
 volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain

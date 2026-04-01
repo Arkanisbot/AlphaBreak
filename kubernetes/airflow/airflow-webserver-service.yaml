@@ -4,13 +4,16 @@ metadata:
   name: airflow-webserver
   namespace: trading-system
   labels:
-    app: airflow-webserver
+    app: airflow
+    component: webserver
 spec:
+  type: NodePort
   selector:
-    app: airflow-webserver
+    app: airflow
+    component: webserver
   ports:
-  - name: http
+  - name: web
     protocol: TCP
     port: 8080
     targetPort: 8080
-  type: LoadBalancer  # Change to ClusterIP if using Ingress
+    nodePort: 30880

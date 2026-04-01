@@ -1,0 +1,64 @@
+# ConfigMap containing the pod template used by KubernetesExecutor for task pods.
+# Each DAG task spawns a pod using this template, then dies when the task completes.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: airflow-pod-template
+  namespace: trading-system
+data:
+  pod_template.yaml: |
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: placeholder
+      namespace: trading-system
+    spec:
+      serviceAccountName: airflow-scheduler
+      containers:
+      - name: base
+        image: airflow-trading:latest
+        imagePullPolicy: Never
+        env:
+        - name: AIRFLOW__CORE__EXECUTOR
+          value: "KubernetesExecutor"
+        - name: AIRFLOW__CORE__LOAD_EXAMPLES
+          value: "False"
+        - name: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: airflow-db-conn
+        - name: AIRFLOW__CORE__FERNET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: airflow-fernet-key
+        # Trading database connection (used by DAGs directly)
+        - name: DB_HOST
+          value: "postgres-timeseries-service"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: timeseries-postgres-db
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: timeseries-postgres-user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: timeseries-postgres-password
+        - name: PYTHONPATH
+          value: "/app/flask_app:/app/src"
+        volumeMounts:
+        - name: logs
+          mountPath: /opt/airflow/logs
+      volumes:
+      - name: logs
+        emptyDir: {}
+      restartPolicy: Never
