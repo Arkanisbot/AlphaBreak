@@ -58,9 +58,9 @@ DB_CONFIG = {
 # Portfolio configuration
 PORTFOLIO_CONFIG = {
     'starting_balance': 100000.00,
-    'long_term_allocation': 0.75,      # 75%
-    'swing_allocation': 0.25,          # 25%
-    'max_position_pct': 0.05,          # 5% max per stock position
+    'long_term_allocation': 0.65,      # 65%
+    'swing_allocation': 0.35,          # 35%
+    'max_position_pct': 0.07,          # 7% max per stock position
     'max_options_pct': 0.02,           # 2% max per options contract
     'min_cash_reserve_pct': 0.20,      # 20% minimum cash reserve
     'stock_stop_loss_pct': 0.07,       # 7% stop-loss for stocks

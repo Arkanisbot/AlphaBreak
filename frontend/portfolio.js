@@ -33,7 +33,8 @@ const Portfolio = {
     async loadPortfolioData() {
         try {
             const response = await apiRequest('/api/portfolio/summary');
-            this.data = response;
+            if (!response.ok) throw new Error('Failed to load portfolio summary');
+            this.data = await response.json();
             this.renderAll();
         } catch (error) {
             console.error('Failed to load portfolio data:', error);
@@ -90,7 +91,9 @@ const Portfolio = {
 
         try {
             const response = await apiRequest(`/api/portfolio/performance?days=${days}`);
-            const history = response.history || [];
+            if (!response.ok) throw new Error('Failed to load performance data');
+            const perfData = await response.json();
+            const history = perfData.history || [];
 
             if (history.length === 0) {
                 // Show empty state
@@ -310,7 +313,9 @@ const Portfolio = {
     async loadSignals() {
         try {
             const response = await apiRequest('/api/portfolio/signals');
-            this.renderSignals(response.signals || []);
+            if (!response.ok) throw new Error('Failed to load signals');
+            const signalData = await response.json();
+            this.renderSignals(signalData.signals || []);
         } catch (error) {
             console.error('Failed to load signals:', error);
         }

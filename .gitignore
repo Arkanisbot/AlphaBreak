@@ -34,8 +34,10 @@ models/*.h5
 models/*.joblib
 
 # Database backups
+backups/
 *.dump
 *.sql
+*.sql.gz
 !kubernetes/*.sql
 
 # Security keys

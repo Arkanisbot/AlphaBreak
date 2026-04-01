@@ -208,10 +208,9 @@ def readiness_check():
     Returns 503 if service is not ready.
     """
     try:
-        # Check if essential components are available
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-        from src.data_fetcher import get_stock_data
-
+        from app.utils.database import db_manager
+        with db_manager.get_cursor() as cursor:
+            cursor.execute("SELECT 1")
         return jsonify({
             'ready': True,
             'timestamp': datetime.datetime.utcnow().isoformat()
