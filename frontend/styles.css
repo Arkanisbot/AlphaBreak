@@ -6427,7 +6427,8 @@ a.auth-user-name:hover {
     width: 100%;
     max-width: 600px;
     max-height: 90vh;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
 }
 
@@ -6437,6 +6438,13 @@ a.auth-user-name:hover {
     align-items: center;
     padding: 16px 20px;
     border-bottom: 1px solid var(--border-color, #2a2a4a);
+    flex-shrink: 0;
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
 }
 
 .modal-header h2 {
@@ -6457,10 +6465,6 @@ a.auth-user-name:hover {
 
 .modal-close:hover {
     color: var(--text-primary, #e0e0e0);
-}
-
-.modal-body {
-    padding: 20px;
 }
 
 /* ============================================================
