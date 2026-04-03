@@ -291,9 +291,7 @@ const Journal = {
             lessons_learned: document.getElementById('jd_lessons')?.value || '',
         };
         try {
-            const res = await apiRequest(`/api/journal/entries/${id}`, {
-                method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
-            });
+            const res = await apiRequest(`/api/journal/entries/${id}`, 'PUT', data);
             if (res.ok) {
                 if (typeof showSnackbar === 'function') showSnackbar('Notes saved', 'success');
             }
@@ -302,7 +300,7 @@ const Journal = {
 
     async generateAiScore(id) {
         try {
-            const res = await apiRequest(`/api/journal/entries/${id}/ai-score`, { method: 'POST' });
+            const res = await apiRequest(`/api/journal/entries/${id}/ai-score`, 'POST');
             if (res.ok) {
                 if (typeof showSnackbar === 'function') showSnackbar('AI Score generated', 'success');
                 this.openEntry(id); // Refresh detail
@@ -311,14 +309,12 @@ const Journal = {
     },
 
     async toggleShare(id, isPublic) {
-        await apiRequest(`/api/journal/entries/${id}/share`, {
-            method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ is_public: isPublic })
-        });
+        await apiRequest(`/api/journal/entries/${id}/share`, 'PUT', { is_public: isPublic });
     },
 
     async importTrades() {
         try {
-            const res = await apiRequest('/api/journal/import-trades', { method: 'POST' });
+            const res = await apiRequest('/api/journal/import-trades', 'POST');
             if (res.ok) {
                 const data = await res.json();
                 if (typeof showSnackbar === 'function') showSnackbar(`Imported ${data.imported} trades`, 'success');
@@ -329,7 +325,7 @@ const Journal = {
 
     async deleteEntry(id) {
         if (!confirm('Delete this journal entry?')) return;
-        await apiRequest(`/api/journal/entries/${id}`, { method: 'DELETE' });
+        await apiRequest(`/api/journal/entries/${id}`, 'DELETE');
         document.getElementById('journalDetailModal')?.remove();
         this.loadEntries();
     },
@@ -339,9 +335,7 @@ const Journal = {
     // ──────────────────────────────────────────────
 
     async callPremiumEndpoint(url, method, body, feature) {
-        const res = await apiRequest(url, {
-            method, headers: {'Content-Type': 'application/json'}, body: body ? JSON.stringify(body) : undefined
-        });
+        const res = await apiRequest(url, method, body);
         if (res.status === 403) {
             const data = await res.json();
             if (data.upgrade_required) {
@@ -407,18 +401,14 @@ const Journal = {
         const currentTags = entry?.tags || [];
         const newTags = [...new Set([...currentTags, tag])];
 
-        const res = await apiRequest(`/api/journal/entries/${id}/tags`, {
-            method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ tags: newTags })
-        });
+        const res = await apiRequest(`/api/journal/entries/${id}/tags`, 'PUT', { tags: newTags });
         if (res.ok) { input.value = ''; this.openEntry(id); }
     },
 
     async removeTag(id, tag) {
         const entry = this.entries.find(e => e.id === id);
         const newTags = (entry?.tags || []).filter(t => t !== tag);
-        await apiRequest(`/api/journal/entries/${id}/tags`, {
-            method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ tags: newTags })
-        });
+        await apiRequest(`/api/journal/entries/${id}/tags`, 'PUT', { tags: newTags });
         this.openEntry(id);
     },
 
@@ -472,9 +462,7 @@ const Journal = {
         };
         if (!data.ticker) return;
 
-        const res = await apiRequest('/api/journal/entries', {
-            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
-        });
+        const res = await apiRequest('/api/journal/entries', 'POST', data);
         if (res.ok) {
             document.getElementById('journalNewModal')?.remove();
             this.loadEntries();
