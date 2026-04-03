@@ -118,19 +118,56 @@ Build a comprehensive, AI-powered trading analysis platform that democratizes so
 
 ---
 
-## Q2 2026 (Apr-Jun)
+## Q2 2026 (Apr-Jun) — In Progress
 
-**Theme**: Security, Scalability, User Experience
-**Status**: 📅 Planned
+**Theme**: Kubernetes Migration, Portfolio Overhaul, Monetization Foundation
+**Status**: 🚧 In Progress
+
+### Completed in Q2 (April 2026)
+
+- ✅ **Kubernetes Migration** — Full containerization on k0s single-node
+  - All services in k0s: Flask API, Airflow, TimescaleDB, Redis
+  - 106 tables (~8GB) migrated from bare-metal to containerized Postgres
+  - 11 Airflow DAGs (KubernetesExecutor), including options monitor
+  - Docker images: trading-api + airflow-trading
+  - HPA auto-scaling, health/readiness probes
+
+- ✅ **Portfolio Logic Overhaul**
+  - New allocation: 50% long-term stock / 30% swing options / 20% cash float
+  - Swing trades via ATM options (auto-selected, 30 DTE)
+  - Multi-timeframe exit confirmation (daily+hourly must agree)
+  - Smart options exits: volume-based profit-taking, reversal loss-cutting
+  - Backtest: +10.28% (new) vs -3.76% (old) over Feb-Apr 2026
+
+- ✅ **40-Year Historical Backtest**
+  - Strategy vs NASDAQ vs TQQQ from 1985-2026
+  - 854,773 trend break trades analyzed: 98.5% win rate, +3.15% avg return
+  - Results stored in backtest_comparison table (10,393 daily rows)
+
+- ✅ **Push Notifications**
+  - Email via AWS SES (sandbox mode) + in-app bell icon
+  - Triggers: trade signals, stop-loss, take-profit, earnings, daily summary
+  - Notification preferences per event type
+  - Unsubscribe-all endpoint
+
+- ✅ **User Profile / Account Page**
+  - Profile settings: edit display name, change password
+  - Performance analytics: Sharpe ratio, max drawdown, equity curve, P&L heatmap
+  - Linked Accounts placeholder (Schwab coming soon)
+  - Username in header links to account page
+
+- ✅ **Trade Journal (Free + Paid Tiers)**
+  - Free: Manual notes, P&L tracking, AI trade scoring, shared journal, auto-import
+  - Paid: Tags, filters, pre-trade plans, post-trade reviews, pattern detection
+  - 1 free trial per premium feature for free users
+  - 16 API endpoints, full CRUD with premium gating
+
+### Remaining Q2
+
+#### ~~Redis Caching Layer~~ — ✅ Completed (in k0s pod)
+#### ~~API Rate Limiting~~ — ✅ Completed (Flask-Limiter)
 
 ### Infrastructure (Priority: 🔴 High)
-
-#### ~~SSL/HTTPS Implementation~~ — ✅ Completed Q1 2026
-Let's Encrypt + Certbot deployed. See Q1 section above.
-
-#### Redis Caching Layer
-**Timeline**: May 2026
-**Effort**: 2 weeks
 **Dependencies**: EC2 instance upgrade or separate Redis instance
 
 - [ ] Install Redis on EC2 or use AWS ElastiCache

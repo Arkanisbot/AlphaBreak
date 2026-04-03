@@ -137,6 +137,14 @@ def register():
 
     logger.info(f"New user registered: {user['email']}")
 
+    # Seed default notification preferences
+    try:
+        from app.routes.notifications import _seed_default_preferences, DEFAULT_EVENT_TYPES
+        from app.utils.database import db_manager
+        _seed_default_preferences(user['id'], db_manager)
+    except Exception as e:
+        logger.debug(f"Failed to seed notification prefs: {e}")
+
     return jsonify({
         'user': _user_to_response(user),
         'access_token': access_token,

@@ -7,6 +7,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.0.0] - 2026-04-03
+
+### Added
+
+#### Kubernetes Migration
+- Full containerization on k0s (single-node Kubernetes)
+- Migrated 106 tables (~8GB) from bare-metal to containerized TimescaleDB
+- 11 Airflow DAGs running via KubernetesExecutor
+- Docker images: `trading-api:latest`, `airflow-trading:latest`
+- HPA auto-scaling, health/readiness probes, persistent volumes
+
+#### Portfolio Logic Overhaul
+- New allocation: 50% long-term stock / 30% swing options / 20% cash float
+- Swing trades execute via ATM options (auto-selected 30 DTE contracts)
+- Multi-timeframe exit confirmation (daily+hourly must agree for full exit)
+- Smart options exits: volume-based profit-taking, reversal-based loss-cutting
+- Position trim (25%) on hourly-only bearish signals
+- Max $10K per options trade, 5 concurrent positions
+- `portfolio_options_monitor` DAG runs every 2h during market hours
+
+#### Historical Backtesting
+- 40-year backtest: Strategy vs NASDAQ vs TQQQ (1985-2026)
+- 854,773 trend break trades analyzed: 98.5% win rate, +3.15% avg return
+- `backtest_comparison` table with 10,393 daily rows
+- 7 presentation charts generated (PNG, dark theme, 200 DPI)
+
+#### Push Notifications
+- Email notifications via AWS SES (sandbox mode)
+- In-app notification bell with unread badge (60s polling)
+- 9 event types: trade signals, stop-loss, take-profit, earnings, daily summary
+- Per-event-type email preferences with toggles
+- Unsubscribe-all endpoint
+- Notification tables: `notifications`, `notification_preferences`, `notification_email_log`
+
+#### User Profile / Account Page
+- Profile settings: edit display name, change password
+- Performance analytics: Sharpe ratio, max drawdown, equity curve chart, P&L calendar heatmap
+- Best/worst trades tables
+- Linked Accounts section (Schwab placeholder)
+- Username in header links to Account page (no sidebar entry)
+- `user_preferences` table for extensible settings
+- `analytics.py` computation module
+
+#### Trade Journal (Free + Paid Tiers)
+- **Free**: Manual notes, P&L tracking, AI trade scoring, shared/public journal, auto-import, chart snapshots
+- **Paid**: Tags + filters, pre-trade plans, post-trade reviews, pattern detection, performance by tag
+- 1 free trial per premium feature (pre-trade plan, post-trade review, pattern recognition)
+- AI scoring: entry/exit grades (0-100), timing grade (A-F), improvement suggestions
+- Pattern detection: momentum_breakout, trend_continuation, mean_reversion, volume_climax
+- 16 API endpoints with premium gating
+- `trade_journal` table with JSONB fields for structured data
+
+### Changed
+- Portfolio allocation: 65/35 → 50/30/20 (long-term/swing options/cash float)
+- Cash reserve: 20% minimum floor → 20% maximum ceiling (deploy capital)
+- `ProductionConfig.API_KEY_REQUIRED`: now respects env var instead of hardcoding True
+- Earnings calendar: capped at 20 yfinance fetches per request (was 112, caused timeouts)
+- Added `lxml` dependency for yfinance earnings parsing
+- k0s eviction thresholds relaxed to 5% in `/etc/k0s/k0s.yaml`
+- Default notification preferences seeded on user registration
+
+---
+
 ## [2.0.0] - 2026-02-02
 
 ### Added

@@ -223,6 +223,30 @@ def update_preference():
     return jsonify({'success': True, 'event_type': event_type})
 
 
+@notifications_bp.route('/notifications/unsubscribe-all', methods=['POST'])
+@log_request
+@require_jwt
+def unsubscribe_all():
+    """One-click disable all email notifications."""
+    user_id = _get_user_internal_id()
+    if not user_id:
+        return jsonify({'error': 'User not found'}), 404
+
+    from app.utils.database import db_manager
+    try:
+        with db_manager.get_cursor(commit=True) as cursor:
+            cursor.execute(
+                "UPDATE notification_preferences SET email_enabled = FALSE, updated_at = NOW() WHERE user_id = %s",
+                (user_id,)
+            )
+            updated = cursor.rowcount
+    except Exception as e:
+        logger.error(f"Unsubscribe failed: {e}")
+        return jsonify({'error': 'Failed to unsubscribe'}), 500
+
+    return jsonify({'success': True, 'disabled': updated})
+
+
 def _seed_default_preferences(user_id, db_manager):
     """Ensure all default event types exist for a user."""
     try:
