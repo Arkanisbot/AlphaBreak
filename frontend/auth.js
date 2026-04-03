@@ -286,9 +286,21 @@ const Auth = {
             if (authUserName) {
                 authUserName.textContent = this.user.display_name || this.user.email;
             }
+            // Show notification bell and auth-only sidebar items
+            if (typeof Notifications !== 'undefined') {
+                Notifications.show();
+                Notifications.fetchUnreadCount();
+                Notifications.startPolling();
+            }
+            document.querySelectorAll('.auth-only-sidebar-item').forEach(el => el.style.display = '');
         } else {
             if (authActions) authActions.style.display = 'flex';
             if (authUserMenu) authUserMenu.style.display = 'none';
+            // Hide notification bell and auth-only sidebar items
+            if (typeof Notifications !== 'undefined') {
+                Notifications.hide();
+            }
+            document.querySelectorAll('.auth-only-sidebar-item').forEach(el => el.style.display = 'none');
         }
     },
 

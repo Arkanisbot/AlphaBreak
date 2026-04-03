@@ -661,6 +661,89 @@ def update_user_last_login(user_id):
         logger.warning(f"Failed to update last login: {e}")
 
 
+def get_user_full_profile(user_id):
+    """Get full profile including preferences and account stats."""
+    query = """
+        SELECT id, public_id, email, display_name, is_active, is_premium,
+               last_login_at, created_at
+        FROM users WHERE id = %s
+    """
+    rows = db_manager.execute_query(query, (user_id,))
+    if not rows or not rows[0]:
+        return None
+    row = rows[0]
+    profile = {
+        'id': row[0], 'public_id': str(row[1]), 'email': row[2],
+        'display_name': row[3], 'is_active': row[4], 'is_premium': row[5],
+        'last_login_at': row[6].isoformat() if row[6] else None,
+        'created_at': row[7].isoformat() if row[7] else None,
+    }
+    # Add preferences
+    profile['preferences'] = get_user_preferences(user_id)
+    return profile
+
+
+def update_user_display_name(user_id, display_name):
+    """Update user's display name."""
+    try:
+        with db_manager.get_cursor(commit=True) as cursor:
+            cursor.execute(
+                "UPDATE users SET display_name = %s, updated_at = NOW() WHERE id = %s",
+                (display_name, user_id)
+            )
+            return cursor.rowcount > 0
+    except Exception as e:
+        logger.error(f"Failed to update display name: {e}")
+        return False
+
+
+def update_user_password(user_id, new_password_hash):
+    """Update user's password hash."""
+    try:
+        with db_manager.get_cursor(commit=True) as cursor:
+            cursor.execute(
+                "UPDATE users SET password_hash = %s, updated_at = NOW() WHERE id = %s",
+                (new_password_hash, user_id)
+            )
+            return cursor.rowcount > 0
+    except Exception as e:
+        logger.error(f"Failed to update password: {e}")
+        return False
+
+
+def get_user_password_hash(user_id):
+    """Get user's current password hash for verification."""
+    rows = db_manager.execute_query(
+        "SELECT password_hash FROM users WHERE id = %s", (user_id,)
+    )
+    return rows[0][0] if rows and rows[0] else None
+
+
+def get_user_preferences(user_id):
+    """Get all preferences for a user as a dict."""
+    rows = db_manager.execute_query(
+        "SELECT preference_key, preference_value FROM user_preferences WHERE user_id = %s",
+        (user_id,)
+    )
+    return {row[0]: row[1] for row in (rows or [])}
+
+
+def set_user_preference(user_id, key, value):
+    """Set a user preference (upsert)."""
+    try:
+        with db_manager.get_cursor(commit=True) as cursor:
+            cursor.execute("""
+                INSERT INTO user_preferences (user_id, preference_key, preference_value)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (user_id, preference_key)
+                DO UPDATE SET preference_value = EXCLUDED.preference_value, updated_at = NOW()
+            """, (user_id, key, value))
+            return True
+    except Exception as e:
+        logger.error(f"Failed to set preference: {e}")
+        return False
+
+
 def store_refresh_token(user_id, token_hash, expires_at, device_info=None, ip_address=None):
     """
     Store a refresh token hash in the database.

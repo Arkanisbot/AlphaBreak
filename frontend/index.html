@@ -40,6 +40,7 @@
                     <li><a href="#" class="sidebar-link" data-tab="portfolio">Portfolio Tracker</a></li>
                     <li><a href="#" class="sidebar-link" data-tab="forex">Forex Correlations</a></li>
                     <li><a href="#" class="sidebar-link" data-tab="stats">Performance Stats</a></li>
+                    <li class="auth-only-sidebar-item" style="display:none;"><a href="#" class="sidebar-link" data-tab="account">My Account</a></li>
                 </ul>
             </nav>
         </aside>
@@ -1655,6 +1656,138 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Account Tab -->
+            <div class="tab-content" id="accountTab">
+                <div class="account-sub-tabs">
+                    <button class="account-sub-tab active" data-subtab="profile">Profile</button>
+                    <button class="account-sub-tab" data-subtab="security">Security</button>
+                    <button class="account-sub-tab" data-subtab="preferences">Preferences</button>
+                    <button class="account-sub-tab" data-subtab="linked">Linked Accounts</button>
+                    <button class="account-sub-tab" data-subtab="performance">Performance</button>
+                </div>
+
+                <!-- Profile Section -->
+                <div class="account-section" id="accountSection-profile">
+                    <div class="account-card">
+                        <h3>Profile Information</h3>
+                        <div class="profile-form-group">
+                            <label>Display Name</label>
+                            <div class="profile-input-row">
+                                <input type="text" id="profileDisplayName" class="profile-input" maxlength="100">
+                                <button class="btn btn-sm btn-primary" onclick="Account.saveDisplayName()">Save</button>
+                            </div>
+                        </div>
+                        <div class="profile-form-group">
+                            <label>Email</label>
+                            <p class="profile-static" id="profileEmail"></p>
+                        </div>
+                        <div class="profile-info-row">
+                            <div><label>Member Since</label><p id="profileMemberSince"></p></div>
+                            <div><label>Last Login</label><p id="profileLastLogin"></p></div>
+                        </div>
+                        <span class="premium-badge" id="profilePremiumBadge" style="display:none;">Premium</span>
+                    </div>
+                </div>
+
+                <!-- Security Section -->
+                <div class="account-section" id="accountSection-security" style="display:none;">
+                    <div class="account-card">
+                        <h3>Change Password</h3>
+                        <div class="profile-form-group">
+                            <label>Current Password</label>
+                            <input type="password" id="currentPassword" class="profile-input">
+                        </div>
+                        <div class="profile-form-group">
+                            <label>New Password</label>
+                            <input type="password" id="newPassword" class="profile-input">
+                        </div>
+                        <div class="profile-form-group">
+                            <label>Confirm New Password</label>
+                            <input type="password" id="confirmPassword" class="profile-input">
+                        </div>
+                        <p class="form-error" id="passwordError"></p>
+                        <button class="btn btn-primary" onclick="Account.changePassword()">Update Password</button>
+                    </div>
+                </div>
+
+                <!-- Preferences Section -->
+                <div class="account-section" id="accountSection-preferences" style="display:none;">
+                    <div class="account-card">
+                        <h3>Notification Settings</h3>
+                        <p class="muted-text">Manage which events trigger email notifications.</p>
+                        <button class="btn btn-primary" onclick="Notifications.showPreferences()">Open Notification Settings</button>
+                    </div>
+                    <div class="account-card">
+                        <h3>Display</h3>
+                        <p class="muted-text">Theme and display preferences (coming soon).</p>
+                    </div>
+                </div>
+
+                <!-- Linked Accounts Section -->
+                <div class="account-section" id="accountSection-linked" style="display:none;">
+                    <div class="account-card">
+                        <h3>Brokerage Connections</h3>
+                        <div class="linked-account-row">
+                            <div class="linked-account-info">
+                                <strong>Charles Schwab</strong>
+                                <p class="muted-text">Connect your Schwab account for live trading.</p>
+                            </div>
+                            <button class="btn btn-sm btn-ghost" disabled>Coming Soon</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Analytics Section -->
+                <div class="account-section" id="accountSection-performance" style="display:none;">
+                    <!-- Summary Metrics -->
+                    <div class="analytics-metrics-grid">
+                        <div class="analytics-metric"><label>Portfolio Value</label><span id="analyticsTotalValue" class="metric-value">-</span></div>
+                        <div class="analytics-metric"><label>Total Return</label><span id="analyticsTotalReturn" class="metric-value">-</span></div>
+                        <div class="analytics-metric"><label>Win Rate</label><span id="analyticsWinRate" class="metric-value">-</span></div>
+                        <div class="analytics-metric"><label>Sharpe Ratio</label><span id="analyticsSharpe" class="metric-value">-</span></div>
+                        <div class="analytics-metric"><label>Max Drawdown</label><span id="analyticsMaxDrawdown" class="metric-value negative">-</span></div>
+                        <div class="analytics-metric"><label>Total Trades</label><span id="analyticsTotalTrades" class="metric-value">-</span></div>
+                        <div class="analytics-metric"><label>Avg Win</label><span id="analyticsAvgWin" class="metric-value positive">-</span></div>
+                        <div class="analytics-metric"><label>Avg Loss</label><span id="analyticsAvgLoss" class="metric-value negative">-</span></div>
+                        <div class="analytics-metric"><label>Profit Factor</label><span id="analyticsProfitFactor" class="metric-value">-</span></div>
+                        <div class="analytics-metric"><label>Win Streak</label><span id="analyticsWinStreak" class="metric-value positive">-</span></div>
+                        <div class="analytics-metric"><label>Loss Streak</label><span id="analyticsLossStreak" class="metric-value negative">-</span></div>
+                    </div>
+
+                    <!-- Equity Curve -->
+                    <div class="account-card">
+                        <div class="card-header-row">
+                            <h3>Equity Curve</h3>
+                            <select id="equityCurveDays" onchange="Account.loadEquityCurve()">
+                                <option value="30">30 Days</option>
+                                <option value="90" selected>90 Days</option>
+                                <option value="365">1 Year</option>
+                            </select>
+                        </div>
+                        <div class="chart-container" style="height:300px;"><canvas id="equityCurveChart"></canvas></div>
+                    </div>
+
+                    <!-- P&L Calendar -->
+                    <div class="account-card">
+                        <h3>P&L Calendar</h3>
+                        <div id="pnlCalendar"></div>
+                    </div>
+
+                    <!-- Best/Worst Trades -->
+                    <div class="account-card-row">
+                        <div class="account-card half">
+                            <h3 class="positive">Best Trades</h3>
+                            <div id="bestTradesTable"></div>
+                        </div>
+                        <div class="account-card half">
+                            <h3 class="negative">Worst Trades</h3>
+                            <div id="worstTradesTable"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </main>
 
             <!-- Footer -->
@@ -1727,6 +1860,7 @@
 
     <script src="auth.js?v=1"></script>
     <script src="notifications.js?v=1"></script>
+    <script src="account.js?v=1"></script>
     <script src="descriptions.js?v=1"></script>
     <script src="app.js?v=6"></script>
     <script src="dashboard.js?v=5"></script>

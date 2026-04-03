@@ -26,6 +26,7 @@ const PAGE_TITLES = {
     portfolio: 'Portfolio Tracker',
     forex: 'Forex Correlations',
     stats: 'Performance Stats',
+    account: 'My Account',
 };
 
 // Initialize application
@@ -37,6 +38,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize notifications (after auth)
     if (typeof Notifications !== 'undefined') {
         Notifications.init();
+    }
+    // Initialize account (after auth)
+    if (typeof Account !== 'undefined') {
+        Account.init();
     }
     initializeSidebar();
     initializeForms();
@@ -116,7 +121,7 @@ function initializeSidebar() {
             // Hide persistent sentiment widget on forex and portfolio tabs
             const persistentSentiment = document.getElementById('persistentSentiment');
             if (persistentSentiment) {
-                persistentSentiment.style.display = (tabName === 'forex' || tabName === 'portfolio') ? 'none' : '';
+                persistentSentiment.style.display = (tabName === 'forex' || tabName === 'portfolio' || tabName === 'account') ? 'none' : '';
             }
 
             // Close sidebar after selection
