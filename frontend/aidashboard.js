@@ -25,6 +25,7 @@ const AIDashboard = (() => {
             input.addEventListener('keydown', e => { if (e.key === 'Enter') runScreener(); });
             input.addEventListener('input', () => { input.value = input.value.toUpperCase(); });
         }
+        _updateScreenerCounter();
     }
 
     async function loadDashboard() {
@@ -237,7 +238,49 @@ const AIDashboard = (() => {
         el.innerHTML = html;
     }
 
-    // ── AI Screener ──────────────────────────────────────────────────────
+    // ── AI Screener (3 free uses, then Pro) ─────────────────────────────
+    const SCREENER_LIMIT = 3;
+    const SCREENER_STORAGE_KEY = 'alphabreak_screener_uses';
+
+    function _getScreenerUses() {
+        try {
+            const data = JSON.parse(localStorage.getItem(SCREENER_STORAGE_KEY) || '{}');
+            // Reset monthly
+            const now = new Date();
+            const month = `${now.getFullYear()}-${now.getMonth()}`;
+            if (data.month !== month) return { month, count: 0, tickers: [] };
+            return data;
+        } catch (e) { return { month: '', count: 0, tickers: [] }; }
+    }
+
+    function _recordScreenerUse(ticker) {
+        const data = _getScreenerUses();
+        const now = new Date();
+        data.month = `${now.getFullYear()}-${now.getMonth()}`;
+        if (!data.tickers.includes(ticker)) {
+            data.count++;
+            data.tickers.push(ticker);
+        }
+        localStorage.setItem(SCREENER_STORAGE_KEY, JSON.stringify(data));
+        return data;
+    }
+
+    function _isPremiumUser() {
+        return typeof Auth !== 'undefined' && Auth.isAuthenticated && Auth.user?.is_premium;
+    }
+
+    function _updateScreenerCounter() {
+        const counter = document.getElementById('aiScreenerCounter');
+        if (!counter) return;
+        if (_isPremiumUser()) {
+            counter.innerHTML = '<span class="pro-badge-sm">PRO</span> Unlimited screener access';
+            return;
+        }
+        const uses = _getScreenerUses();
+        const remaining = Math.max(0, SCREENER_LIMIT - uses.count);
+        counter.innerHTML = `<span class="screener-remaining">${remaining}</span> free screen${remaining !== 1 ? 's' : ''} remaining this month`;
+    }
+
     async function runScreener() {
         const input = document.getElementById('aiScreenerInput');
         const el = document.getElementById('aiScreenerResult');
@@ -245,6 +288,35 @@ const AIDashboard = (() => {
 
         const ticker = input.value.trim().toUpperCase();
         if (!ticker) return;
+
+        // Check usage limit (premium users bypass)
+        if (!_isPremiumUser()) {
+            const uses = _getScreenerUses();
+            if (uses.count >= SCREENER_LIMIT && !uses.tickers.includes(ticker)) {
+                el.innerHTML = `
+                    <div class="pro-upsell">
+                        <div class="pro-upsell-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0110 0v4"></path>
+                            </svg>
+                        </div>
+                        <h3>AI Screener — Pro Feature</h3>
+                        <p>You've used your ${SCREENER_LIMIT} free screens this month. Upgrade to Pro for unlimited AI screening across any ticker.</p>
+                        <div class="pro-upsell-features">
+                            <span>Unlimited AI Screener</span>
+                            <span>Auto-Detected Trendlines</span>
+                            <span>Seasonality Heatmap</span>
+                            <span>Peer Comparison</span>
+                            <span>Real-Time Data</span>
+                        </div>
+                        <button class="btn btn-primary" style="margin-top:12px;">Upgrade to Pro — $99/mo</button>
+                        <p class="pro-upsell-note">Resets monthly. You've screened: ${uses.tickers.join(', ')}</p>
+                    </div>
+                `;
+                return;
+            }
+        }
 
         el.innerHTML = '<p class="muted">Scoring...</p>';
 
@@ -255,6 +327,12 @@ const AIDashboard = (() => {
             if (grades.error) {
                 el.innerHTML = `<p class="muted">${grades.error}</p>`;
                 return;
+            }
+
+            // Record usage (only counts unique tickers)
+            if (!_isPremiumUser()) {
+                _recordScreenerUse(ticker);
+                _updateScreenerCounter();
             }
 
             const f = grades.factors || {};

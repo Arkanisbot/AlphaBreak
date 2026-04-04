@@ -7295,6 +7295,38 @@ body.chart-fullscreen-active { overflow: hidden; }
     padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; font-size: 12px; min-width: 120px;
 }
 
+/* Pro upsell */
+.pro-upsell {
+    text-align: center; padding: 24px 16px;
+    background: linear-gradient(135deg, var(--bg-surface) 0%, rgba(41,98,255,0.05) 100%);
+    border-radius: 8px; border: 1px solid var(--border-color);
+}
+.pro-upsell-icon { color: var(--primary-color); margin-bottom: 12px; }
+.pro-upsell h3 { color: var(--text-primary); margin-bottom: 8px; }
+.pro-upsell p { color: var(--text-secondary); font-size: 14px; line-height: 1.5; max-width: 400px; margin: 0 auto; }
+.pro-upsell-features {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+    margin: 16px 0;
+}
+.pro-upsell-features span {
+    padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px;
+    font-size: 11px; color: var(--text-secondary); border: 1px solid var(--border-color);
+}
+.pro-upsell-note { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+
+/* Screener counter */
+.screener-counter { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.screener-remaining {
+    font-weight: 700; color: var(--primary-color);
+}
+
+/* Pro badge small */
+.pro-badge-sm {
+    font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px;
+    background: var(--primary-muted); color: var(--primary-color);
+    vertical-align: middle;
+}
+
 /* Quant Grades */
 .grades-overall {
     display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
