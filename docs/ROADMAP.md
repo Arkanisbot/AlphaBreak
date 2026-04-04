@@ -1,6 +1,6 @@
 # Product Roadmap
 
-**Version**: 4.1
+**Version**: 4.2
 **Last Updated**: April 4, 2026
 **Domain**: alphabreak.vip
 
@@ -56,7 +56,7 @@ The free tier drives user acquisition. It must be good enough that traders switc
 - [x] Options summary (IV, ATM call/put, nearest expiry)
 - [x] Institutional ownership + 13F holdings
 - [x] Auto-loads top trend break ticker on page load (fallback: AAPL)
-- [ ] Ticker news feed (needs news API — NewsAPI/Finnhub)
+- [x] Ticker news feed (yfinance stock.news — top 10 headlines with thumbnails)
 
 ### Charting — ✅ Phase 1 Complete
 - [x] TradingView Lightweight Charts (WebGL, 50K+ candles at 60fps)
@@ -77,6 +77,23 @@ The free tier drives user acquisition. It must be good enough that traders switc
 - [x] Trendline info panel with confidence + analog scores
 - [x] Pattern markers on chart (arrows with pattern name + probability)
 - [x] Charts deployed across: Security Analysis, Earnings detail, Reports detail, Long Term Trading
+
+### AI Dashboard — ✅ Complete
+- [x] Dedicated AI Dashboard tab (2nd in sidebar)
+- [x] Market regime hero (SPY-based BULL/BEAR/RANGE/HIGH_VOL with confidence + strategy description)
+- [x] Model performance stats (854K trades backtested, win rate, avg return, signals today, 30-day accuracy)
+- [x] Top AI signals list (highest-conviction trend breaks, clickable to Security Analysis)
+- [x] Sector regime map (11 sectors independently classified)
+- [x] Signal history table (7 days of predictions vs outcomes — correct/wrong/pending)
+- [x] AI Screener (enter any ticker for instant quant grades scorecard)
+
+### Quant Letter Grades — ✅ Complete
+- [x] 6-factor scoring: Value, Growth, Profitability, Momentum, Revisions, AI Score (exclusive)
+- [x] A+ through F grades based on percentile rank vs 8 sector peers
+- [x] Overall grade with weighted composite
+- [x] Sector peer ranking with mini bar chart
+- [x] AI Score factor: trend break probability + regime alignment (no competitor has this)
+- [x] Grade/trend-break divergence note in AI Brief
 
 ### AI & Educational Content — ✅ Complete
 - [x] AI Analysis Brief — plain-English synthesis of price, trend break, technicals, analyst consensus, earnings, IV, institutional ownership
@@ -141,9 +158,13 @@ The free tier drives user acquisition. It must be good enough that traders switc
 Pro is the revenue engine. These features justify the price by replacing 2-3 separate subscriptions (TradingView + Seeking Alpha + Barchart = $75-135/mo).
 
 ### Analyze Tab — Advanced Analytics
-- [ ] **Quant Letter Grades (A-F)** — Composite scores for value, growth, profitability, momentum, revisions (Seeking Alpha-style, compared vs sector median)
+*Quant Grades and AI Dashboard moved to Free tier (already built). Auto-Detected Trendlines and Seasonality remain Pro features (built but need premium gating).*
+
+- [ ] **Premium gate: Auto-Detected Trendlines** — Built and working. Needs paywall toggle (show 1 free, require Pro for full access).
+- [ ] **Premium gate: Seasonality Heatmap** — Built and working. Needs paywall toggle.
+
 - [ ] **Peer Comparison Table** — Side-by-side P/E, EV/EBITDA, ROE, revenue growth vs sector peers (Bloomberg COMP-style)
-- [ ] **Short Interest Data** — Short float %, days to cover, short squeeze risk score
+- [ ] **Short Interest Data** — Short float %, days to cover, short squeeze risk score (data in yfinance, needs dedicated section)
 - [ ] **Dividend Analysis** — Yield, payout ratio, growth rate, ex-dates, safety grade
 - [ ] **Insider Trading Signals** — SEC Form 4 filings, insider buy/sell activity with timeline
 - [ ] **News NLP Sentiment Scoring** — FinBERT-scored headlines with sentiment trends per ticker
@@ -410,7 +431,16 @@ Everything below is required to serve hundreds of thousands to millions of users
 
 ## Recently Completed
 
-### v4.1 (April 4, 2026) — This Session
+### v4.2 (April 4, 2026) — AI Dashboard + Quant Grades
+- ✅ **AI Dashboard tab** — dedicated market-wide AI view (regime, signals, sectors, history, screener)
+- ✅ **Quant Letter Grades (A-F)** — 6-factor scoring vs sector peers, including AI Score (exclusive)
+- ✅ **Ticker news feed** — yfinance stock.news with thumbnails, publisher, time ago
+- ✅ **Grade/trend-break divergence notes** — contextual warnings in AI Brief
+- ✅ **Chart clutter reduction** — simplified trendline labels, fewer S/R lines
+- ✅ **Nginx caching fix** — no-cache for HTML/JS/CSS, proper sites-enabled symlink
+- ✅ **Git-based deployment** — server now serves from repo clone, no more SCP drift
+
+### v4.1 (April 3-4, 2026) — Security Analysis + Charting Overhaul
 - ✅ **Security Analysis page** — full single-ticker deep dive (landing page)
 - ✅ **TradingView Lightweight Charts** — replaced Chart.js across 4 tabs
 - ✅ **Auto-detected trendlines** — pivot detection, confidence scoring, analog matching
