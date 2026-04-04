@@ -217,6 +217,9 @@ def fetch_analyze_data(ticker: str, db_manager=None) -> Dict:
         'confidence': sector_sentiment.get('confidence', 0),
     }
 
+    # ── News ──────────────────────────────────────────────────────────────
+    result['news'] = _get_news(stock)
+
     return result
 
 
@@ -359,6 +362,29 @@ def _compute_chart_overlays(close_series: pd.Series) -> Dict:
         result['bb_lower'] = [None] * n
 
     return result
+
+
+def _get_news(stock) -> List[Dict]:
+    """Get recent news headlines from yfinance."""
+    try:
+        news = stock.news
+        if not news:
+            return []
+
+        items = []
+        for article in news[:10]:  # Top 10
+            items.append({
+                'title': article.get('title', ''),
+                'publisher': article.get('publisher', ''),
+                'link': article.get('link', ''),
+                'published': article.get('providerPublishTime'),
+                'thumbnail': article.get('thumbnail', {}).get('resolutions', [{}])[0].get('url') if article.get('thumbnail') else None,
+                'type': article.get('type', 'STORY'),
+            })
+        return items
+    except Exception as e:
+        logger.debug(f"News fetch failed: {e}")
+        return []
 
 
 def _safe_val(val):

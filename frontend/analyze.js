@@ -185,6 +185,7 @@ const Analyze = (() => {
             renderAnalyst(data.analyst);
             renderOptions(data.options);
             renderEarnings(data.earnings);
+            renderNews(data.news);
             renderInstitutional(data.institutional);
             renderGuides(data);
             initGuideToggles();
@@ -682,6 +683,45 @@ const Analyze = (() => {
         }
 
         el.innerHTML = html;
+    }
+
+    // ── Render: Institutional ────────────────────────────────────────────
+    // ── Render: News ───────────────────────────────────────────────────
+    function renderNews(news) {
+        const el = document.getElementById('analyzeNews');
+        if (!el) return;
+
+        if (!news || news.length === 0) {
+            el.innerHTML = '<p class="muted">No recent news available.</p>';
+            return;
+        }
+
+        el.innerHTML = news.map(item => {
+            const thumb = item.thumbnail
+                ? `<img class="news-thumb" src="${item.thumbnail}" alt="" loading="lazy">`
+                : '';
+            const time = item.published
+                ? _timeAgo(item.published)
+                : '';
+            return `<a class="news-item" href="${item.link}" target="_blank" rel="noopener">
+                ${thumb}
+                <div class="news-item-body">
+                    <div class="news-item-title">${item.title}</div>
+                    <div class="news-item-meta">
+                        <span class="news-item-publisher">${item.publisher}</span>
+                        ${time ? `<span class="news-item-time">${time}</span>` : ''}
+                    </div>
+                </div>
+            </a>`;
+        }).join('');
+    }
+
+    function _timeAgo(unixTs) {
+        const now = Date.now() / 1000;
+        const diff = now - unixTs;
+        if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+        if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+        return Math.floor(diff / 86400) + 'd ago';
     }
 
     // ── Render: Institutional ────────────────────────────────────────────
