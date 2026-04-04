@@ -7000,6 +7000,31 @@ tr.clickable:hover td { background: var(--bg-surface-hover); }
 /* Regime badge (positioned by JS) */
 .regime-badge { font-family: inherit; }
 
+/* Report AI badge (above chart in detail panel) */
+.report-ai-badge {
+    display: flex; align-items: center; gap: 16px; padding: 10px 14px;
+    background: var(--bg-surface); border-radius: 6px; margin-bottom: 10px;
+    border-left: 3px solid var(--primary-color);
+}
+.report-ai-prob {
+    display: flex; flex-direction: column; align-items: center;
+}
+.report-ai-prob-val {
+    font-size: 22px; font-weight: 700; color: var(--text-primary);
+}
+.report-ai-prob-label {
+    font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;
+}
+.report-ai-prob.prob-high .report-ai-prob-val { color: var(--success-bright); }
+.report-ai-prob.prob-mid .report-ai-prob-val { color: var(--warning-color); }
+.report-ai-dir {
+    display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700;
+}
+.report-ai-dir.positive { color: var(--success-color); }
+.report-ai-dir.negative { color: var(--danger-color); }
+.report-ai-arrow { font-size: 18px; }
+.report-ai-conf { font-size: 12px; color: var(--text-muted); }
+
 /* Full-screen chart */
 .chart-fullscreen {
     position: fixed !important;

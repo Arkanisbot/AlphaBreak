@@ -278,8 +278,31 @@ const Reports = {
             `;
         }
 
+        // Trend break AI badge
+        const prob = sec.break_probability ? (sec.break_probability * 100).toFixed(0) : '--';
+        const dir = (sec.break_direction || 'neutral').toUpperCase();
+        const dirClass = dir === 'BULLISH' ? 'positive' : dir === 'BEARISH' ? 'negative' : '';
+        const probClass = sec.break_probability >= 0.90 ? 'prob-high' : sec.break_probability >= 0.85 ? 'prob-mid' : 'prob-low';
+
+        const aiBadge = `
+            <div class="report-ai-badge">
+                <div class="report-ai-prob ${probClass}">
+                    <span class="report-ai-prob-val">${prob}%</span>
+                    <span class="report-ai-prob-label">Trend Break</span>
+                </div>
+                <div class="report-ai-dir ${dirClass}">
+                    <span class="report-ai-arrow">${dir === 'BULLISH' ? '&#9650;' : dir === 'BEARISH' ? '&#9660;' : '&#9654;'}</span>
+                    <span>${dir}</span>
+                </div>
+                <div class="report-ai-conf">
+                    <span>Confidence: <strong>${sec.confidence ? (sec.confidence * 100).toFixed(0) + '%' : '--'}</strong></span>
+                </div>
+            </div>
+        `;
+
         return `
             ${alertMsg}
+            ${aiBadge}
             <div class="report-chart-section">
                 <div class="report-chart-header">
                     <h5>Price Chart</h5>
@@ -296,7 +319,7 @@ const Reports = {
                     </div>
                 </div>
                 <div class="report-chart-wrapper">
-                    <div id="reportLwChart_${ticker}" class="lw-chart-container" style="min-height:250px;"></div>
+                    <div id="reportLwChart_${ticker}" class="lw-chart-container" style="min-height:280px;"></div>
                 </div>
             </div>
             <div class="detail-grid-4col">
@@ -443,24 +466,40 @@ const Reports = {
         if (!container) return;
 
         try {
-            const response = await apiRequest(`/api/reports/ticker/${ticker}/chart?interval=${interval}`);
-            if (!response.ok) throw new Error(`API error: ${response.status}`);
-            const chartInfo = await response.json();
+            // Map interval to period for trendlines
+            const periodMap = { '5m': '1mo', '1h': '3mo', '1d': '6mo' };
+            const period = periodMap[interval] || '3mo';
+
+            // Fetch chart + trendlines in parallel
+            const [chartResp, trendResp] = await Promise.all([
+                apiRequest(`/api/reports/ticker/${ticker}/chart?interval=${interval}`),
+                apiRequest(`/api/analyze/${ticker}/trendlines?period=${period}&interval=${interval === '5m' ? '1d' : interval}`)
+                    .catch(() => null),
+            ]);
+
+            if (!chartResp.ok) throw new Error(`API error: ${chartResp.status}`);
+            const chartInfo = await chartResp.json();
+            let trendData = null;
+            if (trendResp) { try { trendData = await trendResp.json(); } catch (e) {} }
 
             const rawData = chartInfo.data || [];
             if (rawData.length === 0) return;
 
-            // Convert to AlphaCharts format
             const chartData = rawData.map(d => ({
                 timestamp: d.timestamp,
                 open: d.open, high: d.high, low: d.low, close: d.close,
                 volume: d.volume || 0,
             }));
 
-            // Destroy and recreate (interval may change between daily/intraday)
+            // Destroy and recreate
             AlphaCharts.destroy(containerId);
-            AlphaCharts.create(containerId, { height: 220, volumeHeight: 35 });
-            AlphaCharts.setData(containerId, chartData);
+            AlphaCharts.create(containerId, { height: 260, volumeHeight: 40 });
+            AlphaCharts.setData(containerId, chartData, chartInfo.overlays);
+
+            // Add trendlines + regime badge
+            if (trendData && !trendData.error) {
+                AlphaCharts.setTrendlines(containerId, trendData);
+            }
 
         } catch (err) {
             console.error(`Report chart load failed for ${ticker}:`, err);
