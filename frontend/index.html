@@ -13,6 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1/dist/chartjs-chart-financial.min.js"></script>
+    <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
     <!-- App Layout with Fixed Sidebar -->
@@ -718,8 +719,8 @@
                         <!-- Left column: Chart + Indicators -->
                         <div class="analyze-col-main">
 
-                            <!-- Chart -->
-                            <div class="card analyze-section">
+                            <!-- Chart (Lightweight Charts) -->
+                            <div class="card analyze-section analyze-chart-card">
                                 <div class="analyze-chart-controls">
                                     <div class="analyze-chart-periods" id="analyzeChartPeriods">
                                         <button data-period="1d" data-interval="5m">1D</button>
@@ -730,13 +731,22 @@
                                         <button data-period="1y" data-interval="1d">1Y</button>
                                         <button data-period="5y" data-interval="1wk">5Y</button>
                                     </div>
+                                    <div class="analyze-chart-toggles">
+                                        <label class="chart-toggle" title="Auto-detected trendlines">
+                                            <input type="checkbox" id="toggleTrendlines" checked>
+                                            <span>Trendlines</span>
+                                        </label>
+                                        <label class="chart-toggle" title="SMA 10 & 50">
+                                            <input type="checkbox" id="toggleSMA" checked>
+                                            <span>SMA</span>
+                                        </label>
+                                        <label class="chart-toggle" title="Bollinger Bands">
+                                            <input type="checkbox" id="toggleBB" checked>
+                                            <span>BB</span>
+                                        </label>
+                                    </div>
                                 </div>
-                                <div class="analyze-chart-wrapper">
-                                    <canvas id="analyzeChart"></canvas>
-                                </div>
-                                <div class="analyze-volume-wrapper">
-                                    <canvas id="analyzeVolume"></canvas>
-                                </div>
+                                <div id="analyzeChartContainer" class="lw-chart-container"></div>
                             </div>
 
                             <!-- Technical Indicators -->
@@ -2119,7 +2129,8 @@
     <script src="app.js?v=6"></script>
     <script src="dashboard.js?v=5"></script>
     <script src="reports.js?v=3"></script>
-    <script src="analyze.js?v=2"></script>
+    <script src="charts.js?v=1"></script>
+    <script src="analyze.js?v=3"></script>
     <script src="educational.js?v=1"></script>
     <script src="earnings.js?v=4"></script>
     <script src="longterm.js?v=3"></script>

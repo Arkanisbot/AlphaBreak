@@ -169,6 +169,49 @@ def analyze_chart(ticker):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# GET /api/analyze/<ticker>/trendlines
+# ──────────────────────────────────────────────────────────────────────────────
+
+@analyze_bp.route('/analyze/<ticker>/trendlines', methods=['GET'])
+@log_request
+@require_api_key
+def analyze_trendlines(ticker):
+    """
+    Auto-detect trendlines with regime-aware confidence scoring.
+
+    Query params:
+        period: 1mo, 3mo, 6mo, 1y (default 6mo)
+        interval: 1d (default 1d)
+    """
+    try:
+        ticker = _validate_ticker(ticker)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+
+    period = request.args.get('period', '6mo')
+    interval = request.args.get('interval', '1d')
+
+    try:
+        db = _get_db_manager()
+        cache_key = f'analyze_trendlines_{ticker}_{period}_{interval}'
+
+        result = _get_cached(
+            cache_key,
+            lambda: _fetch_trendlines(ticker, period, interval, db),
+            ttl=CACHE_TTL,
+        )
+
+        return jsonify(result)
+
+    except Exception as e:
+        current_app.logger.error(f"Trendline error for {ticker}: {e}")
+        return jsonify({
+            'error': f'Failed to detect trendlines for {ticker}',
+            'details': str(e),
+        }), 500
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -180,3 +223,8 @@ def _fetch_analyze(ticker, db_manager):
 def _fetch_chart(ticker, interval, period):
     from app.services.analyze_service import fetch_enhanced_chart
     return fetch_enhanced_chart(ticker, interval, period)
+
+
+def _fetch_trendlines(ticker, period, interval, db_manager):
+    from app.services.trendline_service import detect_trendlines
+    return detect_trendlines(ticker, period, interval, db_manager)

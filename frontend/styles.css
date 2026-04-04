@@ -6889,7 +6889,8 @@ a.auth-user-name:hover {
 }
 
 /* Chart */
-.analyze-chart-controls { display: flex; gap: 4px; margin-bottom: 8px; }
+.analyze-chart-card { padding: 12px; overflow: hidden; }
+.analyze-chart-controls { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; flex-wrap: wrap; }
 .analyze-chart-periods { display: flex; gap: 4px; }
 .analyze-chart-periods button {
     padding: 6px 12px; font-size: 12px; font-weight: 600;
@@ -6903,8 +6904,68 @@ a.auth-user-name:hover {
     border-color: var(--primary-color);
 }
 
-.analyze-chart-wrapper { height: 300px; position: relative; }
-.analyze-volume-wrapper { height: 60px; position: relative; margin-top: -4px; }
+/* Lightweight Charts container */
+.lw-chart-container {
+    width: 100%; border-radius: 4px; overflow: hidden;
+    background: #131722;
+}
+
+/* Chart toggle checkboxes */
+.analyze-chart-toggles {
+    display: flex; gap: 6px; margin-left: auto;
+}
+.chart-toggle {
+    display: flex; align-items: center; gap: 4px; cursor: pointer;
+    font-size: 11px; color: var(--text-muted); user-select: none;
+}
+.chart-toggle input[type="checkbox"] {
+    width: 14px; height: 14px; accent-color: var(--primary-color);
+    cursor: pointer;
+}
+.chart-toggle span { white-space: nowrap; }
+
+/* Trendline info panel */
+.trendline-panel {
+    margin-top: 8px; background: var(--bg-surface); border-radius: 6px;
+    border: 1px solid var(--border-color); overflow: hidden;
+}
+.trendline-panel-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; border-bottom: 1px solid var(--border-color);
+}
+.trendline-panel-title {
+    font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+.trendline-count {
+    font-size: 11px; color: var(--text-muted);
+}
+.trendline-list { padding: 4px 0; }
+.trendline-item {
+    display: flex; align-items: center; gap: 8px; padding: 6px 12px;
+    border-bottom: 1px solid var(--border-color); font-size: 12px;
+}
+.trendline-item:last-child { border-bottom: none; }
+.trendline-item-left { display: flex; align-items: center; gap: 6px; min-width: 90px; }
+.trendline-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.trendline-type { font-weight: 600; color: var(--text-primary); }
+.trendline-item-center {
+    display: flex; gap: 12px; flex: 1; color: var(--text-muted);
+}
+.trendline-conf strong { color: var(--text-primary); }
+.trendline-analog {
+    cursor: help; border-bottom: 1px dotted var(--text-muted);
+}
+.trendline-item-right { text-align: right; min-width: 100px; }
+.trendline-price { font-weight: 600; color: var(--text-primary); display: block; }
+.trendline-dist { font-size: 11px; }
+.trendline-dist.positive { color: var(--success-color); }
+.trendline-dist.negative { color: var(--danger-color); }
+
+/* Regime badge (positioned by JS) */
+.regime-badge { font-family: inherit; }
 
 /* Key stats grid */
 .analyze-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }

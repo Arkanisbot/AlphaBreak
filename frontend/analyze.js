@@ -4,9 +4,9 @@
 const Analyze = (() => {
     let currentTicker = null;
     let data = null;
-    let priceChart = null;
-    let volumeChart = null;
     let searchTimeout = null;
+    let currentChartPeriod = '6mo';
+    let currentChartInterval = '1d';
 
     // ── Init ─────────────────────────────────────────────────────────────
     function init() {
@@ -48,6 +48,14 @@ const Analyze = (() => {
                 loadChart(currentTicker, btn.dataset.period, btn.dataset.interval);
             });
         }
+
+        // Toggle checkboxes for overlays — reload chart on toggle
+        ['toggleTrendlines', 'toggleSMA', 'toggleBB'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', () => {
+                if (currentTicker) loadChart(currentTicker, currentChartPeriod, currentChartInterval);
+            });
+        });
 
         // Check URL hash for direct ticker link, or auto-load top trend break
         const hash = window.location.hash;
@@ -143,12 +151,7 @@ const Analyze = (() => {
         document.getElementById('analyzeContent').style.display = 'none';
 
         try {
-            // Fire data + chart requests in parallel
-            const [response, chartResp] = await Promise.all([
-                apiRequest(`/api/analyze/${ticker}`),
-                apiRequest(`/api/analyze/${ticker}/chart?period=6mo&interval=1d`),
-            ]);
-
+            const response = await apiRequest(`/api/analyze/${ticker}`);
             data = await response.json();
             if (!data || data.error) throw new Error(data?.error || 'No data');
 
@@ -167,12 +170,8 @@ const Analyze = (() => {
             document.getElementById('analyzeLoading').style.display = 'none';
             document.getElementById('analyzeContent').style.display = 'block';
 
-            // Render chart from parallel response
-            const chartData = await chartResp.json();
-            if (chartData?.data?.length > 0) {
-                renderPriceChart(chartData);
-                renderVolumeChart(chartData);
-            }
+            // Load chart (Lightweight Charts) — fires chart + trendlines in parallel
+            loadChart(ticker, '6mo', '1d');
             // Reset active button
             document.querySelectorAll('#analyzeChartPeriods button').forEach(b => {
                 b.classList.toggle('active', b.dataset.period === '6mo');
@@ -698,209 +697,51 @@ const Analyze = (() => {
         el.innerHTML = html || '<p class="muted">No institutional data available.</p>';
     }
 
-    // ── Chart ────────────────────────────────────────────────────────────
+    // ── Chart (Lightweight Charts) ─────────────────────────────────────
     async function loadChart(ticker, period, interval) {
+        currentChartPeriod = period;
+        currentChartInterval = interval;
+
         try {
-            const chartResp = await apiRequest(
-                `/api/analyze/${ticker}/chart?period=${period}&interval=${interval}`
-            );
+            // Fetch chart data + trendlines in parallel
+            const [chartResp, trendResp] = await Promise.all([
+                apiRequest(`/api/analyze/${ticker}/chart?period=${period}&interval=${interval}`),
+                apiRequest(`/api/analyze/${ticker}/trendlines?period=${period}&interval=${interval}`),
+            ]);
+
             const chartData = await chartResp.json();
+            let trendData = null;
+            try { trendData = await trendResp.json(); } catch (e) {}
+
             if (!chartData || !chartData.data || chartData.data.length === 0) return;
 
-            renderPriceChart(chartData);
-            renderVolumeChart(chartData);
+            // Create or update chart
+            if (!AlphaCharts.instances['analyzeChartContainer']) {
+                AlphaCharts.create('analyzeChartContainer', { height: 400, volumeHeight: 60 });
+            }
+
+            // Filter overlays based on toggle state
+            const overlays = chartData.overlays || {};
+            const filteredOverlays = {};
+            if (document.getElementById('toggleSMA')?.checked) {
+                filteredOverlays.sma_10 = overlays.sma_10;
+                filteredOverlays.sma_50 = overlays.sma_50;
+            }
+            if (document.getElementById('toggleBB')?.checked) {
+                filteredOverlays.bb_upper = overlays.bb_upper;
+                filteredOverlays.bb_lower = overlays.bb_lower;
+            }
+
+            AlphaCharts.setData('analyzeChartContainer', chartData.data, filteredOverlays);
+
+            // Add trendlines if enabled
+            if (document.getElementById('toggleTrendlines')?.checked && trendData) {
+                AlphaCharts.setTrendlines('analyzeChartContainer', trendData);
+            }
+
         } catch (e) {
             console.error('Chart load failed:', e);
         }
-    }
-
-    function renderPriceChart(chartData) {
-        const ctx = document.getElementById('analyzeChart');
-        if (!ctx) return;
-
-        if (priceChart) priceChart.destroy();
-
-        const overlays = chartData.overlays || {};
-        const labels = chartData.data.map(d => d.timestamp);
-
-        // Detect candlestick plugin availability
-        let hasCandlestick = false;
-        try {
-            hasCandlestick = !!Chart.registry.controllers.get('candlestick');
-        } catch (e) { /* not available */ }
-
-        // Build datasets
-        const datasets = [];
-
-        if (hasCandlestick) {
-            datasets.push({
-                label: 'Price',
-                data: chartData.data.map(d => ({
-                    x: new Date(d.timestamp).getTime(),
-                    o: d.open, h: d.high, l: d.low, c: d.close,
-                })),
-            });
-        } else {
-            // Fallback: line chart with close prices
-            const closes = chartData.data.map(d => d.close);
-            const isUp = closes[closes.length - 1] >= closes[0];
-            datasets.push({
-                label: 'Price',
-                data: closes,
-                borderColor: isUp ? 'rgba(38, 166, 154, 1)' : 'rgba(239, 83, 80, 1)',
-                backgroundColor: isUp ? 'rgba(38, 166, 154, 0.08)' : 'rgba(239, 83, 80, 0.08)',
-                fill: true, tension: 0.1, pointRadius: 0, borderWidth: 1.5,
-            });
-        }
-
-        // 10-period SMA (2-week MA) — orange
-        if (overlays.sma_10) {
-            datasets.push({
-                label: 'SMA 10 (2wk)',
-                type: 'line',
-                data: hasCandlestick
-                    ? overlays.sma_10.map((v, i) => v != null ? { x: new Date(labels[i]).getTime(), y: v } : null).filter(Boolean)
-                    : overlays.sma_10,
-                borderColor: 'rgba(255, 183, 77, 0.9)',
-                borderWidth: 1.5, pointRadius: 0, fill: false, tension: 0.2,
-            });
-        }
-
-        // 50-period SMA — purple
-        if (overlays.sma_50) {
-            datasets.push({
-                label: 'SMA 50',
-                type: 'line',
-                data: hasCandlestick
-                    ? overlays.sma_50.map((v, i) => v != null ? { x: new Date(labels[i]).getTime(), y: v } : null).filter(Boolean)
-                    : overlays.sma_50,
-                borderColor: 'rgba(126, 87, 194, 0.9)',
-                borderWidth: 1.5, pointRadius: 0, fill: false, tension: 0.2,
-            });
-        }
-
-        // Bollinger Bands — blue dashed
-        if (overlays.bb_upper) {
-            const mapOverlay = (arr) => hasCandlestick
-                ? arr.map((v, i) => v != null ? { x: new Date(labels[i]).getTime(), y: v } : null).filter(Boolean)
-                : arr;
-
-            datasets.push({
-                label: 'BB Upper',
-                type: 'line',
-                data: mapOverlay(overlays.bb_upper),
-                borderColor: 'rgba(100, 181, 246, 0.5)',
-                borderWidth: 1, borderDash: [4, 4],
-                pointRadius: 0, fill: false, tension: 0.2,
-            });
-            datasets.push({
-                label: 'BB Lower',
-                type: 'line',
-                data: mapOverlay(overlays.bb_lower),
-                borderColor: 'rgba(100, 181, 246, 0.5)',
-                borderWidth: 1, borderDash: [4, 4],
-                pointRadius: 0, fill: '-1',
-                backgroundColor: 'rgba(100, 181, 246, 0.05)',
-                tension: 0.2,
-            });
-        }
-
-        const chartType = hasCandlestick ? 'candlestick' : 'line';
-        const xScaleType = hasCandlestick ? 'timeseries' : 'category';
-
-        priceChart = new Chart(ctx, {
-            type: chartType,
-            data: { labels: hasCandlestick ? undefined : labels, datasets },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { intersect: false, mode: 'index' },
-                plugins: {
-                    legend: {
-                        display: true, position: 'top',
-                        labels: {
-                            color: '#8b95a5', boxWidth: 12, boxHeight: 2,
-                            font: { size: 11 },
-                            filter: item => item.text !== 'Price',
-                        },
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const raw = context.raw;
-                                if (raw && raw.o !== undefined) {
-                                    return `O: $${raw.o.toFixed(2)}  H: $${raw.h.toFixed(2)}  L: $${raw.l.toFixed(2)}  C: $${raw.c.toFixed(2)}`;
-                                }
-                                const val = raw?.y ?? raw;
-                                return val != null ? `${context.dataset.label}: $${Number(val).toFixed(2)}` : '';
-                            },
-                        },
-                    },
-                },
-                scales: {
-                    x: {
-                        type: xScaleType,
-                        display: true,
-                        grid: { color: 'rgba(42, 46, 57, 0.5)' },
-                        ticks: {
-                            color: '#5c6578', maxTicksLimit: 8, maxRotation: 0,
-                            ...(xScaleType === 'category' ? {
-                                callback: function(val) {
-                                    const l = this.getLabelForValue(val);
-                                    return l ? l.split('T')[0] : '';
-                                },
-                            } : {}),
-                        },
-                        ...(hasCandlestick ? { time: { unit: 'day' } } : {}),
-                    },
-                    y: {
-                        display: true, position: 'right',
-                        grid: { color: 'rgba(42, 46, 57, 0.5)' },
-                        ticks: { color: '#5c6578', callback: v => '$' + Number(v).toFixed(2) },
-                    },
-                },
-            },
-        });
-    }
-
-    function renderVolumeChart(chartData) {
-        const ctx = document.getElementById('analyzeVolume');
-        if (!ctx) return;
-
-        if (volumeChart) volumeChart.destroy();
-
-        const labels = chartData.data.map(d => d.timestamp);
-        const volumes = chartData.data.map(d => d.volume);
-        const colors = chartData.data.map((d, i) => {
-            if (i === 0) return 'rgba(92, 101, 120, 0.5)';
-            return d.close >= chartData.data[i - 1].close
-                ? 'rgba(38, 166, 154, 0.4)'
-                : 'rgba(239, 83, 80, 0.4)';
-        });
-
-        volumeChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels,
-                datasets: [{
-                    data: volumes,
-                    backgroundColor: colors,
-                    borderWidth: 0,
-                }],
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                scales: {
-                    x: { display: false },
-                    y: {
-                        display: false,
-                        beginAtZero: true,
-                    },
-                },
-            },
-        });
     }
 
     // ── Formatting helpers ───────────────────────────────────────────────
