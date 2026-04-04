@@ -250,7 +250,7 @@ const LongTerm = {
             const fundsDisplay = h.total_funds_holding != null ? h.total_funds_holding : '--';
 
             return `
-                <tr class="longterm-holding-row">
+                <tr class="longterm-holding-row clickable" data-ticker="${h.ticker}">
                     <td><strong class="longterm-ticker">${h.ticker}</strong>${dividendIcon}</td>
                     <td><span class="longterm-sector-tag" style="border-left: 3px solid ${sectorColor}">${h.sector || '--'}</span></td>
                     <td><strong>${fundsDisplay}</strong></td>
@@ -260,19 +260,31 @@ const LongTerm = {
                     <td class="negative">${h.funds_decreased != null ? h.funds_decreased : '--'}</td>
                     <td class="negative">${h.funds_sold != null ? h.funds_sold : '--'}</td>
                     <td><span class="${netChangeClass}">${netChangePct}</span></td>
-                    <td><button class="btn btn-sm" data-ticker="${h.ticker}">Analyze</button></td>
+                    <td><button class="btn btn-sm btn-analyze-grey" data-ticker="${h.ticker}">Analyze</button></td>
                 </tr>
             `;
         }).join('');
 
-        // Attach analyze button handlers
-        tbody.querySelectorAll('button[data-ticker]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const ticker = btn.dataset.ticker;
-                const input = document.getElementById('longtermTickerInput');
-                if (input) input.value = ticker;
-                this.loadTickerDetail(ticker);
+        // Click entire row to navigate to Security Analysis tab
+        tbody.querySelectorAll('tr[data-ticker]').forEach(row => {
+            row.addEventListener('click', (e) => {
+                const ticker = row.dataset.ticker;
+                // Navigate to Security Analysis tab and analyze this ticker
+                if (typeof Analyze !== 'undefined') {
+                    // Switch to the analyze tab
+                    document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    const analyzeLink = document.querySelector('.sidebar-link[data-tab="watchlist"]');
+                    if (analyzeLink) analyzeLink.classList.add('active');
+                    const analyzeTab = document.getElementById('watchlistTab');
+                    if (analyzeTab) analyzeTab.classList.add('active');
+                    document.getElementById('currentPageTitle').textContent = 'Security Analysis';
+                    // Trigger the analysis
+                    document.getElementById('analyzeTickerInput').value = ticker;
+                    Analyze.analyzeTicker(ticker);
+                    // Scroll to top
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
             });
         });
     },
@@ -316,13 +328,14 @@ const LongTerm = {
         });
     },
 
-    // ── Comparison Chart (Line) ─────────────────────────────────────────
+    // ── Comparison Chart (Line — base=100, area fill) ────────────────────
 
     renderComparisonChart(comparison) {
         const section = document.getElementById('longtermComparisonSection');
         if (section) section.style.display = 'block';
 
         this.destroyChart('comparison');
+        this.currentComparison = comparison;
 
         const canvas = document.getElementById('longtermComparisonChart');
         if (!canvas || !comparison || !comparison.series) return;
@@ -336,22 +349,28 @@ const LongTerm = {
         colorMap['GLD'] = '#ffc107';
         colorMap['BTC'] = '#ff9800';
 
-        const datasets = Object.entries(comparison.series).map(([key, points]) => ({
-            label: key,
-            data: points.map(p => ({
-                x: DateTime.fromISO(p.date).toMillis(),
-                y: p.pct_return,
-            })),
-            borderColor: colorMap[key] || '#8b95a5',
-            borderWidth: key === ticker ? 2.5 : 1.5,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-            fill: false,
-            tension: 0.3,
-        }));
+        // Convert from % return to base=100
+        const datasets = Object.entries(comparison.series).map(([key, points]) => {
+            const color = colorMap[key] || '#8b95a5';
+            const isTicker = key === ticker;
+            return {
+                label: key === 'SPY' ? 'S&P 500' : key === 'GLD' ? 'Gold' : key === 'BTC' ? 'Bitcoin' : key,
+                data: points.map(p => ({
+                    x: DateTime.fromISO(p.date).toMillis(),
+                    y: 100 + p.pct_return,  // Base = 100
+                })),
+                borderColor: color,
+                backgroundColor: isTicker ? color + '18' : 'transparent',  // Area fill only for main ticker
+                borderWidth: isTicker ? 2.5 : 1.5,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                fill: isTicker ? 'origin' : false,
+                tension: 0.3,
+            };
+        });
 
         const title = document.getElementById('longtermComparisonTitle');
-        if (title) title.textContent = `${ticker} vs S&P 500, Gold, Bitcoin \u2014 Weekly % Return`;
+        if (title) title.textContent = `${ticker} vs S&P 500, Gold, Bitcoin`;
 
         this.charts['comparison'] = new Chart(canvas.getContext('2d'), {
             type: 'line',
@@ -363,7 +382,14 @@ const LongTerm = {
                     legend: {
                         display: true,
                         position: 'top',
-                        labels: { color: '#8b95a5', font: { size: 11 }, boxWidth: 14 },
+                        labels: { color: '#8b95a5', font: { size: 11 }, boxWidth: 14, usePointStyle: true },
+                        onClick: (e, legendItem, legend) => {
+                            // Toggle dataset visibility on legend click
+                            const idx = legendItem.datasetIndex;
+                            const chart = legend.chart;
+                            chart.getDatasetMeta(idx).hidden = !chart.getDatasetMeta(idx).hidden;
+                            chart.update();
+                        },
                     },
                     tooltip: {
                         backgroundColor: '#1c2030',
@@ -372,7 +398,12 @@ const LongTerm = {
                         borderColor: '#2a2e39',
                         borderWidth: 1,
                         callbacks: {
-                            label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%`,
+                            label: (ctx) => {
+                                const val = ctx.parsed.y;
+                                const pctChange = (val - 100).toFixed(1);
+                                const sign = pctChange >= 0 ? '+' : '';
+                                return `${ctx.dataset.label}: ${val.toFixed(1)} (${sign}${pctChange}%)`;
+                            },
                         },
                     },
                 },
@@ -386,13 +417,13 @@ const LongTerm = {
                     y: {
                         grid: { color: '#2a2e3960' },
                         ticks: {
-                            callback: (v) => v.toFixed(0) + '%',
+                            callback: (v) => v.toFixed(0),
                             color: '#8b95a5',
                             font: { size: 10 },
                         },
                         title: {
                             display: true,
-                            text: 'Cumulative Return %',
+                            text: 'Growth of $100',
                             color: '#5c6578',
                             font: { size: 10 },
                         },
@@ -402,10 +433,39 @@ const LongTerm = {
             },
         });
 
+        // Setup range selector buttons
+        this.setupRangeSelector();
+
         // Render summary cards
         if (comparison.summary) {
             this.renderSummaryRow(comparison.summary, ticker);
         }
+    },
+
+    setupRangeSelector() {
+        const selector = document.getElementById('comparisonRangeSelector');
+        if (!selector) return;
+
+        selector.querySelectorAll('.range-btn').forEach(btn => {
+            // Clone to remove old listeners
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+
+            newBtn.addEventListener('click', () => {
+                selector.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+                newBtn.classList.add('active');
+                const weeks = parseInt(newBtn.dataset.weeks, 10);
+
+                // Update the period dropdown to match
+                const periodSelect = document.getElementById('longtermPeriod');
+                if (periodSelect) periodSelect.value = String(weeks);
+
+                // Reload data with new period
+                if (this.selectedTicker) {
+                    this.loadTickerDetail(this.selectedTicker);
+                }
+            });
+        });
     },
 
     renderSummaryRow(summary, ticker) {

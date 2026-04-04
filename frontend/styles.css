@@ -6740,6 +6740,39 @@ a.auth-user-name:hover {
 .sentiment-collapse-btn.collapsed svg { transform: rotate(-90deg); }
 .sentiment-collapse-btn svg { transition: transform 0.2s; }
 
+/* Grey analyze button */
+.btn-analyze-grey {
+    background: var(--bg-elevated); color: var(--text-muted);
+    border: 1px solid var(--border-color); padding: 4px 12px;
+    border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;
+    transition: all 0.15s;
+}
+.btn-analyze-grey:hover { background: var(--primary-muted); color: var(--primary-color); border-color: var(--primary-color); }
+
+/* Clickable table rows */
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: var(--bg-surface-hover); }
+
+/* Comparison chart header row */
+.comparison-header-row {
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 8px; margin-bottom: 8px;
+}
+.comparison-range-selector {
+    display: flex; gap: 4px;
+}
+.range-btn {
+    padding: 5px 12px; font-size: 11px; font-weight: 600;
+    background: var(--bg-surface); color: var(--text-muted);
+    border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;
+    transition: all 0.15s;
+}
+.range-btn:hover { color: var(--text-primary); border-color: var(--border-light); }
+.range-btn.active {
+    background: var(--primary-muted); color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
 /* Danger button */
 .btn-danger {
     background: var(--danger-color); color: #fff; border: none;
