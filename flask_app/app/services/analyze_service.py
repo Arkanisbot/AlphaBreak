@@ -373,13 +373,27 @@ def _get_news(stock) -> List[Dict]:
 
         items = []
         for article in news[:10]:  # Top 10
+            # yfinance v2 wraps content in a 'content' key
+            content = article.get('content', article)
+
+            # Extract thumbnail
+            thumb = None
+            thumb_data = content.get('thumbnail')
+            if thumb_data:
+                resolutions = thumb_data.get('resolutions', [])
+                if resolutions:
+                    thumb = resolutions[0].get('url')
+
+            # Extract publish time
+            pub_time = content.get('pubDate') or content.get('providerPublishTime')
+
             items.append({
-                'title': article.get('title', ''),
-                'publisher': article.get('publisher', ''),
-                'link': article.get('link', ''),
-                'published': article.get('providerPublishTime'),
-                'thumbnail': article.get('thumbnail', {}).get('resolutions', [{}])[0].get('url') if article.get('thumbnail') else None,
-                'type': article.get('type', 'STORY'),
+                'title': content.get('title', ''),
+                'publisher': content.get('provider', {}).get('displayName', '') if isinstance(content.get('provider'), dict) else content.get('publisher', ''),
+                'link': content.get('canonicalUrl', {}).get('url', '') if isinstance(content.get('canonicalUrl'), dict) else content.get('link', ''),
+                'published': pub_time,
+                'thumbnail': thumb,
+                'type': content.get('contentType', 'STORY'),
             })
         return items
     except Exception as e:
