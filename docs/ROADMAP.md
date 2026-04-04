@@ -1,7 +1,7 @@
 # Product Roadmap
 
-**Version**: 4.0
-**Last Updated**: April 3, 2026
+**Version**: 4.1
+**Last Updated**: April 4, 2026
 **Domain**: alphabreak.vip
 
 ---
@@ -42,29 +42,55 @@ The free tier drives user acquisition. It must be good enough that traders switc
 - [x] VIX & index sentiment (SPY, QQQ, DIA, Russell 2000)
 - [x] Commodities & crypto widget (Gold, Silver, BTC, ETH)
 - [x] Trend break reports (daily, hourly, 10-min, 80%+ probability)
+- [x] All widgets collapsible with persistent state
 
-### Analyze Tab (Single-Ticker Deep Dive) — 🚧 In Progress
-*Rename "Intra-Day Trading Watchlist" → "Analyze". This is the core product differentiator.*
+### Security Analysis (Single-Ticker Deep Dive) — ✅ Complete
+*Formerly "Intra-Day Trading Watchlist". Now the landing page.*
 
-- [ ] Ticker search bar with auto-complete
-- [ ] Company overview (market cap, P/E, EPS, 52-week range, sector)
-- [ ] Analyst consensus & price targets (buy/hold/sell distribution, mean/high/low)
-- [ ] Ticker news feed (real-time headlines filtered to security)
-- [ ] Earnings calendar (dates, estimates, surprise history)
-- [ ] Wire existing endpoints (`/api/predict/indicators/<ticker>`, `/api/analyze`) to new UI
-- [ ] Basic price charts with common indicators (RSI, MACD, MA, Bollinger)
+- [x] Ticker search bar with auto-complete (100+ tickers)
+- [x] Company overview (name, sector, industry, exchange)
+- [x] Price, change, 52-week range bar
+- [x] Key stats grid (22 metrics: P/E, EPS, market cap, ROE, margins, etc.)
+- [x] Analyst consensus & price targets (buy/hold/sell, mean/high/low)
+- [x] Earnings (next date + last 4 quarters beat/miss)
+- [x] Options summary (IV, ATM call/put, nearest expiry)
+- [x] Institutional ownership + 13F holdings
+- [x] Auto-loads top trend break ticker on page load (fallback: AAPL)
+- [ ] Ticker news feed (needs news API — NewsAPI/Finnhub)
+
+### Charting — ✅ Phase 1 Complete
+- [x] TradingView Lightweight Charts (WebGL, 50K+ candles at 60fps)
+- [x] Japanese candlestick + volume histogram
+- [x] SMA 10 + SMA 50 overlays
+- [x] Bollinger Bands overlay
+- [x] 7 timeframe buttons (1D, 5D, 1M, 3M, 6M, 1Y, 5Y)
+- [x] Toggle checkboxes: Trendlines / SMA / BB / Compare / Patterns
+- [x] Full-screen mode
+- [x] Auto-detected trendlines with confidence scoring (0-100%)
+- [x] Market regime classification (BULL/BEAR/RANGE/HIGH_VOL) with badge
+- [x] Historical analog matching (cosine similarity, agreement %)
+- [x] Trendline projection (5/10/20 bars forward)
+- [x] Horizontal support/resistance levels from pivot clustering
+- [x] Candlestick pattern recognition (Doji, Hammer, Shooting Star, Engulfing, Morning/Evening Star, Three White Soldiers/Black Crows) with probability %
+- [x] Seasonality heatmap (5yr monthly avg return + win rate)
+- [x] Symbol comparison overlay (SPY, VIX, sector ETF — normalized %)
+- [x] Trendline info panel with confidence + analog scores
+- [x] Pattern markers on chart (arrows with pattern name + probability)
+- [x] Charts deployed across: Security Analysis, Earnings detail, Reports detail, Long Term Trading
+
+### AI & Educational Content — ✅ Complete
+- [x] AI Analysis Brief — plain-English synthesis of price, trend break, technicals, analyst consensus, earnings, IV, institutional ownership
+- [x] Inline tooltips on all indicator rows (contextual explanation of RSI 28.5, CCI > 100, etc.)
+- [x] Expandable "?" guide panels per section (indicators, stats, analyst, options, earnings, institutional)
+- [x] Educational content on Reports tab (AI brief, guide panel, probability/IV tooltips)
+- [x] Educational content on Earnings tab (AI brief, guide panel, EPS tooltips)
+- [x] Educational content on Options tab (AI brief, guide panel, IV/delta/recommendation tooltips)
+- [x] Earnings CBOE: P/C Ratio tooltips, put/call volume flow analysis bar
 
 ### Options Analysis — ✅ Complete
 - [x] Options chain with bid/ask, volume, OI, IV
 - [x] Fair value calculation (Black-Scholes, Binomial Tree)
 - [x] Option chain by expiration
-
-### AI & Scoring — 🚧 Partially Built
-- [x] AI trade scoring (entry/exit/timing grades) — built in journal
-- [x] Composite tech + fundamental score — built in journal scoring
-- [x] Regime-aware analysis — trend break + indicator context in scoring
-- [ ] Expose scoring as standalone Analyze tab widget (not just journal)
-- [ ] Signal accuracy tracking dashboard — backtest data exists (854K trades, 98.5% win), needs frontend
 
 ### Portfolio & Journal — ✅ Complete
 - [x] Portfolio tracker (paper trading, $100K)
@@ -74,16 +100,31 @@ The free tier drives user acquisition. It must be good enough that traders switc
 - [x] Community / shared journal (public/private toggle)
 - [x] Watchlist management (server-synced, batch fetch up to 50 tickers)
 
+### Long Term Trading — ✅ Updated
+- [x] My Holdings section (above Hedge Fund, collapsible widget)
+- [x] Hedge Fund Holdings with real 13F data (funds holding, sentiment, new/increased/decreased/sold, net change)
+- [x] Click-to-analyze any holding row (opens detail panel)
+- [x] Comparison chart: Growth of $100 (base=100, area fill, legend toggle, range selector 1M-5Y)
+- [x] Daily candlestick chart (Lightweight Charts)
+
 ### Notifications — ✅ Complete
 - [x] Email alerts via AWS SES (sandbox mode)
-- [x] In-app bell icon with unread count
+- [x] Notification preferences (moved to Account page)
 - [x] 9 event types (trade signal, stop-loss, take-profit, earnings, etc.)
 - [x] Per-event notification preferences
 - [x] Unsubscribe-all endpoint
 
+### UI/UX — ✅ Complete
+- [x] All tabs converted to widget-card pattern with collapsible sections
+- [x] Security Analysis as landing page (top of sidebar)
+- [x] Header: centered page title, API status in footer
+- [x] Subtitle: "AI-Driven Trend and Sentiment Analysis"
+- [x] Contact link in footer
+- [x] Sign out moved to Account page
+
 ### Data — ✅ Complete
 - [x] Delayed data (15-min via yfinance)
-- [x] Institutional ownership / 13F (20 funds, 8.4M-row archive)
+- [x] Institutional ownership / 13F (20 funds, 8.4M-row archive, 20K aggregates)
 - [x] Forex correlations (21 pairs, 54 years, 123K rows)
 - [x] Earnings calendar with surprise history
 
@@ -105,33 +146,27 @@ Pro is the revenue engine. These features justify the price by replacing 2-3 sep
 - [ ] **Short Interest Data** — Short float %, days to cover, short squeeze risk score
 - [ ] **Dividend Analysis** — Yield, payout ratio, growth rate, ex-dates, safety grade
 - [ ] **Insider Trading Signals** — SEC Form 4 filings, insider buy/sell activity with timeline
-- [ ] **Seasonality Patterns** — Monthly/weekly historical return heatmap (TrendSpider-style)
-- [ ] **Auto-Detected Trendlines** — Algorithmic support/resistance drawn automatically
 - [ ] **News NLP Sentiment Scoring** — FinBERT-scored headlines with sentiment trends per ticker
 
 ### Options — Enhanced
 - [ ] **Unusual Options Activity** — Volume vs 5-day average, large block trades, sweep detection
-- [ ] **Fair Value (Black-Scholes, Binomial)** — Move from free to Pro with expanded models *(currently free — gate at Pro)*
 - [ ] **Probability of Profit** — IV-based probability calculations for any position
 - [ ] **Market Maker Move** — Implied earnings move from ATM straddle pricing
 
-### Charting — Enhanced
-*Phase 1 complete: TradingView Lightweight Charts, auto-detected trendlines, candlestick patterns, seasonality, symbol comparison, fullscreen.*
-
-**Phase 2 — Drawing Tools + Multi-Chart:**
-- [ ] **AI-Assisted Drawing Tools** — Fibonacci (auto-placed at detected swings), trendlines (pre-drawn suggestions the user can adjust), channels, pitchforks. AI suggests "draw here" based on pivot detection.
+### Charting — Phase 2
+- [ ] **AI-Assisted Drawing Tools** — Fibonacci (auto-placed at detected swings), trendlines (pre-drawn suggestions user can adjust), channels, pitchforks. AI suggests "draw here" based on pivot detection.
 - [ ] **Multi-Chart Layout** — 2-4 charts side-by-side with synced crosshairs. Compare same ticker across timeframes or different tickers.
 - [ ] **Multi-Timeframe Analysis** — Overlay indicators from daily + hourly + 15min on single view
 
-**Phase 3 — 100+ Indicators with Regime Weighting:**
-- [ ] **Indicator Library** — RSI, MACD, Stochastic, Bollinger, Ichimoku, VWAP, OBV, Williams %R, Keltner, ATR, Parabolic SAR, etc. (100+ via ta-lib or custom)
-- [ ] **Regime-Aware Weighting** — In BULL regime, weight momentum indicators higher. In RANGE, weight mean-reversion. In HIGH_VOL, weight volatility indicators. Only highlight the top 5 most predictive indicators for the current regime.
-- [ ] **Indicator Search + Add** — Search bar to find and overlay any indicator with customizable parameters
+### Charting — Phase 3
+- [ ] **Indicator Library (100+)** — RSI, MACD, Stochastic, Bollinger, Ichimoku, VWAP, OBV, Williams %R, Keltner, ATR, Parabolic SAR, etc.
+- [ ] **Regime-Aware Weighting** — In BULL regime, weight momentum indicators. In RANGE, weight mean-reversion. Only highlight top 5 most predictive for current regime.
+- [ ] **Indicator Search + Add** — Search bar to find and overlay any indicator with custom parameters
 
-**Phase 4 — Natural-Language Scripting:**
-- [ ] **Smart Alerts** — "If regime = breakout AND RSI < 30, notify me" — parsed by backend AI into alert conditions
-- [ ] **Custom Screeners** — "Show me all stocks with bullish engulfing pattern AND above 200 SMA AND insider buying" — natural language to SQL/filter
-- [ ] **Strategy Builder** — "Backtest buying when trend break > 90% bullish, selling when RSI > 70" — converts to automated strategy
+### Charting — Phase 4
+- [ ] **Smart Alerts** — "If regime = breakout AND RSI < 30, notify me" — parsed by backend AI
+- [ ] **Custom Screeners** — "Show me all stocks with bullish engulfing AND above 200 SMA AND insider buying" — natural language to filter
+- [ ] **Strategy Builder** — "Backtest buying when trend break > 90% bullish, selling when RSI > 70" — automated strategy
 
 ### Journal — Premium
 - [x] Tags + filters + performance by tag
@@ -167,7 +202,7 @@ Elite delivers institutional-grade tools for serious traders and small funds.
 - [ ] **DuPont Decomposition** — ROE breakdown into margin × turnover × leverage
 - [ ] **Supply Chain Mapping** — Revenue exposure by customer/supplier (Bloomberg SPLC-style)
 - [ ] **IV History & Volatility Surface** — Historical IV, term structure, skew visualization
-- [ ] **Greeks (Full Suite)** — Delta, Gamma, Theta, Vega with real-time updates *(chain is free; full Greeks at Elite)*
+- [ ] **Greeks (Full Suite)** — Delta, Gamma, Theta, Vega with real-time updates
 
 ### Options — Professional
 - [ ] **IV Crush Modeling** — Predicted post-earnings IV decline for options sizing
@@ -213,7 +248,6 @@ Programmatic access for quant teams, hedge funds, and fintech builders.
 Not committed to a tier or timeline. Will be prioritized based on user demand and business needs.
 
 ### Analysis
-- [ ] Candlestick pattern recognition (auto-detect and label)
 - [ ] Raindrop / volume profile charts
 - [ ] DCF / intrinsic value model with adjustable assumptions
 - [ ] Earnings call transcripts with key quote extraction
@@ -259,7 +293,7 @@ Not committed to a tier or timeline. Will be prioritized based on user demand an
 ## Customer Acquisition
 
 ### Pre-Launch (Current)
-- [ ] **Contact Page** — Professional contact form (name, email, subject, message), FAQ section, support email, social links, office hours. Mirror institutional fintech contact pages (Bloomberg, Refinitiv style).
+- [ ] **Contact Page** — Professional contact form (name, email, subject, message), FAQ section, support email, social links, office hours
 - [ ] **Landing Page** — Value proposition, feature screenshots, email capture for waitlist
 - [ ] **SEO Content** — Blog posts targeting: "best stock analysis tools", "Bloomberg alternative", "free options analysis", "AI trade scoring"
 - [ ] **Social Proof** — Backtest results (854K trades, 98.5% win rate) as marketing content
@@ -320,7 +354,6 @@ Everything below is required to serve hundreds of thousands to millions of users
 - [x] AWS CLI configured
 
 ### Scale Readiness — Must Build
-*These are prerequisites for handling real user traffic.*
 
 #### Database
 - [ ] **Connection Pooling** — PgBouncer or increase pool size for concurrent connections
@@ -377,6 +410,24 @@ Everything below is required to serve hundreds of thousands to millions of users
 
 ## Recently Completed
 
+### v4.1 (April 4, 2026) — This Session
+- ✅ **Security Analysis page** — full single-ticker deep dive (landing page)
+- ✅ **TradingView Lightweight Charts** — replaced Chart.js across 4 tabs
+- ✅ **Auto-detected trendlines** — pivot detection, confidence scoring, analog matching
+- ✅ **Candlestick pattern recognition** — 8 patterns with probability scoring
+- ✅ **Seasonality heatmap** — 5yr monthly returns
+- ✅ **Symbol comparison** — overlay SPY, VIX, sector ETF
+- ✅ **AI Analysis Brief** — plain-English synthesis on Security Analysis page
+- ✅ **Educational tooltips + guide panels** — across Security Analysis, Reports, Earnings, Options
+- ✅ **Market regime classification** — BULL/BEAR/RANGE/HIGH_VOL with confidence
+- ✅ **Widget-card conversion** — all 11 tabs now collapsible
+- ✅ **Comparison chart upgrade** — base=100, area fill, legend toggle, range selector
+- ✅ **Hedge fund holdings fix** — tuple→dict mapping, real 13F data now populated
+- ✅ **Report detail AI badge** — trend break probability, direction, confidence
+- ✅ **Competitive analysis** — 10-competitor feature matrix + 3 Excel files
+- ✅ **Pricing tiers defined** — Free / Pro $99 / Elite $299 / API $499-999
+- ✅ **Roadmap v4 restructure** — Features by tier, Customer Acquisition, Infrastructure
+
 ### v3.0 (Q1-Q2 2026)
 - ✅ Kubernetes migration (k0s, all services containerized)
 - ✅ Portfolio logic overhaul (50/30/20 allocation, options trading, multi-TF exits)
@@ -418,4 +469,4 @@ Everything below is required to serve hundreds of thousands to millions of users
 
 ---
 
-**Last Updated**: April 3, 2026
+**Last Updated**: April 4, 2026
