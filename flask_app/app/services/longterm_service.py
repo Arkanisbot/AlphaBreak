@@ -135,31 +135,37 @@ def _fetch_holdings_from_db(db_manager, min_funds, limit):
     if not rows:
         return [], None, 0
 
-    report_quarter = rows[0].get('report_quarter')
+    # Column order from the SELECT:
+    # 0:ticker, 1:total_funds_holding, 2:total_market_value,
+    # 3:institutional_sentiment, 4:pct_funds_holding,
+    # 5:funds_initiated, 6:funds_increased, 7:funds_decreased,
+    # 8:funds_sold, 9:net_shares_change_pct, 10:report_quarter,
+    # 11:sector, 12:industry, 13:has_dividend
+    report_quarter = rows[0][10] if len(rows[0]) > 10 else None
 
     # Get total tracked funds count
     count_query = """
         SELECT COUNT(DISTINCT cik) as cnt FROM hedge_fund_managers
     """
     count_rows = db_manager.execute_query(count_query)
-    total_funds = count_rows[0]['cnt'] if count_rows else 0
+    total_funds = count_rows[0][0] if count_rows else 0
 
     holdings = []
     for r in rows:
         holdings.append({
-            'ticker': r['ticker'],
-            'total_funds_holding': r.get('total_funds_holding', 0),
-            'total_market_value': float(r.get('total_market_value') or 0),
-            'institutional_sentiment': float(r.get('institutional_sentiment') or 0),
-            'pct_funds_holding': float(r.get('pct_funds_holding') or 0),
-            'funds_initiated': r.get('funds_initiated', 0),
-            'funds_increased': r.get('funds_increased', 0),
-            'funds_decreased': r.get('funds_decreased', 0),
-            'funds_sold': r.get('funds_sold', 0),
-            'net_shares_change_pct': float(r.get('net_shares_change_pct') or 0),
-            'sector': r.get('sector') or 'Unknown',
-            'industry': r.get('industry') or '',
-            'has_dividend': bool(r.get('has_dividend')),
+            'ticker': r[0],
+            'total_funds_holding': r[1] or 0,
+            'total_market_value': float(r[2] or 0),
+            'institutional_sentiment': float(r[3] or 0),
+            'pct_funds_holding': float(r[4] or 0),
+            'funds_initiated': r[5] or 0,
+            'funds_increased': r[6] or 0,
+            'funds_decreased': r[7] or 0,
+            'funds_sold': r[8] or 0,
+            'net_shares_change_pct': float(r[9] or 0),
+            'sector': r[11] or 'Unknown',
+            'industry': r[12] or '',
+            'has_dividend': bool(r[13]) if len(r) > 13 else False,
             'report_quarter': report_quarter,
         })
 

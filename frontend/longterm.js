@@ -265,26 +265,14 @@ const LongTerm = {
             `;
         }).join('');
 
-        // Click entire row to navigate to Security Analysis tab
+        // Click entire row to load ticker detail (same as Analyze button)
         tbody.querySelectorAll('tr[data-ticker]').forEach(row => {
             row.addEventListener('click', (e) => {
+                if (e.target.closest('.btn-analyze-grey')) return; // Let button handle itself
                 const ticker = row.dataset.ticker;
-                // Navigate to Security Analysis tab and analyze this ticker
-                if (typeof Analyze !== 'undefined') {
-                    // Switch to the analyze tab
-                    document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                    const analyzeLink = document.querySelector('.sidebar-link[data-tab="watchlist"]');
-                    if (analyzeLink) analyzeLink.classList.add('active');
-                    const analyzeTab = document.getElementById('watchlistTab');
-                    if (analyzeTab) analyzeTab.classList.add('active');
-                    document.getElementById('currentPageTitle').textContent = 'Security Analysis';
-                    // Trigger the analysis
-                    document.getElementById('analyzeTickerInput').value = ticker;
-                    Analyze.analyzeTicker(ticker);
-                    // Scroll to top
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
+                const input = document.getElementById('longtermTickerInput');
+                if (input) input.value = ticker;
+                this.loadTickerDetail(ticker);
             });
         });
     },
