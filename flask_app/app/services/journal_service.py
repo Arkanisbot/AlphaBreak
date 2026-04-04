@@ -57,8 +57,8 @@ def create_entry(db_manager, user_id, data):
         INSERT INTO trade_journal
         (user_id, transaction_id, ticker, trade_date, direction, entry_price, exit_price,
          quantity, realized_pnl, realized_pnl_pct, entry_notes, exit_notes, lessons_learned,
-         signal_source, signal_details, is_public)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+         signal_source, signal_details, is_public, holding_type)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id
     """
     params = (
@@ -69,6 +69,7 @@ def create_entry(db_manager, user_id, data):
         data.get('entry_notes', ''), data.get('exit_notes', ''), data.get('lessons_learned', ''),
         data.get('signal_source'), json.dumps(data.get('signal_details')) if data.get('signal_details') else None,
         data.get('is_public', False),
+        data.get('holding_type', 'swing'),
     )
     try:
         with db_manager.get_cursor(commit=True) as cur:
@@ -115,6 +116,13 @@ def list_entries(db_manager, user_id, page=1, per_page=20, filters=None):
     if filters.get('tags') and isinstance(filters['tags'], list):
         query += " AND tags && %s::text[]"
         params.append(filters['tags'])
+    if filters.get('holding_type'):
+        query += " AND holding_type = %s"
+        params.append(filters['holding_type'])
+    if filters.get('exclude_holding_types') and isinstance(filters['exclude_holding_types'], list):
+        placeholders = ','.join(['%s'] * len(filters['exclude_holding_types']))
+        query += f" AND (holding_type IS NULL OR holding_type NOT IN ({placeholders}))"
+        params.extend(filters['exclude_holding_types'])
 
     # Count total
     count_rows = db_manager.execute_query(
@@ -252,10 +260,16 @@ def import_trades(db_manager, user_id):
     imported = 0
     for r in (sells or []):
         ticker = r[1]
+        holding_type = r[3] or 'swing'  # 'long_term', 'swing', etc.
+        signal_src_raw = r[10] or ''
         exit_price = float(r[6]) if r[6] else None
         sell_date = r[12]
         direction = 'long' if r[2] == 'sell' else 'short'
         sell_details = r[11] if isinstance(r[11], dict) else (json.loads(r[11]) if r[11] else {})
+
+        # Classify: TSLY yield fills get their own type
+        if ticker == 'TSLY' and 'tsly' in signal_src_raw.lower():
+            holding_type = 'tsly_yield'
 
         # Find the matching buy (most recent buy for this ticker before the sell)
         entry_price = None
@@ -315,6 +329,7 @@ def import_trades(db_manager, user_id):
             'quantity': float(r[5]) if r[5] else None,
             'realized_pnl': float(r[8]) if r[8] else None,
             'realized_pnl_pct': float(r[9]) if r[9] else None,
+            'holding_type': holding_type,
             'signal_source': r[10],
             'signal_details': merged_details,
             'entry_notes': f"Entry: {buy_signal_source or 'manual'} @ ${entry_price:.2f}" if entry_price else f"Auto-imported {r[2]} {ticker}",
@@ -673,6 +688,7 @@ def _row_to_dict(row):
         'pre_trade_plan', 'post_trade_review', 'ai_score', 'pattern_data',
         'chart_snapshot_entry', 'chart_snapshot_exit', 'is_public',
         'signal_source', 'signal_details', 'created_at', 'updated_at',
+        'holding_type',
     ]
     d = {}
     for i, key in enumerate(keys):

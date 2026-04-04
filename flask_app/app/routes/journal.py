@@ -87,6 +87,9 @@ def list_all():
     tags = request.args.get('tags')
     if tags and user.get('is_premium'):
         filters['tags'] = [t.strip() for t in tags.split(',') if t.strip()]
+    # Holding type filter
+    if request.args.get('holding_type'):
+        filters['holding_type'] = request.args['holding_type']
 
     from app.services.journal_service import list_entries
     result = list_entries(db_manager, user['id'], page, per_page, filters)

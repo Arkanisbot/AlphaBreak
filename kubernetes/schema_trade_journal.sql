@@ -36,6 +36,8 @@ CREATE TABLE IF NOT EXISTS trade_journal (
     chart_snapshot_exit TEXT,
     -- Free: Sharing
     is_public BOOLEAN NOT NULL DEFAULT FALSE,
+    -- Trade classification
+    holding_type VARCHAR(20) DEFAULT 'swing',  -- 'long_term', 'swing', 'tsly_yield'
     -- Auto-imported context
     signal_source VARCHAR(50),
     signal_details JSONB,
@@ -51,6 +53,7 @@ CREATE INDEX IF NOT EXISTS idx_journal_ticker ON trade_journal(ticker);
 CREATE INDEX IF NOT EXISTS idx_journal_public ON trade_journal(is_public, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_journal_tags ON trade_journal USING GIN(tags);
 CREATE INDEX IF NOT EXISTS idx_journal_transaction ON trade_journal(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_journal_holding_type ON trade_journal(holding_type);
 
 -- Auto-update updated_at trigger
 CREATE TRIGGER update_trade_journal_updated_at

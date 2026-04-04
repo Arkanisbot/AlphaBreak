@@ -227,12 +227,16 @@ JWT_SECRET_KEY=your-jwt-secret
 
 ## Deployment
 
-Currently deployed on AWS EC2 with:
-- **Backend**: Gunicorn + Flask on port 5000
-- **Frontend**: Python HTTP server on port 8000
-- **Database**: PostgreSQL 14 with TimescaleDB
+Currently deployed on AWS EC2 with k0s Kubernetes (single-node):
+- **Orchestration**: k0s with KubernetesExecutor for Airflow
+- **Backend**: Gunicorn + Flask (containerized)
+- **Frontend**: Nginx serving static files (containerized)
+- **Database**: PostgreSQL 15 + TimescaleDB (containerized, 106 tables)
+- **Cache**: Redis (containerized)
+- **Automation**: Apache Airflow with 12 DAGs
 - **Reverse Proxy**: Nginx with SSL (Let's Encrypt)
 - **Domain**: alphabreak.vip
+- **Storage**: 100GB EBS (gp2)
 
 See [docs/setup guide/SETUP_GUIDE.md](docs/setup%20guide/SETUP_GUIDE.md) for comprehensive setup and deployment guide (EC2, K8s, Docker).
 
@@ -250,10 +254,18 @@ See [docs/setup guide/SETUP_GUIDE.md](docs/setup%20guide/SETUP_GUIDE.md) for com
 - [x] Airflow automation (LocalExecutor, portfolio DAG, daily updates)
 - [x] Dark pool data pipeline
 - [x] Portfolio tracker (paper trading, $100K)
-- [ ] Kubernetes containerization
-- [ ] Push notifications for high-probability trades
+- [x] Kubernetes containerization (k0s single-node, 106 tables migrated)
+- [x] Push notifications (AWS SES email + in-app bell, 9 event types)
+- [x] Portfolio logic overhaul (50/30/20 allocation, options trading, multi-TF exits)
+- [x] 40-year historical backtest (854K trades, 98.5% win rate)
+- [x] User profile & account page (Sharpe ratio, drawdown, equity curve)
+- [x] Trade journal (free + premium tiers, AI scoring, shared journal)
+- [x] EBS volume expansion (100GB)
+- [x] AWS CLI configuration
+- [ ] SES domain verification (currently sandbox mode)
 - [ ] Trading platform integration (Schwab/Robinhood)
-- [ ] Premium subscription tier with real-time data
+- [ ] Premium subscription with Stripe billing
+- [ ] Real-time data feed (Polygon.io)
 
 ## Data Sources
 

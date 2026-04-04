@@ -60,9 +60,11 @@ const Journal = {
         const ticker = document.getElementById('journalFilterTicker')?.value;
         const direction = document.getElementById('journalFilterDirection')?.value;
         const pnl = document.getElementById('journalFilterPnl')?.value;
+        const holdingType = document.getElementById('journalFilterHoldingType')?.value;
         if (ticker) params.set('ticker', ticker);
         if (direction) params.set('direction', direction);
         if (pnl) params.set('pnl', pnl);
+        if (holdingType) params.set('holding_type', holdingType);
 
         const endpoint = this.viewMode === 'public' ? '/api/journal/public' : '/api/journal/entries';
 
@@ -88,7 +90,7 @@ const Journal = {
         }
 
         let html = '<table class="data-table journal-table"><thead><tr>' +
-            '<th>Date</th><th>Ticker</th><th>Direction</th><th>P&L</th><th>AI Grade</th><th>Notes</th>' +
+            '<th>Date</th><th>Ticker</th><th>Type</th><th>Direction</th><th>P&L</th><th>AI Grade</th><th>Notes</th>' +
             (this.isPremium ? '<th>Tags</th>' : '') +
             '<th>Shared</th><th></th>' +
             '</tr></thead><tbody>';
@@ -102,10 +104,12 @@ const Journal = {
             const tags = (e.tags || []).map(t => `<span class="journal-tag">${this.esc(t)}</span>`).join('');
             const shared = e.is_public ? '<span class="shared-badge">Public</span>' : '';
             const author = e.author_name ? `<span class="author-name">${this.esc(e.author_name)}</span>` : '';
+            const typeBadge = this.holdingTypeBadge(e.holding_type);
 
             html += `<tr class="journal-entry-row" onclick="Journal.openEntry(${e.id})">
                 <td>${e.trade_date || ''}</td>
                 <td><strong>${this.esc(e.ticker)}</strong> ${author}</td>
+                <td>${typeBadge}</td>
                 <td>${e.direction || ''}</td>
                 <td class="${pnlClass}">${pnlStr}</td>
                 <td><span class="journal-ai-badge ${aiClass}">${aiGrade}</span></td>
@@ -162,7 +166,7 @@ const Journal = {
         modal.innerHTML = `
         <div class="modal-content journal-detail-modal">
             <div class="modal-header">
-                <h2>${this.esc(entry.ticker)} — ${entry.direction || 'long'} ${entry.trade_date || ''}</h2>
+                <h2>${this.esc(entry.ticker)} — ${entry.direction || 'long'} ${entry.trade_date || ''} ${this.holdingTypeBadge(entry.holding_type)}</h2>
                 <button class="modal-close" onclick="document.getElementById('journalDetailModal').remove()">&times;</button>
             </div>
             <div class="modal-body">
@@ -525,6 +529,15 @@ const Journal = {
     // ──────────────────────────────────────────────
     // Helpers
     // ──────────────────────────────────────────────
+
+    holdingTypeBadge(type) {
+        const badges = {
+            swing: '<span class="holding-type-badge swing">Swing</span>',
+            long_term: '<span class="holding-type-badge long-term">Long Term</span>',
+            tsly_yield: '<span class="holding-type-badge tsly">TSLY Yield</span>',
+        };
+        return badges[type] || badges.swing;
+    },
 
     gradeClass(grade) {
         const map = { A: 'grade-a', B: 'grade-b', C: 'grade-c', D: 'grade-d', F: 'grade-f' };
