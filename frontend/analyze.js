@@ -25,10 +25,14 @@ const Analyze = (() => {
         });
         btn.addEventListener('click', analyzeCurrent);
 
-        // Auto-uppercase
+        // Auto-uppercase + autocomplete (only on manual typing, not programmatic)
+        let suppressAutocomplete = false;
         input.addEventListener('input', () => {
             input.value = input.value.toUpperCase();
-            handleAutocomplete(input.value);
+            if (!suppressAutocomplete) {
+                handleAutocomplete(input.value);
+            }
+            suppressAutocomplete = false;
         });
 
         // Close autocomplete on click outside
@@ -162,6 +166,7 @@ const Analyze = (() => {
     async function analyzeTicker(ticker) {
         currentTicker = ticker;
         window.location.hash = `analyze/${ticker}`;
+        document.getElementById('analyzeAutocomplete').innerHTML = '';
 
         document.getElementById('analyzeEmpty').style.display = 'none';
         document.getElementById('analyzeLoading').style.display = 'flex';
