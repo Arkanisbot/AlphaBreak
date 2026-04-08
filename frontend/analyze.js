@@ -136,6 +136,7 @@ const Analyze = (() => {
         searchTimeout = setTimeout(async () => {
             try {
                 const resp = await apiRequest(`/api/analyze/search?q=${encodeURIComponent(query)}`);
+                if (!resp.ok) { container.innerHTML = ''; return; }
                 const results = await resp.json();
                 if (!results || !results.length) {
                     container.innerHTML = '';
@@ -174,6 +175,7 @@ const Analyze = (() => {
 
         try {
             const response = await apiRequest(`/api/analyze/${ticker}`);
+            if (!response.ok) throw new Error(`API error: ${response.status}`);
             data = await response.json();
             if (!data || data.error) throw new Error(data?.error || 'No data');
 
@@ -785,6 +787,7 @@ const Analyze = (() => {
         try {
             // Fetch chart data first (critical), trendlines + patterns as best-effort
             const chartResp = await apiRequest(`/api/analyze/${ticker}/chart?period=${period}&interval=${interval}`);
+            if (!chartResp.ok) throw new Error(`Chart API error: ${chartResp.status}`);
             const chartData = await chartResp.json();
 
             if (!chartData || !chartData.data || chartData.data.length === 0) return;
@@ -866,6 +869,7 @@ const Analyze = (() => {
     async function loadCompare(ticker, period) {
         try {
             const resp = await apiRequest(`/api/analyze/${ticker}/compare?period=${period}`);
+            if (!resp.ok) throw new Error(`Compare API error: ${resp.status}`);
             const data = await resp.json();
             if (data?.symbols) {
                 AlphaCharts.setCompare('analyzeChartContainer', data);
@@ -883,6 +887,7 @@ const Analyze = (() => {
 
         try {
             const resp = await apiRequest(`/api/analyze/${ticker}/grades`);
+            if (!resp.ok) throw new Error(`Grades API error: ${resp.status}`);
             const grades = await resp.json();
             if (grades.error) {
                 el.innerHTML = `<p class="muted">${grades.error}</p>`;

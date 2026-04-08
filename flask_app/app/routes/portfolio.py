@@ -184,7 +184,7 @@ def portfolio_transactions():
         try:
             ticker = _validate_ticker(ticker)
         except ValueError as e:
-            return jsonify({'error': error_details(e)}), 400
+            return jsonify({'error': str(e)}), 400
 
     try:
         pm = _get_portfolio_manager()
@@ -309,7 +309,7 @@ def portfolio_trade():
     try:
         ticker = _validate_ticker(data['ticker'])
     except ValueError as e:
-        return jsonify({'error': error_details(e)}), 400
+        return jsonify({'error': str(e)}), 400
 
     # Validate numbers
     try:
@@ -385,7 +385,7 @@ def portfolio_add_signal():
     try:
         ticker = _validate_ticker(data['ticker'])
     except ValueError as e:
-        return jsonify({'error': error_details(e)}), 400
+        return jsonify({'error': str(e)}), 400
 
     try:
         pm = _get_portfolio_manager()

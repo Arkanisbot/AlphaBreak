@@ -100,7 +100,7 @@ def watchlist_data():
         try:
             tickers.append(_validate_ticker(str(t)))
         except ValueError as e:
-            validation_errors.append({'ticker': str(t), 'error': error_details(e)})
+            validation_errors.append({'ticker': str(t), 'error': str(e)})
 
     # Deduplicate
     tickers = list(dict.fromkeys(tickers))
@@ -157,7 +157,7 @@ def watchlist_ticker(ticker):
     try:
         ticker = _validate_ticker(ticker)
     except ValueError as e:
-        return jsonify({'error': error_details(e)}), 400
+        return jsonify({'error': str(e)}), 400
 
     try:
         db = _get_db_manager()
@@ -199,7 +199,7 @@ def watchlist_ticker_chart(ticker):
     try:
         ticker = _validate_ticker(ticker)
     except ValueError as e:
-        return jsonify({'error': error_details(e)}), 400
+        return jsonify({'error': str(e)}), 400
 
     interval = request.args.get('interval', '1h')
     if interval not in VALID_CHART_INTERVALS:

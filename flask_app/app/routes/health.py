@@ -91,7 +91,7 @@ def detailed_health():
     except Exception as e:
         components['models'] = {
             'status': 'unhealthy',
-            'error': error_details(e)
+            'error': str(e)
         }
         overall_status = 'degraded'
 
@@ -113,7 +113,7 @@ def detailed_health():
     except Exception as e:
         components['database'] = {
             'status': 'unhealthy',
-            'error': error_details(e)
+            'error': str(e)
         }
         overall_status = 'degraded'
 
@@ -131,7 +131,7 @@ def detailed_health():
     except ImportError as e:
         components['src_modules'] = {
             'status': 'unhealthy',
-            'error': error_details(e)
+            'error': str(e)
         }
         overall_status = 'unhealthy'
 

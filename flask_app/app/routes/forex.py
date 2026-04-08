@@ -73,7 +73,7 @@ def get_forex_pairs():
 
     except Exception as e:
         logger.error(f"Forex pairs error: {e}")
-        return jsonify({'error': error_details(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -125,7 +125,7 @@ def get_forex_data(pair):
 
     except Exception as e:
         logger.error(f"Forex data error for {pair}: {e}")
-        return jsonify({'error': error_details(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -207,7 +207,7 @@ def get_forex_correlations():
 
     except Exception as e:
         logger.error(f"Forex correlations error: {e}")
-        return jsonify({'error': error_details(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -291,7 +291,7 @@ def get_forex_trend_breaks():
 
     except Exception as e:
         logger.error(f"Forex trend breaks error: {e}")
-        return jsonify({'error': error_details(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -362,7 +362,7 @@ def get_forex_summary():
 
     except Exception as e:
         logger.error(f"Forex summary error: {e}")
-        return jsonify({'error': error_details(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -457,7 +457,7 @@ def get_forex_usd_chart():
 
     except Exception as e:
         logger.error(f"Forex USD chart error: {e}")
-        return jsonify({'error': error_details(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -553,4 +553,4 @@ def get_forex_recent_movements():
 
     except Exception as e:
         logger.error(f"Forex recent movements error: {e}")
-        return jsonify({'error': error_details(e)}), 500
+        return jsonify({'error': str(e)}), 500

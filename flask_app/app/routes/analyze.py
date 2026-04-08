@@ -103,7 +103,7 @@ def analyze_ticker(ticker):
     try:
         ticker = _validate_ticker(ticker)
     except ValueError as e:
-        return jsonify({'error': error_details(e)}), 400
+        return jsonify({'error': str(e)}), 400
 
     try:
         db = _get_db_manager()
@@ -118,7 +118,7 @@ def analyze_ticker(ticker):
         return jsonify(result)
 
     except ValueError as e:
-        return jsonify({'error': error_details(e)}), 404
+        return jsonify({'error': str(e)}), 404
     except Exception as e:
         current_app.logger.error(f"Analyze error for {ticker}: {e}")
         return jsonify({
@@ -145,7 +145,7 @@ def analyze_chart(ticker):
     try:
         ticker = _validate_ticker(ticker)
     except ValueError as e:
-        return jsonify({'error': error_details(e)}), 400
+        return jsonify({'error': str(e)}), 400
 
     interval = request.args.get('interval', '1d')
     period = request.args.get('period', '3mo')
@@ -187,7 +187,7 @@ def analyze_trendlines(ticker):
     try:
         ticker = _validate_ticker(ticker)
     except ValueError as e:
-        return jsonify({'error': error_details(e)}), 400
+        return jsonify({'error': str(e)}), 400
 
     period = request.args.get('period', '6mo')
     interval = request.args.get('interval', '1d')
@@ -224,7 +224,7 @@ def analyze_patterns(ticker):
     try:
         ticker = _validate_ticker(ticker)
     except ValueError as e:
-        return jsonify({'error': error_details(e)}), 400
+        return jsonify({'error': str(e)}), 400
 
     period = request.args.get('period', '6mo')
 
@@ -238,7 +238,7 @@ def analyze_patterns(ticker):
         return jsonify(result)
     except Exception as e:
         current_app.logger.error(f"Pattern error for {ticker}: {e}")
-        return jsonify({'error': error_details(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -256,7 +256,7 @@ def analyze_compare(ticker):
     try:
         ticker = _validate_ticker(ticker)
     except ValueError as e:
-        return jsonify({'error': error_details(e)}), 400
+        return jsonify({'error': str(e)}), 400
 
     period = request.args.get('period', '6mo')
 
@@ -270,7 +270,7 @@ def analyze_compare(ticker):
         return jsonify(result)
     except Exception as e:
         current_app.logger.error(f"Compare error for {ticker}: {e}")
-        return jsonify({'error': error_details(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -304,7 +304,7 @@ def analyze_grades(ticker):
     try:
         ticker = _validate_ticker(ticker)
     except ValueError as e:
-        return jsonify({'error': error_details(e)}), 400
+        return jsonify({'error': str(e)}), 400
 
     try:
         db = _get_db_manager()
@@ -317,7 +317,7 @@ def analyze_grades(ticker):
         return jsonify(result)
     except Exception as e:
         current_app.logger.error(f"Grades error for {ticker}: {e}")
-        return jsonify({'error': error_details(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -340,7 +340,7 @@ def ai_dashboard():
         return jsonify(result)
     except Exception as e:
         current_app.logger.error(f"AI Dashboard error: {e}")
-        return jsonify({'error': error_details(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
 
 def _fetch_ai_dashboard(db_manager):
