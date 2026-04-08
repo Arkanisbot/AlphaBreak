@@ -11,6 +11,37 @@ A comprehensive trading analysis platform with:
 
 ## Recent Updates (April 2026)
 
+### April 8, 2026 - Pro Features, Pricing Page, Bug Fixes
+
+#### 1. New Analytics Widgets (analyze_service.py, watchlist_service.py, analyze.js, index.html)
+- **Short Interest section**: Short % float, days to cover, shares short, MoM change, squeeze risk score
+- **Dividend Analysis section**: Annual rate, yield, payout ratio, safety grade, 5-yr avg yield, ex-date
+- **Market Maker Expected Move**: ATM straddle-based ±% move with dollar range in Options widget
+
+#### 2. Premium Gating (analyze.js, index.html, styles.css)
+- **Trendlines + Seasonality**: Pro badge on chart toggles, locked overlay with upgrade CTA, 1 free trial
+- All existing "Upgrade to Pro" buttons globally wired to navigate to Pricing tab
+
+#### 3. Pricing / Funnel Page (index.html, app.js, styles.css)
+- **4-tier pricing page**: Free / Pro ($99) / Elite ($299) / API ($499-999)
+- Monthly/annual toggle (20% annual discount)
+- Feature lists, "Most Popular" badge on Pro, FAQ section
+- Sidebar "Upgrade to Pro" link with divider
+- All `.pro-locked-btn` clicks across app route to pricing tab
+
+#### 4. Security & Bug Fixes (11 route files, config.py, auth.js, watchlist.js)
+- **SQL injection fix**: Parameterized query in forex correlations
+- **Error detail suppression**: `error_details()` helper returns `None` in production across all routes
+- **Hardcoded secrets**: Replaced with `os.urandom()` fallback
+- **Auth recursion guard**: Token refresh no longer infinite-loops
+- **Watchlist sync**: Fire-and-forget calls now `.catch()` with user warning
+- **Chart JSON fix**: Reverted `'error'` key to `str(e)` (was returning `null` in production), added `response.ok` checks in analyze.js
+
+#### 5. Deployment
+- Git-based deployment: push to GitHub → pull on EC2 → rebuild Docker → k0s rollout
+- Frontend: `cp -r frontend/* ~/frontend/` (nginx serves instantly)
+- Backend: `docker build → docker save | k0s ctr import → kubectl rollout restart`
+
 ### April 3, 2026 - Infrastructure & AWS CLI
 
 #### 1. AWS CLI Setup
@@ -276,4 +307,4 @@ sudo journalctl -u airflow-webserver -f
 
 ---
 
-Last Updated: April 3, 2026
+Last Updated: April 8, 2026

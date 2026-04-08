@@ -314,6 +314,8 @@ Not committed to a tier or timeline. Will be prioritized based on user demand an
 ## Customer Acquisition
 
 ### Pre-Launch (Current)
+- [x] **Pricing Page** — 4-tier funnel (Free/Pro/Elite/API), monthly/annual toggle, FAQ, all upgrade CTAs wired
+- [ ] **Stripe Integration** — Billing, plan management, trial periods (14-day), upgrade/downgrade flows
 - [ ] **Contact Page** — Professional contact form (name, email, subject, message), FAQ section, support email, social links, office hours
 - [ ] **Landing Page** — Value proposition, feature screenshots, email capture for waitlist
 - [ ] **SEO Content** — Blog posts targeting: "best stock analysis tools", "Bloomberg alternative", "free options analysis", "AI trade scoring"

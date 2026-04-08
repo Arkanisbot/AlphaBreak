@@ -142,16 +142,21 @@ sudo k0s kubectl rollout restart deployment/trading-api -n trading-system
 |---------|--------|
 | Security Analysis (single-ticker deep dive) | Complete |
 | TradingView Lightweight Charts (candlestick + volume) | Complete |
-| Auto-detected trendlines with confidence scoring | Complete |
+| Auto-detected trendlines with confidence scoring | Complete (Pro-gated) |
 | Market regime classification (BULL/BEAR/RANGE/HIGH_VOL) | Complete |
 | Historical analog matching | Complete |
-| Candlestick pattern recognition (8 patterns) | Complete |
-| Seasonality heatmap (5yr monthly) | Complete |
+| Candlestick pattern recognition (8 patterns) | Complete (Pro-gated) |
+| Seasonality heatmap (5yr monthly) | Complete (Pro-gated) |
 | Symbol comparison overlay (SPY, VIX, sector ETF) | Complete |
 | AI Analysis Brief (plain-English synthesis) | Complete |
+| AI Dashboard (regime, signals, sectors, screener) | Complete |
+| Quant Letter Grades (A+ through F, 6 factors) | Complete |
+| Short interest + squeeze risk score | Complete |
+| Dividend analysis + safety grade | Complete |
+| Market Maker expected move (ATM straddle) | Complete |
 | Educational tooltips + guide panels | Complete |
 | Trend break reports (3 frequencies) | Complete |
-| Options analysis (fair value, Greeks) | Complete |
+| Options analysis (fair value, Greeks, MM move) | Complete |
 | 13F institutional holdings (20 funds) | Complete |
 | Portfolio tracker (paper trading) | Complete |
 | Trade journal with AI scoring | Complete |
@@ -159,18 +164,22 @@ sudo k0s kubectl rollout restart deployment/trading-api -n trading-system
 | Market sentiment (8 indicators) | Complete |
 | Earnings calendar + CBOE activity | Complete |
 | All widgets collapsible | Complete |
+| Pricing page (4-tier funnel) | Complete |
+| Premium gating with 1 free trial per feature | Complete |
 
 ## What's Next (Pro Tier — Not Yet Built)
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the full list. Highlights:
-- Quant letter grades (A-F, Seeking Alpha-style)
 - Peer comparison tables
+- Insider trading signals (SEC Form 4)
+- News NLP sentiment (FinBERT)
+- Unusual options activity
 - AI-assisted drawing tools (Fibonacci, channels)
 - Multi-chart layout with synced crosshairs
 - 100+ indicators with regime-aware weighting
 - Natural-language scripting for alerts and screeners
 - Real-time data via Polygon.io
-- News NLP sentiment
+- Stripe billing integration
 
 ## Tech Decisions
 
