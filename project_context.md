@@ -9,7 +9,26 @@ A comprehensive trading analysis platform with:
 - Market sentiment analysis
 - Technical indicators
 
-## Recent Updates (February 2026)
+## Recent Updates (April 2026)
+
+### April 3, 2026 - Infrastructure & AWS CLI
+
+#### 1. AWS CLI Setup
+- **Configured AWS CLI** on local Windows dev machine
+- VSCode required restart due to cached PowerShell not recognizing aws path
+- `aws sts get-caller-identity` verified successfully
+
+#### 2. EBS Volume Expansion
+- **Expanded EBS from 50GB → 100GB** using AWS CLI (`aws ec2 modify-volume`)
+- Volume: `vol-06270ebf514fb8671` (gp2)
+- Grew partition with `growpart` and resized ext4 filesystem with `resize2fs`
+- Zero downtime — done live on running instance
+- Result: 97GB available, 39% used, 59GB free
+- Resolves recurring disk pressure during Docker builds
+
+---
+
+## Updates (February 2026)
 
 ### February 9, 2026 - Portfolio DAG & API Bug Fixes
 
@@ -115,10 +134,13 @@ A comprehensive trading analysis platform with:
 
 ### EC2 Instance (3.140.78.15)
 - **Domain**: https://alphabreak.vip (SSL via Let's Encrypt)
-- **Frontend**: Nginx on port 443 (serves static files from `/home/ubuntu/frontend/`)
-- **API**: Port 5000 (Gunicorn with 1 worker, proxied via Nginx at `/api/`)
-- **Airflow UI**: Port 8080 (Gunicorn webserver)
-- **Database**: PostgreSQL 15 on port 5432
+- **Orchestration**: k0s Kubernetes single-node (all services containerized)
+- **Frontend**: Nginx on port 443 (serves static files)
+- **API**: Flask/Gunicorn (containerized, proxied via Nginx at `/api/`)
+- **Airflow**: KubernetesExecutor, 12 DAGs
+- **Database**: PostgreSQL 15 + TimescaleDB (containerized, 106 tables)
+- **Cache**: Redis (containerized)
+- **Storage**: 100GB EBS (gp2) — expanded from 50GB on April 3, 2026
 - **SSH**: Port 22 (username: `ubuntu`)
 
 ### Services Running
@@ -254,4 +276,4 @@ sudo journalctl -u airflow-webserver -f
 
 ---
 
-Last Updated: February 9, 2026
+Last Updated: April 3, 2026
