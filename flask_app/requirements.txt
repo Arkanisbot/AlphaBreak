@@ -10,9 +10,9 @@ Flask-Caching>=2.1.0
 # WSGI Server
 gunicorn>=21.0.0
 
-# WebSocket / Real-time
-flask-socketio>=5.3.0
-eventlet>=0.35.0
+# WebSocket / Real-time (install separately — eventlet conflicts with gunicorn sync workers)
+# flask-socketio>=5.3.0
+# eventlet>=0.35.0
 
 # Data Processing
 pandas>=2.0.0,<2.2.0

@@ -11,13 +11,23 @@ from flask_cors import CORS
 from flask_caching import Cache
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_socketio import SocketIO
-from prometheus_flask_instrumentator import Instrumentator
-from prometheus_client import Gauge
+try:
+    from flask_socketio import SocketIO
+except ImportError:
+    SocketIO = None
+try:
+    from prometheus_flask_instrumentator import Instrumentator
+    from prometheus_client import Gauge
+except ImportError:
+    Instrumentator = None
+    Gauge = None
 import jwt as pyjwt
 import logging
 from logging.handlers import RotatingFileHandler
-from pythonjsonlogger import jsonlogger
+try:
+    from pythonjsonlogger import jsonlogger
+except ImportError:
+    jsonlogger = None
 import math
 import os
 import time
@@ -45,17 +55,21 @@ class SafeJSONProvider(DefaultJSONProvider):
 
 cache = Cache()
 limiter = Limiter(key_func=get_remote_address)
-socketio = SocketIO()
+socketio = SocketIO() if SocketIO else None
 
 # Prometheus custom metrics
-ACTIVE_DB_CONNECTIONS = Gauge(
-    'alphabreak_active_db_connections',
-    'Number of active database connections in the pool'
-)
-CACHE_HIT_RATE = Gauge(
-    'alphabreak_cache_hit_rate',
-    'Cache hit rate (hits / total lookups)'
-)
+if Gauge:
+    ACTIVE_DB_CONNECTIONS = Gauge(
+        'alphabreak_active_db_connections',
+        'Number of active database connections in the pool'
+    )
+    CACHE_HIT_RATE = Gauge(
+        'alphabreak_cache_hit_rate',
+        'Cache hit rate (hits / total lookups)'
+    )
+else:
+    ACTIVE_DB_CONNECTIONS = None
+    CACHE_HIT_RATE = None
 
 
 def _get_rate_limit_key():
@@ -117,16 +131,15 @@ def create_app(config_name='development'):
         exempt_paths = ['/api/health', '/api/ready', '/api/live']
         return any(request.path.startswith(path) for path in exempt_paths)
 
-    # Initialize Flask-SocketIO for real-time WebSocket support
-    socketio.init_app(
-        app,
-        cors_allowed_origins=app.config.get('CORS_ORIGINS', '*'),
-        message_queue=app.config.get('REDIS_URL', None),
-        async_mode='eventlet',
-    )
-
-    # Register WebSocket event handlers
-    from app.routes import websocket  # noqa: F401 — registers SocketIO events on import
+    # Initialize Flask-SocketIO for real-time WebSocket support (if installed)
+    if socketio:
+        socketio.init_app(
+            app,
+            cors_allowed_origins=app.config.get('CORS_ORIGINS', '*'),
+            message_queue=app.config.get('REDIS_URL', None),
+            async_mode='eventlet',
+        )
+        from app.routes import websocket  # noqa: F401 — registers SocketIO events on import
 
     # Setup structured JSON logging
     if not app.debug:
@@ -138,17 +151,22 @@ def create_app(config_name='development'):
             maxBytes=10240000,  # 10MB
             backupCount=10
         )
-        json_formatter = jsonlogger.JsonFormatter(
-            fmt='%(asctime)s %(levelname)s %(name)s %(module)s %(funcName)s %(lineno)d %(message)s',
-            rename_fields={
-                'asctime': 'timestamp',
-                'levelname': 'level',
-                'funcName': 'function',
-                'lineno': 'line',
-            },
-            datefmt='%Y-%m-%dT%H:%M:%S%z',
-        )
-        file_handler.setFormatter(json_formatter)
+        if jsonlogger:
+            json_formatter = jsonlogger.JsonFormatter(
+                fmt='%(asctime)s %(levelname)s %(name)s %(module)s %(funcName)s %(lineno)d %(message)s',
+                rename_fields={
+                    'asctime': 'timestamp',
+                    'levelname': 'level',
+                    'funcName': 'function',
+                    'lineno': 'line',
+                },
+                datefmt='%Y-%m-%dT%H:%M:%S%z',
+            )
+            file_handler.setFormatter(json_formatter)
+        else:
+            file_handler.setFormatter(logging.Formatter(
+                '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+            ))
         file_handler.setLevel(logging.INFO)
         app.logger.addHandler(file_handler)
         app.logger.setLevel(logging.INFO)
@@ -176,14 +194,16 @@ def create_app(config_name='development'):
             },
         )
         # Update custom Prometheus metrics
-        _update_custom_metrics()
+        if ACTIVE_DB_CONNECTIONS:
+            _update_custom_metrics()
         return response
 
     # Prometheus metrics instrumentation
-    Instrumentator(
-        should_group_status_codes=False,
-        excluded_handlers=['/metrics'],
-    ).instrument(app).expose(app, endpoint='/metrics')
+    if Instrumentator:
+        Instrumentator(
+            should_group_status_codes=False,
+            excluded_handlers=['/metrics'],
+        ).instrument(app).expose(app, endpoint='/metrics')
 
     def _update_custom_metrics():
         """Collect custom metrics from DB pool and cache."""
