@@ -5,6 +5,7 @@ Full CRUD, sharing, AI scoring, auto-import, and premium-gated features.
 """
 
 import logging
+import re
 from flask import Blueprint, g, jsonify, request
 from app.utils.auth import log_request
 from app.utils.jwt_auth import require_jwt
@@ -14,6 +15,10 @@ from app.utils.database import (
 
 logger = logging.getLogger(__name__)
 journal_bp = Blueprint('journal', __name__)
+
+TICKER_PATTERN = re.compile(r'^[A-Z]{1,10}$')
+VALID_DIRECTIONS = ('long', 'short')
+VALID_PNL_FILTERS = ('positive', 'negative')
 
 
 def _get_user():
@@ -52,6 +57,9 @@ def create():
     data = request.get_json() or {}
     if not data.get('ticker'):
         return jsonify({'error': 'Ticker is required'}), 400
+    data['ticker'] = data['ticker'].strip().upper()
+    if not TICKER_PATTERN.match(data['ticker']):
+        return jsonify({'error': 'Invalid ticker format'}), 400
 
     from app.services.journal_service import create_entry
     result = create_entry(db_manager, user['id'], data)
@@ -69,15 +77,19 @@ def list_all():
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
-    page = int(request.args.get('page', 1))
-    per_page = min(int(request.args.get('per_page', 20)), 100)
+    page = request.args.get('page', 1, type=int)
+    per_page = min(request.args.get('per_page', 20, type=int), 100)
 
     filters = {}
     if request.args.get('ticker'):
         filters['ticker'] = request.args['ticker']
     if request.args.get('direction'):
+        if request.args['direction'] not in VALID_DIRECTIONS:
+            return jsonify({'error': 'Invalid direction filter'}), 400
         filters['direction'] = request.args['direction']
     if request.args.get('pnl'):
+        if request.args['pnl'] not in VALID_PNL_FILTERS:
+            return jsonify({'error': 'Invalid pnl filter'}), 400
         filters['pnl'] = request.args['pnl']
     if request.args.get('date_from'):
         filters['date_from'] = request.args['date_from']
@@ -154,8 +166,8 @@ def delete(entry_id):
 @require_jwt
 def public_entries():
     """Browse public journal entries."""
-    page = int(request.args.get('page', 1))
-    per_page = min(int(request.args.get('per_page', 20)), 50)
+    page = request.args.get('page', 1, type=int)
+    per_page = min(request.args.get('per_page', 20, type=int), 50)
 
     from app.services.journal_service import list_public_entries
     result = list_public_entries(db_manager, page, per_page)

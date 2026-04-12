@@ -22,7 +22,6 @@ earnings_bp = Blueprint('earnings', __name__)
 # Simple TTL cache
 # ──────────────────────────────────────────────────────────────────────────────
 
-_cache = {}
 CACHE_TTL = {
     'calendar': 300,       # 5 minutes
     'ticker_detail': 300,  # 5 minutes per ticker
@@ -30,15 +29,13 @@ CACHE_TTL = {
 
 
 def _get_cached(key, compute_fn):
-    """Return cached data or compute + cache it."""
-    now = time.time()
-    if key in _cache:
-        data, expiry = _cache[key]
-        if now < expiry:
-            return data
+    from app import cache
+    data = cache.get(key)
+    if data is not None:
+        return data
     data = compute_fn()
     ttl_key = 'calendar' if key.startswith('calendar') else 'ticker_detail'
-    _cache[key] = (data, now + CACHE_TTL.get(ttl_key, 300))
+    cache.set(key, data, timeout=CACHE_TTL.get(ttl_key, 300))
     return data
 
 

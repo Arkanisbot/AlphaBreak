@@ -1,0 +1,43 @@
+{% extends "email/base.html" %}
+{% block title %}Trade Signal: {{ ticker }}{% endblock %}
+{% block header_tag %}<span style="color:#4ecca3;">SIGNAL</span>{% endblock %}
+
+{% block content %}
+<h2 style="margin:0 0 15px;color:#ffffff;font-size:20px;">{{ direction }} Signal Detected</h2>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f3460;border-radius:6px;padding:20px;margin:15px 0;">
+    <tr>
+        <td style="padding:10px 20px;">
+            <span style="font-size:28px;font-weight:bold;color:#4ecca3;">{{ ticker }}</span>
+        </td>
+        <td align="right" style="padding:10px 20px;">
+            <span style="font-size:14px;color:#888888;">Price</span><br>
+            <span style="font-size:22px;color:#ffffff;">${{ price }}</span>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding:10px 20px;">
+            <span style="font-size:14px;color:#888888;">Direction</span><br>
+            <span style="font-size:16px;color:{% if direction == 'Bullish' %}#4ecca3{% else %}#ff6b6b{% endif %};">{{ direction }}</span>
+        </td>
+        <td align="right" style="padding:10px 20px;">
+            <span style="font-size:14px;color:#888888;">Confidence</span><br>
+            <span style="font-size:16px;color:#4fc3f7;">{{ confidence }}%</span>
+        </td>
+    </tr>
+</table>
+
+<p style="color:#e0e0e0;">A {{ direction | lower }} trend break signal has been detected for <strong>{{ ticker }}</strong> with {{ confidence }}% confidence.</p>
+
+{% if reason %}
+<p style="color:#888888;font-size:13px;">{{ reason }}</p>
+{% endif %}
+
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:25px 0;">
+    <tr>
+        <td style="background-color:#4ecca3;border-radius:5px;padding:12px 24px;">
+            <a href="https://alphabreak.vip/#/analyze/{{ ticker }}" style="color:#1a1a2e;text-decoration:none;font-weight:bold;font-size:14px;">View Analysis</a>
+        </td>
+    </tr>
+</table>
+{% endblock %}

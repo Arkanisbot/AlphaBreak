@@ -1,0 +1,50 @@
+{% extends "email/base.html" %}
+{% block title %}Portfolio Summary{% endblock %}
+{% block header_tag %}<span style="color:#4fc3f7;">PORTFOLIO</span>{% endblock %}
+
+{% block content %}
+<h2 style="margin:0 0 15px;color:#ffffff;font-size:20px;">Daily Portfolio Summary</h2>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f3460;border-radius:6px;overflow:hidden;margin:15px 0;">
+    <tr>
+        <td style="padding:15px 20px;border-bottom:1px solid #2a2a4a;">
+            <span style="font-size:14px;color:#888888;">Total Value</span><br>
+            <span style="font-size:26px;font-weight:bold;color:#ffffff;">${{ total_value }}</span>
+        </td>
+        <td align="right" style="padding:15px 20px;border-bottom:1px solid #2a2a4a;">
+            <span style="font-size:14px;color:#888888;">Daily P&L</span><br>
+            <span style="font-size:20px;color:{% if daily_pnl and daily_pnl >= 0 %}#4ecca3{% else %}#ff6b6b{% endif %};">{{ daily_pnl_display | default('$0.00') }}</span>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding:15px 20px;">
+            <span style="font-size:14px;color:#888888;">Total Return</span><br>
+            <span style="font-size:18px;color:{% if total_pnl_pct and total_pnl_pct >= 0 %}#4ecca3{% else %}#ff6b6b{% endif %};">{{ total_pnl_pct_display | default('0.00%') }}</span>
+        </td>
+        <td align="right" style="padding:15px 20px;">
+            <span style="font-size:14px;color:#888888;">Open Positions</span><br>
+            <span style="font-size:18px;color:#ffffff;">{{ positions | default(0) }}</span>
+        </td>
+    </tr>
+</table>
+
+{% if top_movers %}
+<h3 style="color:#888888;font-size:14px;text-transform:uppercase;margin:25px 0 10px;">Top Movers</h3>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    {% for mover in top_movers %}
+    <tr style="border-bottom:1px solid #2a2a4a;">
+        <td style="padding:8px 0;color:#e0e0e0;font-weight:bold;">{{ mover.ticker }}</td>
+        <td align="right" style="padding:8px 0;color:{% if mover.change >= 0 %}#4ecca3{% else %}#ff6b6b{% endif %};">{{ mover.change_display }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
+
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:25px 0;">
+    <tr>
+        <td style="background-color:#4ecca3;border-radius:5px;padding:12px 24px;">
+            <a href="https://alphabreak.vip/#/portfolio" style="color:#1a1a2e;text-decoration:none;font-weight:bold;font-size:14px;">View Full Portfolio</a>
+        </td>
+    </tr>
+</table>
+{% endblock %}

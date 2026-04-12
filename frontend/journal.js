@@ -218,13 +218,17 @@ const Journal = {
                 <!-- Pre-Trade Plan (Premium/Trial) -->
                 <div class="journal-detail-section premium-section">
                     <h4>Pre-Trade Plan ${this.premiumBadge('pre_trade_plan')}</h4>
-                    ${plan.thesis ? `
+                    ${plan.thesis || plan.entry_criteria ? `
                         <div class="plan-display">
-                            <p><strong>Thesis:</strong> ${this.esc(plan.thesis)}</p>
-                            <p><strong>Setup:</strong> ${this.esc(plan.setup_type || '')}</p>
-                            <p><strong>R:R:</strong> ${plan.risk_reward || '-'} | Target: $${plan.target_price || '-'} | Stop: $${plan.stop_price || '-'}</p>
-                            <p><strong>Confidence:</strong> ${plan.confidence || '-'}/5</p>
+                            ${plan.thesis ? `<p><strong>Thesis:</strong> ${this.esc(plan.thesis)}</p>` : ''}
+                            ${plan.entry_criteria ? `<p><strong>Entry Criteria:</strong> ${this.esc(plan.entry_criteria)}</p>` : ''}
+                            <p><strong>Target:</strong> $${plan.price_target || plan.target_price || '-'} | <strong>Stop:</strong> $${plan.stop_loss || plan.stop_price || '-'}</p>
+                            ${plan.time_horizon ? `<p><strong>Time Horizon:</strong> ${this.formatTimeHorizon(plan.time_horizon)}</p>` : ''}
+                            ${plan.catalysts ? `<p><strong>Catalysts:</strong> ${this.esc(plan.catalysts)}</p>` : ''}
+                            ${plan.risks ? `<p><strong>Risks:</strong> ${this.esc(plan.risks)}</p>` : ''}
+                            <p><strong>Conviction:</strong> ${this.renderConviction(plan.conviction_level || plan.confidence)} | <strong>Setup:</strong> ${this.esc(plan.setup_type || '-')}</p>
                         </div>
+                        <button class="btn btn-sm btn-ghost" style="margin-top:8px;" onclick="Journal.editPlan(${entry.id})">Edit Plan</button>
                     ` : `<button class="btn btn-sm ${this.isPremium ? 'btn-primary' : 'btn-ghost'}" onclick="Journal.showPlanForm(${entry.id})">${this.premiumButtonLabel('pre_trade_plan', 'Create Plan')}</button>`}
                 </div>
 
@@ -365,25 +369,123 @@ const Journal = {
         }
     },
 
-    showPlanForm(id) {
+    showPlanForm(id, existingPlan) {
         if (!this.isPremium && this.trialStatus.pre_trade_plan) {
             this.showUpsellModal('pre_trade_plan', false);
             return;
         }
-        const thesis = prompt('What is your trade thesis?');
-        if (!thesis) return;
-        const setup = prompt('Setup type (trend_break, mean_reversion, breakout, earnings):') || 'trend_break';
-        const target = prompt('Target price:') || '';
-        const stop = prompt('Stop price:') || '';
-        const confidence = prompt('Confidence (1-5):') || '3';
-        const rr = target && stop ? (Math.abs(parseFloat(target) - parseFloat(stop)) > 0 ? 'calculated' : '-') : '-';
 
-        this.callPremiumEndpoint(`/api/journal/entries/${id}/pre-trade-plan`, 'POST', {
-            thesis, setup_type: setup, target_price: target, stop_price: stop,
-            confidence: parseInt(confidence), risk_reward: rr,
-        }, 'pre_trade_plan').then(res => {
-            if (res?.ok) { this.openEntry(id); this.trialStatus.pre_trade_plan = true; }
-        });
+        const plan = existingPlan || {};
+        const existing = document.getElementById('journalPlanModal');
+        if (existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'journalPlanModal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+        <div class="modal-content" style="max-width:560px;">
+            <div class="modal-header">
+                <h2>${plan.thesis ? 'Edit' : 'Create'} Pre-Trade Plan</h2>
+                <button class="modal-close" onclick="document.getElementById('journalPlanModal').remove()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-form-group">
+                    <label>Trade Thesis</label>
+                    <textarea id="jp_thesis" class="profile-input" rows="2" placeholder="What is your thesis for this trade?">${this.esc(plan.thesis || '')}</textarea>
+                </div>
+                <div class="profile-form-group">
+                    <label>Entry Criteria</label>
+                    <textarea id="jp_entry_criteria" class="profile-input" rows="2" placeholder="What conditions must be met to enter?">${this.esc(plan.entry_criteria || '')}</textarea>
+                </div>
+                <div class="profile-form-group" style="display:flex;gap:12px;">
+                    <div style="flex:1;">
+                        <label>Price Target</label>
+                        <input type="number" id="jp_price_target" class="profile-input" step="0.01" placeholder="0.00" value="${plan.price_target || ''}">
+                    </div>
+                    <div style="flex:1;">
+                        <label>Stop Loss</label>
+                        <input type="number" id="jp_stop_loss" class="profile-input" step="0.01" placeholder="0.00" value="${plan.stop_loss || ''}">
+                    </div>
+                </div>
+                <div class="profile-form-group" style="display:flex;gap:12px;">
+                    <div style="flex:1;">
+                        <label>Time Horizon</label>
+                        <select id="jp_time_horizon" class="profile-input">
+                            <option value="">Select...</option>
+                            <option value="day_trade" ${plan.time_horizon === 'day_trade' ? 'selected' : ''}>Day Trade</option>
+                            <option value="swing" ${plan.time_horizon === 'swing' ? 'selected' : ''}>Swing (1-5 days)</option>
+                            <option value="short_term" ${plan.time_horizon === 'short_term' ? 'selected' : ''}>Short-Term (1-4 weeks)</option>
+                            <option value="medium_term" ${plan.time_horizon === 'medium_term' ? 'selected' : ''}>Medium-Term (1-3 months)</option>
+                            <option value="long_term" ${plan.time_horizon === 'long_term' ? 'selected' : ''}>Long-Term (3+ months)</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label>Conviction (1-5)</label>
+                        <select id="jp_conviction" class="profile-input">
+                            <option value="1" ${plan.conviction_level === 1 ? 'selected' : ''}>1 - Speculative</option>
+                            <option value="2" ${plan.conviction_level === 2 ? 'selected' : ''}>2 - Low</option>
+                            <option value="3" ${(plan.conviction_level === 3 || !plan.conviction_level) ? 'selected' : ''}>3 - Moderate</option>
+                            <option value="4" ${plan.conviction_level === 4 ? 'selected' : ''}>4 - High</option>
+                            <option value="5" ${plan.conviction_level === 5 ? 'selected' : ''}>5 - Very High</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="profile-form-group">
+                    <label>Catalysts</label>
+                    <textarea id="jp_catalysts" class="profile-input" rows="2" placeholder="What events could drive this trade?">${this.esc(plan.catalysts || '')}</textarea>
+                </div>
+                <div class="profile-form-group">
+                    <label>Risks</label>
+                    <textarea id="jp_risks" class="profile-input" rows="2" placeholder="Key risks to the thesis">${this.esc(plan.risks || '')}</textarea>
+                </div>
+                <div class="profile-form-group">
+                    <label>Setup Type</label>
+                    <select id="jp_setup_type" class="profile-input">
+                        <option value="trend_break" ${plan.setup_type === 'trend_break' ? 'selected' : ''}>Trend Break</option>
+                        <option value="mean_reversion" ${plan.setup_type === 'mean_reversion' ? 'selected' : ''}>Mean Reversion</option>
+                        <option value="breakout" ${plan.setup_type === 'breakout' ? 'selected' : ''}>Breakout</option>
+                        <option value="earnings" ${plan.setup_type === 'earnings' ? 'selected' : ''}>Earnings</option>
+                        <option value="momentum" ${plan.setup_type === 'momentum' ? 'selected' : ''}>Momentum</option>
+                        <option value="other" ${plan.setup_type === 'other' ? 'selected' : ''}>Other</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="Journal.submitPlan(${id})">Save Plan</button>
+            </div>
+        </div>`;
+        document.body.appendChild(modal);
+    },
+
+    async editPlan(id) {
+        try {
+            const res = await apiRequest(`/api/journal/entries/${id}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            this.showPlanForm(id, data.entry?.pre_trade_plan || {});
+        } catch (e) { /* ignore */ }
+    },
+
+    async submitPlan(id) {
+        const data = {
+            thesis: document.getElementById('jp_thesis')?.value || '',
+            entry_criteria: document.getElementById('jp_entry_criteria')?.value || '',
+            price_target: document.getElementById('jp_price_target')?.value || null,
+            stop_loss: document.getElementById('jp_stop_loss')?.value || null,
+            time_horizon: document.getElementById('jp_time_horizon')?.value || '',
+            conviction_level: parseInt(document.getElementById('jp_conviction')?.value) || 3,
+            catalysts: document.getElementById('jp_catalysts')?.value || '',
+            risks: document.getElementById('jp_risks')?.value || '',
+            setup_type: document.getElementById('jp_setup_type')?.value || 'trend_break',
+        };
+
+        const res = await this.callPremiumEndpoint(
+            `/api/journal/entries/${id}/pre-trade-plan`, 'POST', data, 'pre_trade_plan'
+        );
+        if (res?.ok) {
+            document.getElementById('journalPlanModal')?.remove();
+            this.openEntry(id);
+            this.trialStatus.pre_trade_plan = true;
+            if (typeof showSnackbar === 'function') showSnackbar('Pre-trade plan saved', 'success');
+        }
     },
 
     showReviewForm(id) {
@@ -556,6 +658,23 @@ const Journal = {
         if (this.isPremium) return defaultLabel;
         const used = this.trialStatus[feature];
         return used ? 'Upgrade to Premium' : `${defaultLabel} (Free Trial)`;
+    },
+
+    formatTimeHorizon(horizon) {
+        const labels = {
+            day_trade: 'Day Trade',
+            swing: 'Swing (1-5 days)',
+            short_term: 'Short-Term (1-4 weeks)',
+            medium_term: 'Medium-Term (1-3 months)',
+            long_term: 'Long-Term (3+ months)',
+        };
+        return labels[horizon] || horizon || '-';
+    },
+
+    renderConviction(level) {
+        if (!level) return '-/5';
+        const labels = { 1: 'Speculative', 2: 'Low', 3: 'Moderate', 4: 'High', 5: 'Very High' };
+        return `${level}/5 (${labels[level] || ''})`;
     },
 
     esc(str) {

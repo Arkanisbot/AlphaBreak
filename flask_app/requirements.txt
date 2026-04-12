@@ -5,6 +5,7 @@
 Flask>=2.3.0
 Flask-CORS>=4.0.0
 Flask-Limiter>=3.5.0
+Flask-Caching>=2.1.0
 
 # WSGI Server
 gunicorn>=21.0.0

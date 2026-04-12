@@ -1,0 +1,35 @@
+{% extends "email/base.html" %}
+{% block title %}Journal Reminder{% endblock %}
+{% block header_tag %}<span style="color:#4ecca3;">JOURNAL</span>{% endblock %}
+
+{% block content %}
+<h2 style="margin:0 0 15px;color:#ffffff;font-size:20px;">Time to Journal</h2>
+
+<p style="color:#e0e0e0;">Take a moment to reflect on today's trading activity. Consistent journaling helps improve decision-making and identify patterns in your trading behavior.</p>
+
+{% if summary %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f3460;border-radius:6px;padding:20px;margin:15px 0;">
+    <tr>
+        <td style="padding:10px 20px;color:#888888;font-size:14px;">Today's Activity</td>
+    </tr>
+    <tr>
+        <td style="padding:5px 20px 15px;color:#e0e0e0;">{{ summary }}</td>
+    </tr>
+</table>
+{% endif %}
+
+<p style="color:#888888;font-size:13px;">Consider noting:</p>
+<ul style="color:#e0e0e0;line-height:2;">
+    <li>What trades did you make and why?</li>
+    <li>What went well? What could improve?</li>
+    <li>Any emotional factors that influenced decisions?</li>
+</ul>
+
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:25px 0;">
+    <tr>
+        <td style="background-color:#4ecca3;border-radius:5px;padding:12px 24px;">
+            <a href="https://alphabreak.vip/#/journal" style="color:#1a1a2e;text-decoration:none;font-weight:bold;font-size:14px;">Open Journal</a>
+        </td>
+    </tr>
+</table>
+{% endblock %}

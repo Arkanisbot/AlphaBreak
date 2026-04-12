@@ -23,9 +23,9 @@ class DatabaseManager:
     def _initialize_pool(self):
         """Initialize connection pool."""
         try:
-            self.connection_pool = psycopg2.pool.SimpleConnectionPool(
-                minconn=1,
-                maxconn=10,
+            self.connection_pool = psycopg2.pool.ThreadedConnectionPool(
+                minconn=int(os.environ.get('DB_POOL_MIN', 2)),
+                maxconn=int(os.environ.get('DB_POOL_MAX', 20)),
                 host=os.environ.get('TIMESERIES_DB_HOST', '127.0.0.1'),
                 port=int(os.environ.get('TIMESERIES_DB_PORT', 5432)),
                 database=os.environ.get('TIMESERIES_DB_NAME', 'trading_data'),
@@ -88,6 +88,15 @@ class DatabaseManager:
         if self.connection_pool:
             self.connection_pool.closeall()
             logger.info("Database connection pool closed")
+
+    def pool_status(self):
+        if self.connection_pool:
+            return {
+                'minconn': self.connection_pool.minconn,
+                'maxconn': self.connection_pool.maxconn,
+                'closed': self.connection_pool.closed,
+            }
+        return None
 
 
 # Global database manager instance

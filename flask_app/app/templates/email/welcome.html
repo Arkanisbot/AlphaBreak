@@ -1,0 +1,50 @@
+{% extends "email/base.html" %}
+{% block title %}Welcome to AlphaBreak{% endblock %}
+{% block header_tag %}{% endblock %}
+
+{% block content %}
+<h2 style="margin:0 0 15px;color:#ffffff;font-size:22px;">Welcome to AlphaBreak</h2>
+
+<p style="color:#e0e0e0;">Hi{{ ' ' ~ display_name if display_name else '' }},</p>
+
+<p style="color:#e0e0e0;">Your account is set up and ready to go. AlphaBreak gives you AI-powered trade signals, portfolio tracking, and quantitative analysis tools to stay ahead of the market.</p>
+
+<h3 style="color:#4ecca3;font-size:16px;margin:25px 0 10px;">Get Started</h3>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:10px 0 25px;">
+    <tr>
+        <td style="padding:12px 0;border-bottom:1px solid #2a2a4a;">
+            <span style="color:#4ecca3;font-weight:bold;">1.</span>
+            <span style="color:#e0e0e0;padding-left:10px;">Add tickers to your <a href="https://alphabreak.vip/#/watchlist" style="color:#4fc3f7;text-decoration:none;">watchlist</a></span>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding:12px 0;border-bottom:1px solid #2a2a4a;">
+            <span style="color:#4ecca3;font-weight:bold;">2.</span>
+            <span style="color:#e0e0e0;padding-left:10px;">Run your first <a href="https://alphabreak.vip/#/analyze" style="color:#4fc3f7;text-decoration:none;">analysis</a></span>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding:12px 0;border-bottom:1px solid #2a2a4a;">
+            <span style="color:#4ecca3;font-weight:bold;">3.</span>
+            <span style="color:#e0e0e0;padding-left:10px;">Configure <a href="https://alphabreak.vip/#/settings" style="color:#4fc3f7;text-decoration:none;">notification preferences</a></span>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding:12px 0;">
+            <span style="color:#4ecca3;font-weight:bold;">4.</span>
+            <span style="color:#e0e0e0;padding-left:10px;">Track positions in your <a href="https://alphabreak.vip/#/portfolio" style="color:#4fc3f7;text-decoration:none;">portfolio</a></span>
+        </td>
+    </tr>
+</table>
+
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:25px 0;">
+    <tr>
+        <td style="background-color:#4ecca3;border-radius:5px;padding:12px 24px;">
+            <a href="https://alphabreak.vip" style="color:#1a1a2e;text-decoration:none;font-weight:bold;font-size:14px;">Open AlphaBreak</a>
+        </td>
+    </tr>
+</table>
+
+<p style="color:#888888;font-size:13px;">If you have questions, reply to this email or visit our documentation.</p>
+{% endblock %}

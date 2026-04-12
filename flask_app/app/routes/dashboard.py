@@ -25,7 +25,6 @@ dashboard_bp = Blueprint('dashboard', __name__)
 # Simple TTL cache
 # ──────────────────────────────────────────────────────────────────────────────
 
-_cache = {}
 CACHE_TTL = {
     'market_sentiment': 300,     # 5 minutes
     'sector_sentiment': 300,     # 5 minutes
@@ -35,14 +34,12 @@ CACHE_TTL = {
 
 
 def _get_cached(key, compute_fn):
-    """Return cached data or compute + cache it."""
-    now = time.time()
-    if key in _cache:
-        data, expiry = _cache[key]
-        if now < expiry:
-            return data
+    from app import cache
+    data = cache.get(key)
+    if data is not None:
+        return data
     data = compute_fn()
-    _cache[key] = (data, now + CACHE_TTL.get(key, 300))
+    cache.set(key, data, timeout=CACHE_TTL.get(key, 300))
     return data
 
 

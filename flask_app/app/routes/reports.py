@@ -9,11 +9,14 @@ Endpoints for trend break reports:
 4. GET /api/reports/ticker/<t>/chart    -- OHLC chart data for a ticker
 """
 
+import re
 import time
 from app.utils import error_details
 import logging
 from flask import Blueprint, jsonify, request, current_app
 from app.utils.auth import log_request, require_api_key
+
+TICKER_PATTERN = re.compile(r'^[A-Z]{1,10}$')
 
 logger = logging.getLogger(__name__)
 
@@ -260,8 +263,8 @@ def reports_by_ticker(ticker):
         limit: Max entries to return (default 50)
     """
     ticker = ticker.upper().strip()
-    if not ticker or len(ticker) > 10:
-        return jsonify({'error': 'Invalid ticker'}), 400
+    if not ticker or not TICKER_PATTERN.match(ticker):
+        return jsonify({'error': 'Invalid ticker format'}), 400
 
     days = request.args.get('days', 7, type=int)
     days = min(max(days, 1), 90)
@@ -362,8 +365,8 @@ def reports_ticker_chart(ticker):
         interval: '1d', '1h', or '5m' (default '5m')
     """
     ticker = ticker.upper().strip()
-    if not ticker or len(ticker) > 10:
-        return jsonify({'error': 'Invalid ticker'}), 400
+    if not ticker or not TICKER_PATTERN.match(ticker):
+        return jsonify({'error': 'Invalid ticker format'}), 400
 
     interval = request.args.get('interval', '5m')
     if interval not in VALID_CHART_INTERVALS:

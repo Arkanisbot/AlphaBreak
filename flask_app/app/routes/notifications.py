@@ -10,8 +10,10 @@ Endpoints:
   POST /api/notifications/read-all     - Mark all as read
   GET  /api/notifications/preferences  - Get preference toggles
   PUT  /api/notifications/preferences  - Update a preference toggle
+  POST /api/ses/webhook                - SES bounce/complaint handler (SNS)
 """
 
+import json
 import logging
 from flask import Blueprint, g, jsonify, request
 from app.utils.auth import log_request
@@ -42,8 +44,8 @@ def list_notifications():
     if not user_id:
         return jsonify({'error': 'User not found'}), 404
 
-    limit = min(int(request.args.get('limit', 20)), 100)
-    offset = int(request.args.get('offset', 0))
+    limit = min(request.args.get('limit', 20, type=int), 100)
+    offset = max(request.args.get('offset', 0, type=int), 0)
     unread_only = request.args.get('unread_only', 'false').lower() == 'true'
 
     from app.utils.database import db_manager
@@ -258,3 +260,69 @@ def _seed_default_preferences(user_id, db_manager):
                 )
     except Exception as e:
         logger.debug(f"Seed preferences: {e}")
+
+
+# === SES Bounce/Complaint Webhook ===
+
+@notifications_bp.route('/ses/webhook', methods=['POST'])
+def ses_webhook():
+    """
+    Receive SNS notifications from AWS SES for bounces and complaints.
+    This endpoint is called by AWS SNS — no JWT auth required.
+    SNS first sends a SubscriptionConfirmation, then Notification messages.
+    """
+    try:
+        # SNS sends JSON with content-type text/plain sometimes
+        if request.content_type and 'json' in request.content_type:
+            payload = request.get_json(force=False)
+        else:
+            payload = json.loads(request.get_data(as_text=True))
+    except (json.JSONDecodeError, TypeError) as e:
+        logger.warning(f"SES webhook: invalid JSON: {e}")
+        return jsonify({'error': 'Invalid JSON'}), 400
+
+    if not payload:
+        return jsonify({'error': 'Empty payload'}), 400
+
+    message_type = payload.get('Type', '')
+
+    # Handle SNS subscription confirmation
+    if message_type == 'SubscriptionConfirmation':
+        subscribe_url = payload.get('SubscribeURL')
+        if subscribe_url:
+            try:
+                import urllib.request
+                urllib.request.urlopen(subscribe_url)
+                logger.info("SES webhook: SNS subscription confirmed")
+            except Exception as e:
+                logger.error(f"SES webhook: failed to confirm subscription: {e}")
+        return jsonify({'status': 'subscription_confirmed'}), 200
+
+    # Handle actual notifications
+    if message_type == 'Notification':
+        try:
+            message = json.loads(payload.get('Message', '{}'))
+        except (json.JSONDecodeError, TypeError):
+            logger.warning("SES webhook: failed to parse Message field")
+            return jsonify({'error': 'Invalid Message'}), 400
+
+        notification_type = message.get('notificationType', '')
+
+        from app.services.email_service import handle_bounce, handle_complaint
+
+        if notification_type == 'Bounce':
+            count = handle_bounce(message)
+            logger.info(f"SES webhook: processed bounce, marked {count} emails")
+            return jsonify({'status': 'bounce_processed', 'marked': count}), 200
+
+        elif notification_type == 'Complaint':
+            count = handle_complaint(message)
+            logger.info(f"SES webhook: processed complaint, unsubscribed {count} users")
+            return jsonify({'status': 'complaint_processed', 'unsubscribed': count}), 200
+
+        else:
+            logger.debug(f"SES webhook: unhandled notification type: {notification_type}")
+            return jsonify({'status': 'ignored'}), 200
+
+    logger.debug(f"SES webhook: unhandled message type: {message_type}")
+    return jsonify({'status': 'ignored'}), 200

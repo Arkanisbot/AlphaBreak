@@ -27,7 +27,7 @@ class Config:
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*')
 
     # Caching
-    CACHE_TYPE = 'simple'
+    CACHE_TYPE = 'SimpleCache'
     CACHE_DEFAULT_TIMEOUT = 300  # 5 minutes
 
     # Rate limiting
@@ -69,6 +69,7 @@ class DevelopmentConfig(Config):
     TESTING = False
     RATELIMIT_ENABLED = False
     API_KEY_REQUIRED = False
+    CORS_ORIGINS = '*'
 
 
 class ProductionConfig(Config):
@@ -76,8 +77,10 @@ class ProductionConfig(Config):
     DEBUG = False
     TESTING = False
 
+    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'https://alphabreak.vip,https://www.alphabreak.vip').split(',')
+
     # Use Redis for caching in production
-    CACHE_TYPE = 'redis'
+    CACHE_TYPE = 'RedisCache'
     CACHE_REDIS_URL = os.environ.get('REDIS_URL') or 'redis://redis:6379/0'
 
     # Stricter rate limits

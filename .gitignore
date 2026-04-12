@@ -1,3 +1,7 @@
+# Secrets
+*.pem
+docs/other/security/
+
 # Python
 __pycache__/
 *.py[cod]

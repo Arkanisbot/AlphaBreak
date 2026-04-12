@@ -203,6 +203,13 @@ const Analyze = (() => {
             renderTrendBreak(data.trend_break, data.signals);
             renderIndicators(data.indicators, data.signals);
             renderShortInterest(data.short_interest);
+            loadDarkPool(ticker);
+            // Pro-gated: Peer Comparison (async, non-blocking)
+            if (Premium.canAccess('peer_comparison')) {
+                loadPeerComparison(ticker);
+            } else {
+                Premium.showLocked('analyzePeerComparison', 'peer_comparison');
+            }
             renderDividend(data.dividend);
             renderAnalyst(data.analyst);
             renderOptions(data.options);
@@ -709,6 +716,130 @@ const Analyze = (() => {
                 ${_statRow('Squeeze Risk', `<span class="${squeezeCls}">${squeezeRisk}</span>`)}
             </div>
         `;
+    }
+
+    // ── Render: Dark Pool Activity ─────────────────────────────────────
+    async function loadDarkPool(ticker) {
+        const el = document.getElementById('analyzeDarkPool');
+        if (!el) return;
+        el.innerHTML = '<p class="muted">Loading dark pool data...</p>';
+
+        try {
+            const resp = await fetch(`/api/darkpool/${ticker}`, {
+                headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('access_token') || '') }
+            });
+            if (!resp.ok) throw new Error('No data');
+            const dp = await resp.json();
+            if (!dp || dp.error) throw new Error(dp?.error || 'No data');
+
+            const latest = dp.latest || {};
+            const totalShares = latest.total_shares ? _fmtLargeNum(latest.total_shares) : '--';
+            const totalTrades = latest.total_trades ? _fmtNum(latest.total_trades) : '--';
+            const venues = latest.num_ats_venues || '--';
+            const concentration = latest.concentration_ratio
+                ? (latest.concentration_ratio * 100).toFixed(1) + '%' : '--';
+
+            let wowHtml = '--';
+            if (dp.wow_change != null) {
+                const pct = (dp.wow_change * 100).toFixed(1);
+                const arrow = dp.wow_change >= 0 ? '&#9650;' : '&#9660;';
+                const cls = dp.wow_change >= 0 ? 'positive' : 'negative';
+                wowHtml = `<span class="${cls}">${arrow} ${pct}%</span>`;
+            }
+
+            let venueTable = '';
+            if (dp.top_venues && dp.top_venues.length > 0) {
+                venueTable = '<table class="inst-table" style="margin-top:8px"><thead><tr><th>Venue</th><th>Shares</th></tr></thead><tbody>';
+                for (const v of dp.top_venues) {
+                    venueTable += `<tr><td>${v.ats_name || v.ats_mpid}</td><td>${_fmtLargeNum(v.shares)}</td></tr>`;
+                }
+                venueTable += '</tbody></table>';
+            }
+
+            let sparkHtml = '';
+            if (dp.weeks && dp.weeks.length > 1) {
+                const vols = dp.weeks.map(w => w.total_shares).reverse();
+                const max = Math.max(...vols);
+                sparkHtml = '<div style="display:flex;align-items:flex-end;gap:2px;height:40px;margin-top:10px">';
+                for (const v of vols) {
+                    const h = max > 0 ? Math.max(2, Math.round((v / max) * 38)) : 2;
+                    sparkHtml += `<div style="flex:1;height:${h}px;background:var(--accent);border-radius:2px" title="${_fmtNum(v)}"></div>`;
+                }
+                sparkHtml += '</div><div class="muted" style="font-size:11px;margin-top:2px">12-week volume trend</div>';
+            }
+
+            el.innerHTML = `
+                <div class="analyze-stats-grid">
+                    ${_statRow('Dark Pool Volume', totalShares)}
+                    ${_statRow('WoW Change', wowHtml)}
+                    ${_statRow('Total Trades', totalTrades)}
+                    ${_statRow('ATS Venues', venues)}
+                    ${_statRow('Concentration', concentration)}
+                </div>
+                ${venueTable}
+                ${sparkHtml}
+            `;
+        } catch (e) {
+            el.innerHTML = '<p class="muted">No dark pool data available.</p>';
+        }
+    }
+
+    // ── Render: Peer Comparison (Pro) ──────────────────────────────────
+    async function loadPeerComparison(ticker) {
+        const el = document.getElementById('analyzePeerComparison');
+        if (!el) return;
+        el.innerHTML = '<p class="muted">Loading peer comparison...</p>';
+
+        try {
+            const resp = await apiRequest(`/api/analyze/${ticker}/peers`);
+            if (!resp.ok) throw new Error(`Peers API error: ${resp.status}`);
+            const result = await resp.json();
+            if (result.error) {
+                el.innerHTML = `<p class="muted">${result.error}</p>`;
+                return;
+            }
+            renderPeerComparison(result);
+            const access = Premium.checkAccess('peer_comparison');
+            if (access.isTrial) {
+                Premium.recordTrial('peer_comparison');
+                Premium.showTrialBanner('analyzePeerComparison', 'peer_comparison');
+            }
+        } catch (e) {
+            el.innerHTML = '<p class="muted">Peer comparison unavailable.</p>';
+        }
+    }
+
+    function renderPeerComparison(result) {
+        const el = document.getElementById('analyzePeerComparison');
+        if (!el) return;
+
+        const peers = result.peers || [];
+        if (peers.length === 0) {
+            el.innerHTML = '<p class="muted">No peer data available.</p>';
+            return;
+        }
+
+        let html = `<div class="peer-sector-info muted" style="margin-bottom:8px;font-size:12px">${result.sector || ''}${result.industry ? ' / ' + result.industry : ''}</div>`;
+        html += '<div style="overflow-x:auto"><table class="inst-table peer-table"><thead><tr>';
+        html += '<th>Ticker</th><th>Market Cap</th><th>P/E</th><th>EV/EBITDA</th><th>ROE</th><th>Rev Growth</th><th>Profit Margin</th>';
+        html += '</tr></thead><tbody>';
+
+        for (const p of peers) {
+            const rowCls = p.is_target ? ' class="peer-target-row"' : '';
+            const tickerLabel = p.is_target ? `<strong>${p.ticker}</strong>` : p.ticker;
+            html += `<tr${rowCls}>`;
+            html += `<td title="${p.name || ''}">${tickerLabel}</td>`;
+            html += `<td>${_fmtLargeNum(p.market_cap)}</td>`;
+            html += `<td>${_fmtRatio(p.pe_ratio)}</td>`;
+            html += `<td>${_fmtRatio(p.ev_ebitda)}</td>`;
+            html += `<td>${_fmtPct(p.roe)}</td>`;
+            html += `<td>${_fmtPct(p.revenue_growth)}</td>`;
+            html += `<td>${_fmtPct(p.profit_margin)}</td>`;
+            html += '</tr>';
+        }
+
+        html += '</tbody></table></div>';
+        el.innerHTML = html;
     }
 
     // ── Render: Dividend Analysis ────────────────────────────────────────

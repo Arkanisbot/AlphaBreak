@@ -344,6 +344,109 @@ def search_tickers(query: str) -> List[Dict]:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Peer Comparison
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Hardcoded sector peer mapping (major holdings per sector)
+SECTOR_PEERS = {
+    'Technology': ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'META', 'AVGO', 'ADBE', 'CRM', 'AMD', 'INTC', 'ORCL', 'NOW', 'QCOM', 'TXN'],
+    'Healthcare': ['UNH', 'JNJ', 'LLY', 'ABBV', 'MRK', 'PFE', 'TMO', 'ABT', 'DHR', 'AMGN', 'BMY', 'GILD', 'SYK', 'MDT'],
+    'Financial Services': ['JPM', 'V', 'MA', 'BAC', 'GS', 'MS', 'WFC', 'BLK', 'SCHW', 'AXP', 'C', 'SPGI'],
+    'Financials': ['JPM', 'V', 'MA', 'BAC', 'GS', 'MS', 'WFC', 'BLK', 'SCHW', 'AXP', 'C', 'SPGI'],
+    'Consumer Cyclical': ['AMZN', 'TSLA', 'HD', 'MCD', 'NKE', 'LOW', 'SBUX', 'TJX', 'BKNG', 'ABNB'],
+    'Consumer Discretionary': ['AMZN', 'TSLA', 'HD', 'MCD', 'NKE', 'LOW', 'SBUX', 'TJX', 'BKNG', 'ABNB'],
+    'Consumer Defensive': ['PG', 'PEP', 'KO', 'COST', 'WMT', 'PM', 'MO', 'CL', 'MDLZ', 'GIS'],
+    'Consumer Staples': ['PG', 'PEP', 'KO', 'COST', 'WMT', 'PM', 'MO', 'CL', 'MDLZ', 'GIS'],
+    'Energy': ['XOM', 'CVX', 'COP', 'SLB', 'EOG', 'MPC', 'PSX', 'VLO', 'OXY', 'DVN'],
+    'Industrials': ['BA', 'CAT', 'GE', 'RTX', 'HON', 'UNP', 'UPS', 'DE', 'LMT', 'MMM'],
+    'Communication Services': ['GOOGL', 'META', 'DIS', 'NFLX', 'CMCSA', 'T', 'VZ', 'TMUS', 'CHTR', 'EA'],
+    'Utilities': ['NEE', 'SO', 'DUK', 'D', 'AEP', 'SRE', 'EXC', 'XEL', 'WEC', 'ED'],
+    'Real Estate': ['AMT', 'PLD', 'CCI', 'EQIX', 'SPG', 'PSA', 'O', 'WELL', 'DLR', 'AVB'],
+    'Materials': ['LIN', 'APD', 'SHW', 'ECL', 'FCX', 'NEM', 'NUE', 'DOW', 'DD', 'VMC'],
+}
+
+
+def fetch_peer_comparison(ticker: str) -> Dict:
+    """
+    Fetch peer comparison metrics for a ticker and its sector peers.
+
+    Returns dict with:
+    - ticker: the target ticker
+    - sector: detected sector
+    - industry: detected industry
+    - peers: list of dicts with metrics for each peer (target highlighted)
+    """
+    import yfinance as yf
+
+    stock = yf.Ticker(ticker)
+    try:
+        info = stock.info or {}
+    except Exception:
+        info = {}
+
+    sector = info.get('sector', '')
+    industry = info.get('industry', '')
+
+    # Find peer tickers from our mapping
+    peer_tickers = []
+    for sector_key in SECTOR_PEERS:
+        if sector_key.lower() == sector.lower():
+            peer_tickers = [t for t in SECTOR_PEERS[sector_key] if t != ticker]
+            break
+
+    # If no sector match, try industry-based fallback
+    if not peer_tickers:
+        # Fallback: use Technology peers as default
+        peer_tickers = SECTOR_PEERS.get('Technology', [])[:7]
+
+    # Limit to 7 peers (+ target = 8 max)
+    peer_tickers = peer_tickers[:7]
+
+    # Ensure target ticker is included in the list
+    all_tickers = [ticker] + peer_tickers
+
+    # Fetch metrics for each
+    peers_data = []
+    for sym in all_tickers:
+        metrics = _fetch_peer_metrics(sym)
+        if metrics:
+            metrics['is_target'] = (sym == ticker)
+            peers_data.append(metrics)
+
+    return {
+        'ticker': ticker,
+        'sector': sector,
+        'industry': industry,
+        'peers': peers_data,
+    }
+
+
+def _fetch_peer_metrics(ticker: str) -> Optional[Dict]:
+    """Fetch comparison metrics for a single peer ticker."""
+    import yfinance as yf
+
+    try:
+        stock = yf.Ticker(ticker)
+        info = stock.info or {}
+        if not info.get('marketCap'):
+            return None
+
+        return {
+            'ticker': ticker,
+            'name': info.get('shortName') or info.get('longName') or ticker,
+            'market_cap': info.get('marketCap'),
+            'pe_ratio': _safe_val(info.get('trailingPE')),
+            'ev_ebitda': _safe_val(info.get('enterpriseToEbitda')),
+            'roe': _safe_val(info.get('returnOnEquity')),
+            'revenue_growth': _safe_val(info.get('revenueGrowth')),
+            'profit_margin': _safe_val(info.get('profitMargins')),
+        }
+    except Exception as e:
+        logger.debug(f"Peer metrics fetch failed for {ticker}: {e}")
+        return None
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Internal helpers
 # ──────────────────────────────────────────────────────────────────────────────
 

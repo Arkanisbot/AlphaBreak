@@ -23,20 +23,20 @@ analyze_bp = Blueprint('analyze', __name__)
 # Cache
 # ──────────────────────────────────────────────────────────────────────────────
 
-_cache = {}
 CACHE_TTL = 300  # 5 minutes
 
 TICKER_PATTERN = re.compile(r'^[A-Z]{1,5}(-[A-Z])?$')
+VALID_INTERVALS = ('1m', '5m', '15m', '1h', '1d', '1wk', '1mo')
+VALID_PERIODS = ('1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', 'max')
 
 
 def _get_cached(key, compute_fn, ttl=CACHE_TTL):
-    now = time.time()
-    if key in _cache:
-        data, expiry = _cache[key]
-        if now < expiry:
-            return data
+    from app import cache
+    data = cache.get(key)
+    if data is not None:
+        return data
     data = compute_fn()
-    _cache[key] = (data, now + ttl)
+    cache.set(key, data, timeout=ttl)
     return data
 
 
@@ -148,7 +148,11 @@ def analyze_chart(ticker):
         return jsonify({'error': str(e)}), 400
 
     interval = request.args.get('interval', '1d')
+    if interval not in VALID_INTERVALS:
+        return jsonify({'error': 'Invalid interval'}), 400
     period = request.args.get('period', '3mo')
+    if period not in VALID_PERIODS:
+        return jsonify({'error': 'Invalid period'}), 400
 
     try:
         cache_key = f'analyze_chart_{ticker}_{period}_{interval}'
@@ -190,7 +194,11 @@ def analyze_trendlines(ticker):
         return jsonify({'error': str(e)}), 400
 
     period = request.args.get('period', '6mo')
+    if period not in VALID_PERIODS:
+        return jsonify({'error': 'Invalid period'}), 400
     interval = request.args.get('interval', '1d')
+    if interval not in VALID_INTERVALS:
+        return jsonify({'error': 'Invalid interval'}), 400
 
     try:
         db = _get_db_manager()
@@ -270,6 +278,38 @@ def analyze_compare(ticker):
         return jsonify(result)
     except Exception as e:
         current_app.logger.error(f"Compare error for {ticker}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# GET /api/analyze/<ticker>/peers
+# ──────────────────────────────────────────────────────────────────────────────
+
+@analyze_bp.route('/analyze/<ticker>/peers', methods=['GET'])
+@log_request
+@require_api_key
+def analyze_peers(ticker):
+    """
+    Fetch peer comparison table for a ticker.
+
+    Returns comparison metrics (P/E, EV/EBITDA, ROE, Revenue Growth,
+    Profit Margin, Market Cap) for the ticker and 5-8 sector peers.
+    """
+    try:
+        ticker = _validate_ticker(ticker)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+
+    try:
+        cache_key = f'analyze_peers_{ticker}'
+        result = _get_cached(
+            cache_key,
+            lambda: _fetch_peers(ticker),
+            ttl=CACHE_TTL,
+        )
+        return jsonify(result)
+    except Exception as e:
+        current_app.logger.error(f"Peers error for {ticker}: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -356,6 +396,11 @@ def _fetch_grades(ticker, db_manager):
 def _fetch_patterns(ticker, period):
     from app.services.pattern_service import detect_patterns
     return detect_patterns(ticker, period)
+
+
+def _fetch_peers(ticker):
+    from app.services.analyze_service import fetch_peer_comparison
+    return fetch_peer_comparison(ticker)
 
 
 def _fetch_compare(ticker, period):

@@ -8,6 +8,7 @@ blueprints, and error handlers.
 from flask import Flask, jsonify
 from flask.json.provider import DefaultJSONProvider
 from flask_cors import CORS
+from flask_caching import Cache
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import logging
@@ -35,6 +36,9 @@ class SafeJSONProvider(DefaultJSONProvider):
         return super().dumps(clean(obj), **kwargs)
 
 
+cache = Cache()
+
+
 def create_app(config_name='development'):
     """
     Flask application factory.
@@ -54,7 +58,10 @@ def create_app(config_name='development'):
     app.config.from_object(config_module)
 
     # Enable CORS for frontend access
-    CORS(app, resources={r"/api/*": {"origins": app.config.get('CORS_ORIGINS', '*')}})
+    CORS(app, resources={r"/api/*": {"origins": app.config.get('CORS_ORIGINS', ['https://alphabreak.vip', 'https://www.alphabreak.vip'])}})
+
+    # Initialize Flask-Caching
+    cache.init_app(app)
 
     # Rate limiting to prevent abuse
     # Exempt health check endpoints from rate limiting
@@ -109,6 +116,7 @@ def create_app(config_name='development'):
     from app.routes.profile import profile_bp
     from app.routes.journal import journal_bp
     from app.routes.analyze import analyze_bp
+    from app.routes.darkpool import darkpool_bp
 
     app.register_blueprint(health_bp, url_prefix='/api')
     app.register_blueprint(predictions_bp, url_prefix='/api')
@@ -127,6 +135,7 @@ def create_app(config_name='development'):
     app.register_blueprint(profile_bp, url_prefix='/api')
     app.register_blueprint(journal_bp, url_prefix='/api')
     app.register_blueprint(analyze_bp, url_prefix='/api')
+    app.register_blueprint(darkpool_bp, url_prefix='/api')
 
     # Error handlers
     @app.errorhandler(404)
