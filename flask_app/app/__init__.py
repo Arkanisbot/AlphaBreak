@@ -6,12 +6,33 @@ blueprints, and error handlers.
 """
 
 from flask import Flask, jsonify
+from flask.json.provider import DefaultJSONProvider
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import logging
 from logging.handlers import RotatingFileHandler
+import math
 import os
+
+
+class SafeJSONProvider(DefaultJSONProvider):
+    """JSON provider that converts NaN/Infinity to null instead of invalid JSON."""
+
+    def dumps(self, obj, **kwargs):
+        import json
+
+        def clean(o):
+            if isinstance(o, float):
+                if math.isnan(o) or math.isinf(o):
+                    return None
+            if isinstance(o, dict):
+                return {k: clean(v) for k, v in o.items()}
+            if isinstance(o, (list, tuple)):
+                return [clean(v) for v in o]
+            return o
+
+        return super().dumps(clean(obj), **kwargs)
 
 
 def create_app(config_name='development'):
@@ -25,6 +46,8 @@ def create_app(config_name='development'):
         Flask app instance
     """
     app = Flask(__name__)
+    app.json_provider_class = SafeJSONProvider
+    app.json = SafeJSONProvider(app)
 
     # Load configuration
     config_module = f'app.config.{config_name.capitalize()}Config'

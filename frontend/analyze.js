@@ -61,6 +61,23 @@ const Analyze = (() => {
             });
         });
 
+        // VWAP toggle
+        const vwapToggle = document.getElementById('toggleVWAP');
+        if (vwapToggle) {
+            vwapToggle.addEventListener('change', () => {
+                AlphaCharts.toggleIndicator('analyzeChartContainer', 'vwap');
+            });
+        }
+
+        // Indicator sub-pane toggles (RSI, MACD, Stochastic)
+        ['toggleRSI', 'toggleMACD', 'toggleStoch'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', () => {
+                const indicator = id === 'toggleRSI' ? 'rsi' : id === 'toggleMACD' ? 'macd' : 'stochastic';
+                AlphaCharts.toggleIndicator('analyzeChartContainer', indicator);
+            });
+        });
+
         // Compare toggle — loads/clears comparison data
         const compareToggle = document.getElementById('toggleCompare');
         if (compareToggle) {
@@ -168,6 +185,7 @@ const Analyze = (() => {
         currentTicker = ticker;
         window.location.hash = `analyze/${ticker}`;
         document.getElementById('analyzeAutocomplete').innerHTML = '';
+        if (typeof Onboarding !== 'undefined') Onboarding.trackSearch();
 
         document.getElementById('analyzeEmpty').style.display = 'none';
         document.getElementById('analyzeLoading').style.display = 'flex';
@@ -990,6 +1008,23 @@ const Analyze = (() => {
             // Load compare if toggle is on
             if (document.getElementById('toggleCompare')?.checked) {
                 loadCompare(ticker, period);
+            }
+
+            // Initialize drawing tools
+            AlphaCharts.initDrawings('analyzeChartContainer', ticker);
+
+            // Re-apply indicator pane toggles if they were on
+            if (document.getElementById('toggleVWAP')?.checked) {
+                AlphaCharts.toggleIndicator('analyzeChartContainer', 'vwap');
+            }
+            if (document.getElementById('toggleRSI')?.checked) {
+                AlphaCharts.toggleIndicator('analyzeChartContainer', 'rsi');
+            }
+            if (document.getElementById('toggleMACD')?.checked) {
+                AlphaCharts.toggleIndicator('analyzeChartContainer', 'macd');
+            }
+            if (document.getElementById('toggleStoch')?.checked) {
+                AlphaCharts.toggleIndicator('analyzeChartContainer', 'stochastic');
             }
 
         } catch (e) {

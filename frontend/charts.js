@@ -133,6 +133,8 @@ const AlphaCharts = (() => {
             overlays: {},
             trendlineSeries: [],
             levelLines: [],
+            chartData: null, // stored for indicator calculations
+            indicatorPanes: {},
         };
 
         instances[containerId] = instance;
@@ -143,6 +145,9 @@ const AlphaCharts = (() => {
     function setData(containerId, chartData, overlays) {
         const inst = instances[containerId];
         if (!inst || !chartData || !chartData.length) return;
+
+        // Store raw data for indicator calculations
+        inst.chartData = chartData;
 
         // Convert timestamps to Lightweight Charts format (UTC seconds)
         const candles = chartData.map(d => ({
@@ -290,7 +295,7 @@ const AlphaCharts = (() => {
         container.appendChild(badge);
     }
 
-    // ── Render trendline info panel ──────────────────────────────────────
+    // ── Render trendline info panel (clickable with AI popover) ────────
     function _renderTrendlinePanel(containerId, data) {
         const parent = document.getElementById(containerId)?.parentElement;
         if (!parent) return;
@@ -310,14 +315,14 @@ const AlphaCharts = (() => {
         html += '</div>';
 
         html += '<div class="trendline-list">';
-        for (const line of lines.slice(0, 5)) {
+        for (let idx = 0; idx < Math.min(lines.length, 5); idx++) {
+            const line = lines[idx];
             const color = line.color?.hex || '#888';
-            const icon = line.type === 'support' ? '&#9650;' : '&#9660;';
             const distStr = line.distance_pct > 0
                 ? `+${line.distance_pct.toFixed(1)}% above`
                 : `${line.distance_pct.toFixed(1)}% below`;
 
-            html += `<div class="trendline-item">
+            html += `<div class="trendline-item trendline-clickable" data-trendline-idx="${idx}" title="Click for AI analysis">
                 <div class="trendline-item-left">
                     <span class="trendline-dot" style="background:${color}"></span>
                     <span class="trendline-type">${line.type === 'support' ? 'Support' : 'Resistance'}</span>
@@ -336,6 +341,129 @@ const AlphaCharts = (() => {
 
         panel.innerHTML = html;
         parent.appendChild(panel);
+
+        // Bind click handlers for AI popover
+        panel.querySelectorAll('.trendline-clickable').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const idx = parseInt(item.dataset.trendlineIdx);
+                const line = lines[idx];
+                if (line) _showTrendlinePopover(item, line, data);
+            });
+        });
+    }
+
+    // ── AI Trendline Popover ────────────────────────────────────────────
+    function _showTrendlinePopover(anchor, line, data) {
+        // Remove existing popover
+        document.querySelector('.trendline-popover')?.remove();
+
+        const regime = data.regime || 'RANGE';
+        const projections = line.projections || {};
+        const breakdown = line.score_breakdown || {};
+
+        // Build confidence breakdown bar chart
+        const factors = [
+            { label: 'Touches', value: breakdown.touches || 0, max: 25 },
+            { label: 'Recency', value: breakdown.recency || 0, max: 20 },
+            { label: 'Volume', value: breakdown.volume || 0, max: 15 },
+            { label: 'Proximity', value: breakdown.proximity || 0, max: 20 },
+            { label: 'Regime', value: breakdown.regime || 0, max: 10 },
+            { label: 'Span', value: breakdown.span || 0, max: 10 },
+        ];
+
+        const typeLabel = line.type === 'support' ? 'Support' : 'Resistance';
+        const actionLabel = line.type === 'support'
+            ? (line.distance_pct < 1 ? 'Near support — potential bounce entry' : 'Support below — hold / add on pullback')
+            : (line.distance_pct > -1 ? 'Near resistance — consider profit-taking' : 'Resistance above — watch for breakout');
+
+        const analogText = line.analog_score >= 70
+            ? `Strong historical match: ${line.analog_score}% of similar ${regime} setups resolved in the expected direction.`
+            : line.analog_score >= 40
+                ? `Moderate analog match: ${line.analog_score}% agreement. Mixed historical outcomes.`
+                : `Weak analog match: ${line.analog_score}%. Insufficient historical precedent for high-conviction trading.`;
+
+        const popover = document.createElement('div');
+        popover.className = 'trendline-popover';
+        popover.innerHTML = `
+            <div class="tp-header">
+                <h4>${typeLabel} Line — AI Analysis</h4>
+                <button class="tp-close">&times;</button>
+            </div>
+            <div class="tp-body">
+                <div class="tp-row tp-action">
+                    <span class="tp-action-icon">${line.type === 'support' ? '&#9650;' : '&#9660;'}</span>
+                    <span>${actionLabel}</span>
+                </div>
+
+                <div class="tp-section">
+                    <h5>Confidence Breakdown (${line.confidence}/100)</h5>
+                    <div class="tp-factors">
+                        ${factors.map(f => `
+                            <div class="tp-factor">
+                                <span class="tp-factor-label">${f.label}</span>
+                                <div class="tp-factor-bar">
+                                    <div class="tp-factor-fill" style="width:${(f.value / f.max * 100).toFixed(0)}%;background:${f.value >= f.max * 0.7 ? '#26a69a' : f.value >= f.max * 0.4 ? '#f0b90b' : '#ef5350'}"></div>
+                                </div>
+                                <span class="tp-factor-val">${f.value}/${f.max}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="tp-section">
+                    <h5>Historical Analog</h5>
+                    <p class="tp-analog-text">${analogText}</p>
+                </div>
+
+                ${projections.bars_5 ? `
+                <div class="tp-section">
+                    <h5>Price Projections</h5>
+                    <div class="tp-projections">
+                        <div class="tp-proj"><span>5 bars</span><strong>$${projections.bars_5.toFixed(2)}</strong></div>
+                        <div class="tp-proj"><span>10 bars</span><strong>$${projections.bars_10.toFixed(2)}</strong></div>
+                        <div class="tp-proj"><span>20 bars</span><strong>$${projections.bars_20.toFixed(2)}</strong></div>
+                    </div>
+                </div>
+                ` : ''}
+
+                <div class="tp-section tp-levels">
+                    <div class="tp-level-row">
+                        <span>Current Line Price</span>
+                        <strong>$${line.current_line_price?.toFixed(2)}</strong>
+                    </div>
+                    <div class="tp-level-row">
+                        <span>Distance from Price</span>
+                        <strong class="${line.distance_pct > 0 ? 'positive' : 'negative'}">${line.distance_pct > 0 ? '+' : ''}${line.distance_pct.toFixed(2)}%</strong>
+                    </div>
+                    <div class="tp-level-row">
+                        <span>Touch Count</span>
+                        <strong>${line.touch_count || line.touches?.length || 0}</strong>
+                    </div>
+                    <div class="tp-level-row">
+                        <span>Market Regime</span>
+                        <strong>${regime}</strong>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Position near the anchor
+        document.body.appendChild(popover);
+        const anchorRect = anchor.getBoundingClientRect();
+        popover.style.top = `${anchorRect.bottom + 8}px`;
+        popover.style.left = `${Math.min(anchorRect.left, window.innerWidth - 340)}px`;
+
+        // Close handlers
+        popover.querySelector('.tp-close').addEventListener('click', () => popover.remove());
+        setTimeout(() => {
+            const closeOnClick = (e) => {
+                if (!popover.contains(e.target) && !anchor.contains(e.target)) {
+                    popover.remove();
+                    document.removeEventListener('click', closeOnClick);
+                }
+            };
+            document.addEventListener('click', closeOnClick);
+        }, 100);
     }
 
     // ── Overlay helpers ──────────────────────────────────────────────────
@@ -602,8 +730,217 @@ const AlphaCharts = (() => {
         setTimeout(() => resize(containerId), 100);
     }
 
+    // ── Indicator Pane Toggles ─────────────────────────────────────────
+    function toggleIndicator(containerId, indicator) {
+        const inst = instances[containerId];
+        if (!inst?.chartData) return;
+
+        if (typeof ChartIndicators === 'undefined') return;
+
+        // If already rendered, destroy it
+        if (inst.indicatorPanes[indicator]) {
+            const pane = inst.indicatorPanes[indicator];
+            if (pane.pane?.wrapper) pane.pane.wrapper.remove();
+            delete inst.indicatorPanes[indicator];
+            return;
+        }
+
+        // Render the indicator pane
+        switch (indicator) {
+            case 'rsi':
+                inst.indicatorPanes.rsi = ChartIndicators.renderRSI(containerId, inst.chartData, inst.chart);
+                break;
+            case 'macd':
+                inst.indicatorPanes.macd = ChartIndicators.renderMACD(containerId, inst.chartData, inst.chart);
+                break;
+            case 'stochastic':
+                inst.indicatorPanes.stochastic = ChartIndicators.renderStochastic(containerId, inst.chartData, inst.chart);
+                break;
+            case 'vwap':
+                if (inst.overlays.vwap) {
+                    try { inst.chart.removeSeries(inst.overlays.vwap); } catch (e) {}
+                    delete inst.overlays.vwap;
+                } else {
+                    ChartIndicators.addVWAP(inst, inst.chartData);
+                }
+                break;
+        }
+    }
+
+    // ── Drawing Tools Integration ───────────────────────────────────────
+    function initDrawings(containerId, ticker) {
+        const inst = instances[containerId];
+        if (!inst || typeof ChartDrawings === 'undefined') return;
+
+        ChartDrawings.init(containerId, inst, ticker);
+        ChartDrawings.createToolbar(containerId);
+        ChartDrawings.bindChartUpdates(inst);
+    }
+
+    // ── Quick-create: Candlestick from raw data ────────────────────────
+    // Usage: AlphaCharts.quickCandlestick('myDiv', data, { height: 200 })
+    // data = [{ date/timestamp, open, high, low, close, volume?, sma_20? }]
+    function quickCandlestick(containerId, rawData, options = {}) {
+        if (!rawData || !rawData.length) return null;
+
+        // Ensure we have a div container (replace canvas if needed)
+        _ensureDiv(containerId, options.height || 200);
+
+        destroy(containerId);
+
+        const height = options.height || 200;
+        const showVolume = options.showVolume !== false && rawData[0].volume != null;
+        const volH = showVolume ? (options.volumeHeight || 40) : 0;
+
+        // Set container height before creating chart
+        const el = document.getElementById(containerId);
+        if (!el) return null;
+        el.style.height = height + 'px';
+
+        const inst = create(containerId, { height: height - volH, volumeHeight: volH });
+        if (!inst) return null;
+
+        // Normalize data
+        const chartData = rawData.map(d => ({
+            timestamp: d.date || d.timestamp,
+            open: d.open, high: d.high, low: d.low, close: d.close,
+            volume: d.volume || 0,
+        }));
+
+        // Build overlays
+        const overlays = {};
+        if (rawData[0].sma_20 !== undefined) {
+            overlays.sma_10 = rawData.map(d => d.sma_20 != null ? d.sma_20 : null);
+        }
+
+        setData(containerId, chartData, Object.keys(overlays).length ? overlays : null);
+
+        if (options.ticker) inst.ticker = options.ticker;
+        return inst;
+    }
+
+    // ── Quick-create: Line chart ─────────────────────────────────────
+    // Usage: AlphaCharts.quickLine('myDiv', data, { keys, labels, colors, height })
+    // data = [{ date/timestamp, value1, value2, ... }]
+    // ── Helper: ensure container is a div ──────────────────────────────
+    function _ensureDiv(containerId, height) {
+        let el = document.getElementById(containerId);
+        if (!el) return null;
+
+        if (el.tagName === 'CANVAS') {
+            const div = document.createElement('div');
+            div.id = containerId;
+            div.style.width = '100%';
+            div.style.height = (height || 200) + 'px';
+            el.parentNode.replaceChild(div, el);
+            return div;
+        }
+        return el;
+    }
+
+    function quickLine(containerId, rawData, options = {}) {
+        if (!rawData || !rawData.length) return null;
+
+        _ensureDiv(containerId, options.height || 200);
+        destroy(containerId);
+
+        const height = options.height || 200;
+        const chartDiv = document.getElementById(containerId);
+        if (!chartDiv) return null;
+        chartDiv.innerHTML = '';
+        chartDiv.style.height = height + 'px';
+
+        const chart = LightweightCharts.createChart(chartDiv, {
+            layout: {
+                background: { type: 'solid', color: THEME.background },
+                textColor: THEME.textColor,
+                fontSize: 11,
+            },
+            grid: {
+                vertLines: { color: THEME.gridColor },
+                horzLines: { color: THEME.gridColor },
+            },
+            rightPriceScale: {
+                borderColor: THEME.gridColor,
+                scaleMargins: { top: 0.08, bottom: 0.08 },
+            },
+            timeScale: {
+                borderColor: THEME.gridColor,
+                timeVisible: true,
+            },
+            handleScroll: { mouseWheel: true, pressedMouseMove: true },
+            handleScale: { mouseWheel: true, pinch: true },
+            crosshair: {
+                mode: LightweightCharts.CrosshairMode.Normal,
+                vertLine: { color: THEME.crosshair, width: 1, style: 2 },
+                horzLine: { color: THEME.crosshair, width: 1, style: 2 },
+            },
+        });
+
+        const keys = options.keys || ['close', 'value'];
+        const colors = options.colors || ['#2962FF', '#FF6D00', '#AB47BC', '#26a69a'];
+        const labels = options.labels || keys;
+        const seriesList = [];
+
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            // Check if data has this key
+            if (rawData[0][key] === undefined) continue;
+
+            const isArea = i === 0 && options.area !== false;
+            let series;
+
+            if (isArea) {
+                series = chart.addAreaSeries({
+                    lineColor: colors[i % colors.length],
+                    topColor: colors[i % colors.length] + '30',
+                    bottomColor: colors[i % colors.length] + '05',
+                    lineWidth: 2,
+                    crosshairMarkerVisible: true,
+                    lastValueVisible: true,
+                    priceLineVisible: false,
+                    title: labels[i],
+                });
+            } else {
+                series = chart.addLineSeries({
+                    color: colors[i % colors.length],
+                    lineWidth: 2,
+                    crosshairMarkerVisible: true,
+                    lastValueVisible: true,
+                    priceLineVisible: false,
+                    title: labels[i],
+                });
+            }
+
+            const lineData = rawData
+                .map(d => {
+                    if (d[key] == null) return null;
+                    return { time: _toTime(d.date || d.timestamp), value: d[key] };
+                })
+                .filter(Boolean);
+
+            series.setData(lineData);
+            seriesList.push(series);
+        }
+
+        chart.timeScale().fitContent();
+
+        // Custom price formatter if provided
+        if (options.priceFormat === 'currency') {
+            chart.priceScale('right').applyOptions({
+                mode: 0,
+            });
+        }
+
+        instances[containerId] = { chart, volumeChart: null, candleSeries: seriesList[0], volumeSeries: null, container: chartDiv, overlays: {}, trendlineSeries: [], levelLines: [], chartData: rawData, indicatorPanes: {} };
+
+        return instances[containerId];
+    }
+
     return { create, setData, setTrendlines, setPatterns, setCompare, clearCompare,
-             renderSeasonality, toggleFullscreen, destroy, resize, instances };
+             renderSeasonality, toggleFullscreen, toggleIndicator, initDrawings,
+             quickCandlestick, quickLine,
+             destroy, resize, instances };
 })();
 
 // Auto-resize all charts on window resize

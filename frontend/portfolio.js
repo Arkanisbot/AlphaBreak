@@ -112,57 +112,18 @@ const Portfolio = {
             const values = history.map(d => parseFloat(d.total_value));
             const startValue = values[0] || 100000;
 
-            this.charts.performance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Portfolio Value',
-                        data: values,
-                        borderColor: '#00d4aa',
-                        backgroundColor: 'rgba(0, 212, 170, 0.1)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 2,
-                        pointHoverRadius: 5,
-                    }, {
-                        label: 'Starting Balance',
-                        data: labels.map(() => startValue),
-                        borderColor: 'rgba(255, 255, 255, 0.3)',
-                        borderDash: [5, 5],
-                        pointRadius: 0,
-                        fill: false,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            labels: { color: '#e0e0e0' }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: (ctx) => `${ctx.dataset.label}: ${this.formatCurrency(ctx.raw)}`
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: { color: '#888' },
-                            grid: { color: 'rgba(255,255,255,0.05)' }
-                        },
-                        y: {
-                            ticks: {
-                                color: '#888',
-                                callback: (value) => this.formatCurrency(value)
-                            },
-                            grid: { color: 'rgba(255,255,255,0.05)' }
-                        }
-                    }
-                }
-            });
+            if (typeof AlphaCharts !== 'undefined') {
+                const lineData = history.map(d => ({
+                    date: d.snapshot_date,
+                    total_value: parseFloat(d.total_value),
+                }));
+                AlphaCharts.quickLine('portfolioPerformanceChart', lineData, {
+                    keys: ['total_value'],
+                    labels: ['Portfolio Value'],
+                    colors: ['#00d4aa'],
+                    height: 250,
+                });
+            }
 
             // Update stats
             const latest = history[history.length - 1] || {};

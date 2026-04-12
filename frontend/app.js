@@ -29,6 +29,8 @@ const PAGE_TITLES = {
     stats: 'Performance Stats',
     account: 'My Account',
     pricing: 'Plans & Pricing',
+    contact: 'Contact',
+    landing: 'AlphaBreak',
 };
 
 // Initialize application
@@ -47,9 +49,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     initializeSidebar();
     initializeForms();
+    initLanding();
+    initContactForm();
+    showLandingIfNeeded();
     checkApiHealth();
     setDefaultDates();
     initWidgetCollapse();
+    // Onboarding tour (after auth state is resolved)
+    setTimeout(() => {
+        if (typeof Onboarding !== 'undefined') Onboarding.init();
+    }, 500);
 });
 
 // Widget collapse — works for all widgets with collapse buttons
@@ -161,7 +170,7 @@ function initializeSidebar() {
             // Hide persistent sentiment widget on forex and portfolio tabs
             const persistentSentiment = document.getElementById('persistentSentiment');
             if (persistentSentiment) {
-                persistentSentiment.style.display = (tabName === 'forex' || tabName === 'portfolio' || tabName === 'account') ? 'none' : '';
+                persistentSentiment.style.display = (tabName === 'forex' || tabName === 'portfolio' || tabName === 'account' || tabName === 'contact' || tabName === 'landing' || tabName === 'pricing') ? 'none' : '';
             }
 
             // Close sidebar after selection
@@ -663,6 +672,143 @@ function showSnackbar(message, type = 'info') {
     }, 3000);
 }
 
+// ── Landing page logic ──────────────────────────────────────────────────────
+function initLanding() {
+    // "Get Started Free" buttons → open sign-up modal
+    document.querySelectorAll('.landing-cta-signup').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (typeof Auth !== 'undefined') Auth.showModal('register');
+        });
+    });
+
+    // "See Features" → scroll to features grid
+    const demoBtn = document.getElementById('landingDemo');
+    if (demoBtn) {
+        demoBtn.addEventListener('click', () => {
+            document.querySelector('.landing-features-grid')?.scrollIntoView({ behavior: 'smooth' });
+        });
+    }
+
+    // "View Pricing" → go to pricing tab
+    document.querySelectorAll('.landing-cta-pricing').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const pricingLink = document.querySelector('[data-tab="pricing"]');
+            if (pricingLink) pricingLink.click();
+        });
+    });
+}
+
+// Show landing for unauthenticated users, Security Analysis for authenticated
+function showLandingIfNeeded() {
+    // Check both current auth state AND stored tokens (async validation may still be running)
+    const isAuth = typeof Auth !== 'undefined' && Auth.isAuthenticated;
+    const hasStoredToken = !!(localStorage.getItem('alphabreak_access_token') && localStorage.getItem('alphabreak_user'));
+
+    const tabContents = document.querySelectorAll('.tab-content');
+    const sidebarLinks = document.querySelectorAll('.sidebar-link');
+    const sidebar = document.getElementById('sidebar');
+    const persistentSentiment = document.getElementById('persistentSentiment');
+
+    if (!isAuth && !hasStoredToken) {
+        // No auth at all — show landing page, hide sidebar
+        tabContents.forEach(c => c.classList.remove('active'));
+        sidebarLinks.forEach(l => l.classList.remove('active'));
+        const landingTab = document.getElementById('landingTab');
+        if (landingTab) landingTab.classList.add('active');
+        if (sidebar) sidebar.classList.add('landing-hidden');
+        if (persistentSentiment) persistentSentiment.style.display = 'none';
+        document.getElementById('currentPageTitle').textContent = '';
+        state.activeTab = 'landing';
+    } else if (isAuth || hasStoredToken) {
+        // Authenticated or has stored tokens — show the app
+        if (sidebar) sidebar.classList.remove('landing-hidden');
+        if (state.activeTab === 'landing' || !document.querySelector('.tab-content.active')) {
+            tabContents.forEach(c => c.classList.remove('active'));
+            sidebarLinks.forEach(l => l.classList.remove('active'));
+            const watchlistTab = document.getElementById('watchlistTab');
+            const watchlistLink = document.querySelector('[data-tab="watchlist"]');
+            if (watchlistTab) watchlistTab.classList.add('active');
+            if (watchlistLink) watchlistLink.classList.add('active');
+            document.getElementById('currentPageTitle').textContent = PAGE_TITLES['watchlist'];
+            if (persistentSentiment) persistentSentiment.style.display = '';
+            state.activeTab = 'watchlist';
+
+            // Re-render pending charts that couldn't render while hidden
+            if (typeof Dashboard !== 'undefined' && Dashboard._sentimentPending) {
+                Dashboard._sentimentPending = false;
+                setTimeout(() => Dashboard.updateMarketSentimentChart(), 100);
+            }
+        }
+    }
+}
+
+// ── Contact form logic ──────────────────────────────────────────────────────
+function initContactForm() {
+    const form = document.getElementById('contactForm');
+    if (!form) return;
+
+    // Pricing link inside contact page
+    document.querySelectorAll('.contact-link-pricing').forEach(a => {
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            const pricingLink = document.querySelector('[data-tab="pricing"]');
+            if (pricingLink) pricingLink.click();
+        });
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const status = document.getElementById('contactFormStatus');
+        const submitBtn = form.querySelector('.contact-submit');
+
+        const data = {
+            name: document.getElementById('contactName').value.trim(),
+            email: document.getElementById('contactEmail').value.trim(),
+            subject: document.getElementById('contactSubject').value,
+            message: document.getElementById('contactMessage').value.trim(),
+        };
+
+        if (!data.name || !data.email || !data.message) {
+            status.textContent = 'Please fill in all required fields.';
+            status.className = 'contact-form-status error';
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending...';
+
+        try {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/api/contact`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                status.textContent = 'Message sent! We\'ll get back to you within 24 hours.';
+                status.className = 'contact-form-status success';
+                form.reset();
+            } else {
+                // Fallback: open mailto
+                const mailto = `mailto:contact@alphabreak.vip?subject=${encodeURIComponent(data.subject + ': ' + data.name)}&body=${encodeURIComponent(data.message + '\n\nFrom: ' + data.email)}`;
+                window.location.href = mailto;
+                status.textContent = 'Opening your email client as a fallback...';
+                status.className = 'contact-form-status info';
+            }
+        } catch {
+            // API not available — fallback to mailto
+            const mailto = `mailto:contact@alphabreak.vip?subject=${encodeURIComponent(data.subject + ': ' + data.name)}&body=${encodeURIComponent(data.message + '\n\nFrom: ' + data.email)}`;
+            window.location.href = mailto;
+            status.textContent = 'Opening your email client...';
+            status.className = 'contact-form-status info';
+        }
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send Message';
+    });
+}
+
 // Export for use in HTML
 window.closeError = closeError;
 window.showSnackbar = showSnackbar;
+window.showLandingIfNeeded = showLandingIfNeeded;

@@ -39,8 +39,8 @@ class Config:
 
     # JWT Authentication
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or os.urandom(32).hex()
-    JWT_ACCESS_EXPIRES = 900  # 15 minutes
-    JWT_REFRESH_EXPIRES = 604800  # 7 days
+    JWT_ACCESS_EXPIRES = 86400  # 24 hours
+    JWT_REFRESH_EXPIRES = 2592000  # 30 days
     JWT_ALGORITHM = 'HS256'
     BCRYPT_ROUNDS = 12
 

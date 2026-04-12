@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=4">
+    <link rel="stylesheet" href="styles.css?v=5">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
@@ -29,7 +29,7 @@
             </div>
             <nav class="sidebar-nav" id="sidebarNav">
                 <ul class="sidebar-menu">
-                    <li><a href="#" class="sidebar-link sidebar-title active" data-tab="watchlist">Security Analysis</a></li>
+                    <li><a href="#" class="sidebar-link sidebar-title" data-tab="watchlist">Security Analysis</a></li>
                     <li><a href="#" class="sidebar-link sidebar-title" data-tab="aidashboard">AI Dashboard</a></li>
                     <li><a href="#" class="sidebar-link" data-tab="sentiment">Sentiment Analysis</a></li>
                     <li><a href="#" class="sidebar-link" data-tab="earnings">Quarterly Earnings</a></li>
@@ -43,6 +43,7 @@
                     <li><a href="#" class="sidebar-link" data-tab="forex">Forex Correlations</a></li>
                     <li><a href="#" class="sidebar-link" data-tab="stats">Performance Stats</a></li>
                     <li class="sidebar-divider"></li>
+                    <li><a href="#" class="sidebar-link" data-tab="contact">Contact</a></li>
                     <li><a href="#" class="sidebar-link sidebar-pricing" data-tab="pricing">Upgrade to Pro</a></li>
                 </ul>
             </nav>
@@ -132,7 +133,7 @@
                         </div>
                         <div class="market-sentiment-chart">
                             <div class="widget-chart-container widget-chart-large">
-                                <canvas id="marketSentimentChart"></canvas>
+                                <div id="marketSentimentChart" style="width:100%;height:250px;"></div>
                             </div>
                         </div>
                     </div>
@@ -145,6 +146,225 @@
 
         <!-- Main Content Area -->
         <main class="main-content">
+
+            <!-- Landing Page (shown to unauthenticated visitors) -->
+            <div class="tab-content" id="landingTab">
+                <div class="landing-page">
+                    <!-- Hero -->
+                    <section class="landing-hero">
+                        <div class="landing-hero-content">
+                            <h1 class="landing-headline">Bloomberg-grade stock analysis.<br><span class="landing-highlight">1/80th the cost.</span></h1>
+                            <p class="landing-sub">AI-powered trend detection, institutional-grade charting, options analytics, and trade journaling — all in one platform. No more juggling TradingView + Seeking Alpha + Barchart.</p>
+                            <div class="landing-cta-row">
+                                <button class="btn btn-primary btn-lg landing-cta-signup" id="landingSignUp">Get Started Free</button>
+                                <button class="btn btn-ghost btn-lg landing-cta-demo" id="landingDemo">See Features</button>
+                            </div>
+                            <p class="landing-cta-note">Free forever. No credit card required.</p>
+                        </div>
+                    </section>
+
+                    <!-- Social Proof Bar -->
+                    <section class="landing-proof">
+                        <div class="landing-proof-grid">
+                            <div class="landing-proof-item">
+                                <span class="landing-proof-number">854,773</span>
+                                <span class="landing-proof-label">Trades Backtested</span>
+                            </div>
+                            <div class="landing-proof-item">
+                                <span class="landing-proof-number">98.5%</span>
+                                <span class="landing-proof-label">Win Rate</span>
+                            </div>
+                            <div class="landing-proof-item">
+                                <span class="landing-proof-number">106</span>
+                                <span class="landing-proof-label">Data Tables</span>
+                            </div>
+                            <div class="landing-proof-item">
+                                <span class="landing-proof-number">40 Years</span>
+                                <span class="landing-proof-label">Historical Data</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- The Problem -->
+                    <section class="landing-section">
+                        <h2 class="landing-section-title">The market is bifurcated. We fix that.</h2>
+                        <p class="landing-section-sub">You either get great charting (TradingView, thinkorswim) OR great fundamentals (Seeking Alpha, Koyfin). Nobody does both. Nobody integrates options analytics with both. Nobody has AI scoring + journaling + analysis in one workflow.</p>
+                        <div class="landing-compare-grid">
+                            <div class="landing-compare-card landing-compare-old">
+                                <h3>The Old Way</h3>
+                                <ul>
+                                    <li>TradingView for charts — $15-60/mo</li>
+                                    <li>Seeking Alpha for fundamentals — $20/mo</li>
+                                    <li>Barchart for options flow — $50/mo</li>
+                                    <li>Spreadsheets for journaling</li>
+                                    <li>No AI. No integration. No workflow.</li>
+                                </ul>
+                                <div class="landing-compare-total">$85-130/mo across 4+ tools</div>
+                            </div>
+                            <div class="landing-compare-card landing-compare-new">
+                                <h3>AlphaBreak</h3>
+                                <ul>
+                                    <li>TradingView-quality charts with AI trendlines</li>
+                                    <li>22-metric fundamental analysis</li>
+                                    <li>Options chain + fair value + Greeks</li>
+                                    <li>AI trade journal with scoring</li>
+                                    <li>Regime detection + quant grades</li>
+                                </ul>
+                                <div class="landing-compare-total">Free tier or $99/mo for Pro</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Feature Grid -->
+                    <section class="landing-section">
+                        <h2 class="landing-section-title">Everything you need. Nothing you don't.</h2>
+                        <div class="landing-features-grid">
+                            <div class="landing-feature-card">
+                                <div class="landing-feature-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                                </div>
+                                <h3>AI Trend Detection</h3>
+                                <p>78% accuracy trend break detection across daily, hourly, and 10-minute timeframes. Market regime classification with confidence scoring.</p>
+                            </div>
+                            <div class="landing-feature-card">
+                                <div class="landing-feature-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                                </div>
+                                <h3>Institutional-Grade Charts</h3>
+                                <p>TradingView Lightweight Charts with auto-detected trendlines, candlestick patterns, seasonality heatmaps, and symbol comparison overlays.</p>
+                            </div>
+                            <div class="landing-feature-card">
+                                <div class="landing-feature-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+                                </div>
+                                <h3>Quant Letter Grades</h3>
+                                <p>6-factor scoring (Value, Growth, Profitability, Momentum, Revisions, AI Score) with A+ through F grades vs sector peers.</p>
+                            </div>
+                            <div class="landing-feature-card">
+                                <div class="landing-feature-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+                                </div>
+                                <h3>Options Analytics</h3>
+                                <p>Full options chain, Black-Scholes + Binomial Tree fair value, Greeks, Market Maker expected move, and IV analysis.</p>
+                            </div>
+                            <div class="landing-feature-card">
+                                <div class="landing-feature-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                                </div>
+                                <h3>AI Trade Journal</h3>
+                                <p>Log trades, get AI-scored entry/exit/timing grades, pre-trade plans, post-trade reviews, and pattern recognition.</p>
+                            </div>
+                            <div class="landing-feature-card">
+                                <div class="landing-feature-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                                </div>
+                                <h3>13F Institutional Holdings</h3>
+                                <p>Track 20 top hedge funds, 8.4M+ filing rows, sentiment analysis, and position changes across 85K+ holdings.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Bottom CTA -->
+                    <section class="landing-section landing-bottom-cta">
+                        <h2 class="landing-section-title">Ready to upgrade your analysis?</h2>
+                        <p class="landing-section-sub">Join traders who are replacing their multi-tool stack with one integrated platform.</p>
+                        <div class="landing-cta-row">
+                            <button class="btn btn-primary btn-lg landing-cta-signup">Get Started Free</button>
+                            <button class="btn btn-ghost btn-lg landing-cta-pricing">View Pricing</button>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Contact Page -->
+            <div class="tab-content" id="contactTab">
+                <div class="contact-page">
+                    <div class="contact-hero">
+                        <h2 class="contact-headline">Get in Touch</h2>
+                        <p class="contact-sub">Questions, feedback, partnership inquiries, or just want to say hi? We'd love to hear from you.</p>
+                    </div>
+
+                    <div class="contact-grid">
+                        <!-- Contact Form -->
+                        <div class="contact-form-card">
+                            <h3>Send a Message</h3>
+                            <form id="contactForm" class="contact-form">
+                                <div class="contact-form-row">
+                                    <div class="contact-form-group">
+                                        <label for="contactName">Name</label>
+                                        <input type="text" id="contactName" required placeholder="Your name">
+                                    </div>
+                                    <div class="contact-form-group">
+                                        <label for="contactEmail">Email</label>
+                                        <input type="email" id="contactEmail" required placeholder="you@example.com">
+                                    </div>
+                                </div>
+                                <div class="contact-form-group">
+                                    <label for="contactSubject">Subject</label>
+                                    <select id="contactSubject">
+                                        <option value="general">General Inquiry</option>
+                                        <option value="support">Technical Support</option>
+                                        <option value="feedback">Feature Request / Feedback</option>
+                                        <option value="partnership">Partnership / Business</option>
+                                        <option value="api">API Access</option>
+                                        <option value="bug">Bug Report</option>
+                                    </select>
+                                </div>
+                                <div class="contact-form-group">
+                                    <label for="contactMessage">Message</label>
+                                    <textarea id="contactMessage" rows="5" required placeholder="How can we help?"></textarea>
+                                </div>
+                                <div class="contact-form-status" id="contactFormStatus"></div>
+                                <button type="submit" class="btn btn-primary contact-submit">Send Message</button>
+                            </form>
+                        </div>
+
+                        <!-- Contact Info -->
+                        <div class="contact-info-card">
+                            <div class="contact-info-section">
+                                <h4>Email</h4>
+                                <a href="mailto:contact@alphabreak.vip">contact@alphabreak.vip</a>
+                            </div>
+                            <div class="contact-info-section">
+                                <h4>Response Time</h4>
+                                <p>We typically respond within 24 hours on business days.</p>
+                            </div>
+                            <div class="contact-info-section">
+                                <h4>Office Hours</h4>
+                                <p>Monday - Friday<br>9:00 AM - 5:00 PM EST</p>
+                            </div>
+                            <div class="contact-info-section">
+                                <h4>For Traders</h4>
+                                <p>Check our <a href="#" class="contact-link-pricing">Plans & Pricing</a> page for feature details, or explore the free tier — no credit card required.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ -->
+                    <div class="contact-faq">
+                        <h3>Common Questions</h3>
+                        <div class="pricing-faq-grid">
+                            <div class="pricing-faq-item">
+                                <h4>Is AlphaBreak free?</h4>
+                                <p>Yes. The free tier includes sentiment analysis, trend breaks, options pricing, 13F holdings, portfolio tracker, AI trade journal, and more. No credit card required.</p>
+                            </div>
+                            <div class="pricing-faq-item">
+                                <h4>What makes AlphaBreak different?</h4>
+                                <p>We bridge charting/TA and fundamental analysis in one platform. No competitor integrates AI trend detection + quant grades + options analytics + trade journaling together.</p>
+                            </div>
+                            <div class="pricing-faq-item">
+                                <h4>Do you offer API access?</h4>
+                                <p>API access is available on the API tier ($499/mo+). Contact us for custom enterprise pricing and SLA guarantees.</p>
+                            </div>
+                            <div class="pricing-faq-item">
+                                <h4>How do I report a bug?</h4>
+                                <p>Use the contact form above with "Bug Report" selected, or email us directly at contact@alphabreak.vip with steps to reproduce.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- AI Dashboard Tab -->
             <div class="tab-content" id="aidashboardTab">
 
@@ -300,7 +520,7 @@
                             <div class="widget-body">
                                 <div class="sector-grid" id="sectorGrid"></div>
                                 <div class="sector-chart-wrapper" id="sectorChartContainer" style="display:none;">
-                                    <canvas id="sectorChart"></canvas>
+                                    <div id="sectorChart" style="width:100%;height:250px;"></div>
                                 </div>
                             </div>
                             <div class="widget-footer">
@@ -392,7 +612,7 @@
                             <div class="widget-body">
                                 <div class="asset-summary-grid" id="assetSummaryGrid"></div>
                                 <div class="widget-chart-container widget-chart-large">
-                                    <canvas id="commodityCryptoChart"></canvas>
+                                    <div id="commodityCryptoChart" style="width:100%;height:200px;"></div>
                                 </div>
                             </div>
                             <div class="widget-footer">
@@ -747,7 +967,7 @@
             </div>
 
             <!-- Analyze Tab -->
-            <div class="tab-content active" id="watchlistTab">
+            <div class="tab-content" id="watchlistTab">
 
                 <!-- Search Bar -->
                 <div class="analyze-search-container">
@@ -856,6 +1076,10 @@
                                             <input type="checkbox" id="toggleBB" checked>
                                             <span>BB</span>
                                         </label>
+                                        <label class="chart-toggle" title="VWAP overlay">
+                                            <input type="checkbox" id="toggleVWAP">
+                                            <span>VWAP</span>
+                                        </label>
                                         <label class="chart-toggle" title="Compare with SPY, VIX">
                                             <input type="checkbox" id="toggleCompare">
                                             <span>Compare</span>
@@ -863,6 +1087,19 @@
                                         <label class="chart-toggle" title="Candlestick patterns + seasonality (Pro)">
                                             <input type="checkbox" id="togglePatterns" checked>
                                             <span>Patterns <span class="pro-tag">Pro</span></span>
+                                        </label>
+                                        <span class="chart-toggle-divider">|</span>
+                                        <label class="chart-toggle" title="RSI (14) sub-pane">
+                                            <input type="checkbox" id="toggleRSI">
+                                            <span>RSI</span>
+                                        </label>
+                                        <label class="chart-toggle" title="MACD (12,26,9) sub-pane">
+                                            <input type="checkbox" id="toggleMACD">
+                                            <span>MACD</span>
+                                        </label>
+                                        <label class="chart-toggle" title="Stochastic (14,3) sub-pane">
+                                            <input type="checkbox" id="toggleStoch">
+                                            <span>Stoch</span>
                                         </label>
                                         <button class="chart-fullscreen-btn" id="chartFullscreenBtn" title="Full Screen">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
@@ -2459,24 +2696,27 @@
         </div>
     </div>
 
-    <script src="auth.js?v=1"></script>
+    <script src="onboarding.js?v=2"></script>
+    <script src="auth.js?v=4"></script>
     <script src="notifications.js?v=1"></script>
-    <script src="account.js?v=1"></script>
-    <script src="journal.js?v=2"></script>
+    <script src="account.js?v=2"></script>
+    <script src="journal.js?v=3"></script>
     <script src="descriptions.js?v=1"></script>
-    <script src="app.js?v=6"></script>
-    <script src="dashboard.js?v=5"></script>
+    <script src="app.js?v=9"></script>
+    <script src="dashboard.js?v=7"></script>
     <script src="reports.js?v=3"></script>
     <script src="premium.js?v=1"></script>
-    <script src="charts.js?v=1"></script>
-    <script src="analyze.js?v=3"></script>
+    <script src="chart-indicators.js?v=1"></script>
+    <script src="chart-drawings.js?v=1"></script>
+    <script src="charts.js?v=3"></script>
+    <script src="analyze.js?v=4"></script>
     <script src="educational.js?v=1"></script>
     <script src="aidashboard.js?v=1"></script>
-    <script src="earnings.js?v=4"></script>
-    <script src="longterm.js?v=3"></script>
+    <script src="earnings.js?v=5"></script>
+    <script src="longterm.js?v=4"></script>
     <script src="indicators.js?v=1"></script>
     <script src="trading.js?v=1"></script>
-    <script src="portfolio.js?v=1"></script>
-    <script src="forex.js?v=1"></script>
+    <script src="portfolio.js?v=2"></script>
+    <script src="forex.js?v=2"></script>
 </body>
 </html>

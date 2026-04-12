@@ -49,3 +49,6 @@ temp_*.html
 
 # Session history
 docs/claude_3.jsonl
+
+# Database backups
+docs/other/backup/

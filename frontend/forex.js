@@ -171,53 +171,32 @@ const Forex = {
             timeUnit = 'minute';
         }
 
-        this.charts.usdChart = new Chart(ctx, {
-            type: 'line',
-            data: { datasets },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
-                plugins: {
-                    legend: { display: false }, // We use custom legend
-                    tooltip: {
-                        backgroundColor: '#1c2030',
-                        titleColor: '#e2e8f0',
-                        bodyColor: '#8b95a5',
-                        callbacks: {
-                            label: (context) => {
-                                const value = context.parsed.y;
-                                if (value != null) {
-                                    const change = (value - 100).toFixed(2);
-                                    const sign = change >= 0 ? '+' : '';
-                                    return `${context.dataset.label}: ${sign}${change}%`;
-                                }
-                                return '';
-                            },
-                        },
-                    },
-                },
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: { unit: timeUnit },
-                        grid: { color: '#2a2e3960' },
-                        ticks: { color: '#8b95a5', maxRotation: 0 },
-                    },
-                    y: {
-                        position: 'right',
-                        grid: { color: '#2a2e3960' },
-                        ticks: {
-                            color: '#8b95a5',
-                            callback: (value) => `${(value - 100).toFixed(1)}%`,
-                        },
-                    },
-                },
-            },
-        });
+        // Use Lightweight Charts for USD strength
+        if (typeof AlphaCharts !== 'undefined') {
+            // Build combined data keyed by timestamp
+            const allKeys = ['DXY', ...data.pairs];
+            const combined = data.chart_data.map(d => {
+                const row = { timestamp: d.timestamp, DXY: null };
+                // Compute DXY as average of pairs
+                let sum = 0, count = 0;
+                data.pairs.forEach(pair => {
+                    const key = pair.replace('/', '_');
+                    const val = d[key];
+                    if (val != null) {
+                        const isUsdBase = pair.startsWith('USD/');
+                        sum += isUsdBase ? val : (200 - val);
+                        count++;
+                    }
+                    row[pair] = val;
+                });
+                row.DXY = count > 0 ? sum / count : null;
+                return row;
+            });
+            const colors = [this.DXY_BORDER || '#FFD54F', ...this.CHART_COLORS];
+            AlphaCharts.quickLine('usdStrengthChart', combined, {
+                keys: allKeys, labels: allKeys, colors, height: 300, area: false,
+            });
+        }
     },
 
     updateUsdStrengthIndicator(data) {
@@ -697,55 +676,12 @@ const Forex = {
         console.log('Creating chart with datasets:', datasets.length, 'datasets');
         console.log('First dataset has', datasets[0].data.length, 'points');
 
-        this.charts.pairInlineChart = new Chart(ctx, {
-            type: 'line',
-            data: { datasets },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
-                plugins: {
-                    legend: {
-                        display: true,
-                        labels: { color: '#8b95a5', font: { size: 11 } }
-                    },
-                    tooltip: {
-                        backgroundColor: '#1c2030',
-                        titleColor: '#e2e8f0',
-                        bodyColor: '#8b95a5',
-                        borderColor: '#2a2e39',
-                        borderWidth: 1,
-                    },
-                },
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: { unit: 'month' },
-                        grid: { color: '#2a2e3960' },
-                        ticks: { color: '#8b95a5', font: { size: 10 } },
-                    },
-                    y: {
-                        type: 'linear',
-                        position: 'left',
-                        title: { display: true, text: pair, color: '#8b95a5' },
-                        grid: { color: '#2a2e3960' },
-                        ticks: { color: '#8b95a5', font: { size: 10 } },
-                    },
-                    y1: {
-                        type: 'linear',
-                        position: 'right',
-                        title: { display: true, text: 'DXY', color: '#8b95a5' },
-                        grid: { display: false },
-                        ticks: { color: '#8b95a5', font: { size: 10 } },
-                    },
-                },
-            },
-        });
-
-        console.log('Chart created successfully!', this.charts.pairInlineChart);
+        if (typeof AlphaCharts !== 'undefined') {
+            const lineData = pairData.map(d => ({ date: d.date, close: d.close }));
+            AlphaCharts.quickLine('pairInlineChart', lineData, {
+                keys: ['close'], labels: [pair], colors: ['#4fc3f7'], height: 250,
+            });
+        }
     },
 
     // ──────────────────────────────────────────────────────────
@@ -976,45 +912,12 @@ const Forex = {
             y: d.close,
         }));
 
-        this.charts.forexChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                datasets: [{
-                    label: pair,
-                    data: chartData,
-                    borderColor: '#4fc3f7',
-                    backgroundColor: 'rgba(79, 195, 247, 0.1)',
-                    fill: true,
-                    tension: 0.1,
-                    pointRadius: 0,
-                }],
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: true, labels: { color: '#8b95a5' } },
-                    tooltip: {
-                        backgroundColor: '#1c2030',
-                        titleColor: '#e2e8f0',
-                        bodyColor: '#8b95a5',
-                    },
-                },
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: { unit: 'month' },
-                        grid: { color: '#2a2e3960' },
-                        ticks: { color: '#8b95a5' },
-                    },
-                    y: {
-                        position: 'right',
-                        grid: { color: '#2a2e3960' },
-                        ticks: { color: '#8b95a5' },
-                    },
-                },
-            },
-        });
+        if (typeof AlphaCharts !== 'undefined') {
+            const lineData = data.reverse().map(d => ({ date: d.date, close: d.close }));
+            AlphaCharts.quickLine('forexPairChart', lineData, {
+                keys: ['close'], labels: [pair], colors: ['#4fc3f7'], height: 300,
+            });
+        }
 
         // Update chart title
         const titleEl = document.getElementById('forexChartTitle');

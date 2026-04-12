@@ -315,11 +315,6 @@ const Earnings = {
         if (typeof AlphaCharts !== 'undefined') {
             AlphaCharts.destroy('earningsLwChart');
         }
-        // Legacy cleanup
-        if (this.charts.earningsCandlestickChart) {
-            this.charts.earningsCandlestickChart.destroy();
-            delete this.charts.earningsCandlestickChart;
-        }
     },
 
     // ──────────────────────────────────────────────────────────
@@ -424,168 +419,16 @@ const Earnings = {
         AlphaCharts.setData('earningsLwChart', chartData);
     },
 
-    // Legacy renderDetailChart kept for fallback
+    // Legacy renderDetailChart — now uses Lightweight Charts via AlphaCharts
     renderDetailChart(chartInfo) {
-        const canvasId = 'earningsCandlestickChart';
-        const ctx = document.getElementById(canvasId);
-        if (!ctx || !chartInfo || !chartInfo.data || chartInfo.data.length === 0) return;
-
-        if (this.charts[canvasId]) {
-            this.charts[canvasId].destroy();
-        }
-
-        const chartData = chartInfo.data;
-        const peaks = chartInfo.peaks || [];
-        const troughs = chartInfo.troughs || [];
-
-        // Convert dates to luxon timestamps for the time axis
-        const timestamps = chartData.map(d => luxon.DateTime.fromISO(d.date).toMillis());
-
-        // Candlestick dataset — {x, o, h, l, c} format
-        const candlestickData = chartData.map((d, i) => ({
-            x: timestamps[i],
-            o: d.open,
-            h: d.high,
-            l: d.low,
-            c: d.close,
-        }));
-
-        // Resistance trend line (peaks) — {x, y} points only at peak dates
-        const peakDateSet = new Set(peaks.map(p => p.date));
-        const resistanceData = chartData
-            .map((d, i) => peakDateSet.has(d.date) ? { x: timestamps[i], y: peaks.find(p => p.date === d.date).price } : null)
-            .filter(p => p !== null);
-
-        // Support trend line (troughs) — {x, y} points only at trough dates
-        const troughDateSet = new Set(troughs.map(t => t.date));
-        const supportData = chartData
-            .map((d, i) => troughDateSet.has(d.date) ? { x: timestamps[i], y: troughs.find(t => t.date === d.date).price } : null)
-            .filter(p => p !== null);
-
-        const datasets = [
-            {
-                label: this.expandedTicker || 'Price',
-                data: candlestickData,
-            },
-        ];
-
-        if (resistanceData.length >= 2) {
-            datasets.push({
-                label: 'Resistance',
-                data: resistanceData,
-                type: 'line',
-                borderColor: '#ef5350',
-                borderWidth: 1.5,
-                borderDash: [6, 3],
-                pointRadius: 3,
-                pointBackgroundColor: '#ef5350',
-                fill: false,
-                tension: 0,
-                order: 2,
-            });
-        }
-
-        if (supportData.length >= 2) {
-            datasets.push({
-                label: 'Support',
-                data: supportData,
-                type: 'line',
-                borderColor: '#26a69a',
-                borderWidth: 1.5,
-                borderDash: [6, 3],
-                pointRadius: 3,
-                pointBackgroundColor: '#26a69a',
-                fill: false,
-                tension: 0,
-                order: 3,
-            });
-        }
-
-        this.charts[canvasId] = new Chart(ctx, {
-            type: 'candlestick',
-            data: {
-                datasets: datasets,
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: { boxWidth: 12, font: { size: 10 }, color: '#8b95a5' },
-                    },
-                    tooltip: {
-                        backgroundColor: '#1c2030',
-                        titleColor: '#e2e8f0',
-                        bodyColor: '#8b95a5',
-                        borderColor: '#2a2e39',
-                        borderWidth: 1,
-                    },
-                },
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: { unit: 'day' },
-                        grid: { display: false },
-                        ticks: { maxTicksLimit: 8, font: { size: 10 }, color: '#8b95a5' },
-                    },
-                    y: {
-                        grid: { color: '#2a2e3960' },
-                        ticks: {
-                            callback: function(v) { return '$' + v.toLocaleString(); },
-                            font: { size: 10 },
-                            color: '#8b95a5',
-                        },
-                    },
-                },
-                interaction: { intersect: false, mode: 'index' },
-            },
-        });
+        if (!chartInfo?.data?.length || typeof AlphaCharts === 'undefined') return;
+        AlphaCharts.quickCandlestick('earningsCandlestickChart', chartInfo.data, { height: 250, ticker: this.expandedTicker });
     },
 
-    // ──────────────────────────────────────────────────────────
-    // VOLUME CHART FOR EARNINGS DETAIL
-    // ──────────────────────────────────────────────────────────
-
+    // Volume chart — now rendered as part of the LW chart (volume histogram is built in)
     renderDetailVolume(chartInfo) {
-        const ctx = document.getElementById('earningsVolumeChart');
-        if (!ctx || !chartInfo || !chartInfo.data || chartInfo.data.length === 0) return;
-
-        if (this.charts.earningsVolumeChart) {
-            this.charts.earningsVolumeChart.destroy();
-        }
-
-        const chartData = chartInfo.data;
-        const timestamps = chartData.map(d => luxon.DateTime.fromISO(d.date).toMillis());
-        const volumes = chartData.map(d => d.volume || 0);
-        const colors = chartData.map((d, i) => {
-            if (i === 0) return 'rgba(92, 101, 120, 0.4)';
-            return d.close >= chartData[i - 1].close
-                ? 'rgba(38, 166, 154, 0.4)'
-                : 'rgba(239, 83, 80, 0.4)';
-        });
-
-        this.charts.earningsVolumeChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: timestamps,
-                datasets: [{
-                    data: volumes,
-                    backgroundColor: colors,
-                    borderWidth: 0,
-                }],
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                scales: {
-                    x: { display: false },
-                    y: { display: false, beginAtZero: true },
-                },
-            },
-        });
+        // Volume is now integrated into the Lightweight Chart candlestick view
+        // No separate Chart.js volume bar chart needed
     },
 
     // ──────────────────────────────────────────────────────────

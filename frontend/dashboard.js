@@ -80,6 +80,13 @@ const Dashboard = {
         const data = this.data.marketSentiment;
         if (!data) return;
 
+        // Don't render if container is hidden (landing page) — will re-render when visible
+        const container = document.getElementById('marketSentimentChart');
+        if (container && container.offsetParent === null) {
+            this._sentimentPending = true;
+            return;
+        }
+
         // Get the appropriate chart data based on timeframe
         let chartData = [];
         let timeUnit = 'day';
@@ -126,11 +133,9 @@ const Dashboard = {
                 timeFormat
             );
         } else {
-            // Show message if no data for this timeframe
-            const ctx = document.getElementById('marketSentimentChart');
-            if (ctx && this.charts['marketSentimentChart']) {
-                this.charts['marketSentimentChart'].destroy();
-                delete this.charts['marketSentimentChart'];
+            // No data for this timeframe — clear the chart
+            if (typeof AlphaCharts !== 'undefined') {
+                AlphaCharts.destroy('marketSentimentChart');
             }
         }
     },
@@ -284,43 +289,19 @@ const Dashboard = {
     },
 
     renderSectorMiniChart(canvasId, chartData, sentimentClass) {
-        const ctx = document.getElementById(canvasId);
-        if (!ctx) return;
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
 
-        // Get last 10 data points for mini chart
         const recentData = chartData.slice(-10);
         const closes = recentData.map(d => d.close);
 
-        // Determine color based on sentiment
-        let lineColor = '#888';
-        if (sentimentClass === 'bullish') lineColor = '#26a69a';
-        else if (sentimentClass === 'bearish') lineColor = '#ef5350';
-        else if (sentimentClass === 'neutral') lineColor = '#f0b90b';
+        let color = '#888';
+        if (sentimentClass === 'bullish') color = '#26a69a';
+        else if (sentimentClass === 'bearish') color = '#ef5350';
+        else if (sentimentClass === 'neutral') color = '#f0b90b';
 
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: recentData.map((_, i) => i),
-                datasets: [{
-                    data: closes,
-                    borderColor: lineColor,
-                    borderWidth: 1.5,
-                    pointRadius: 0,
-                    tension: 0.3,
-                    fill: false,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                scales: {
-                    x: { display: false },
-                    y: { display: false }
-                },
-                animation: false,
-            }
-        });
+        // Raw canvas sparkline — too small for Lightweight Charts
+        this.renderMiniSparkline(canvasId, closes, sentimentClass === 'bearish' ? 'negative' : 'positive');
     },
 
     showSectorChart(sector) {
@@ -372,157 +353,23 @@ const Dashboard = {
     },
 
     renderSectorCandlestickChart(canvasId, chartData, sectorName, timeUnit = 'week', timeFormat = 'MMM d') {
-        const ctx = document.getElementById(canvasId);
-        if (!ctx) return;
-
-        if (this.charts[canvasId]) {
-            this.charts[canvasId].destroy();
-        }
-
-        // Check if we have OHLC data
+        if (typeof AlphaCharts === 'undefined') return;
         const hasOHLC = chartData[0] && chartData[0].open !== undefined;
 
         if (hasOHLC) {
-            // Render candlestick chart matching market sentiment style
-            const timestamps = chartData.map(d => luxon.DateTime.fromISO(d.date).toMillis());
-
-            const candlestickData = chartData.map((d, i) => ({
-                x: timestamps[i],
-                o: d.open,
-                h: d.high,
-                l: d.low,
-                c: d.close,
-            }));
-
-            // SMA 20 overlay (matching market sentiment)
-            const smaData = [];
-            for (let i = 0; i < chartData.length; i++) {
+            // Compute SMA 20 inline
+            const enriched = chartData.map((d, i) => {
+                let sma = null;
                 if (i >= 19) {
                     let sum = 0;
-                    for (let j = i - 19; j <= i; j++) {
-                        sum += chartData[j].close;
-                    }
-                    smaData.push({ x: timestamps[i], y: sum / 20 });
+                    for (let j = i - 19; j <= i; j++) sum += chartData[j].close;
+                    sma = sum / 20;
                 }
-            }
-
-            // Calculate support and resistance levels
-            const closes = chartData.map(d => d.close);
-            const highs = chartData.map(d => d.high);
-            const lows = chartData.map(d => d.low);
-
-            // Find recent peaks (local maxima)
-            const peaks = [];
-            for (let i = 2; i < highs.length - 2; i++) {
-                if (highs[i] > highs[i-1] && highs[i] > highs[i-2] &&
-                    highs[i] > highs[i+1] && highs[i] > highs[i+2]) {
-                    peaks.push({ x: timestamps[i], y: highs[i] });
-                }
-            }
-
-            // Find recent troughs (local minima)
-            const troughs = [];
-            for (let i = 2; i < lows.length - 2; i++) {
-                if (lows[i] < lows[i-1] && lows[i] < lows[i-2] &&
-                    lows[i] < lows[i+1] && lows[i] < lows[i+2]) {
-                    troughs.push({ x: timestamps[i], y: lows[i] });
-                }
-            }
-
-            const datasets = [
-                {
-                    label: sectorName,
-                    data: candlestickData,
-                },
-                {
-                    label: 'SMA 20',
-                    data: smaData,
-                    type: 'line',
-                    borderColor: '#f59e0b',
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    tension: 0.3,
-                    fill: false,
-                    order: 1,
-                },
-            ];
-
-            // Add resistance line if we have >= 2 peaks
-            if (peaks.length >= 2) {
-                datasets.push({
-                    label: 'Resistance',
-                    data: peaks,
-                    type: 'line',
-                    borderColor: '#ef5350',
-                    borderWidth: 1.5,
-                    borderDash: [6, 3],
-                    pointRadius: 3,
-                    pointBackgroundColor: '#ef5350',
-                    fill: false,
-                    tension: 0,
-                    order: 2,
-                });
-            }
-
-            // Add support line if we have >= 2 troughs
-            if (troughs.length >= 2) {
-                datasets.push({
-                    label: 'Support',
-                    data: troughs,
-                    type: 'line',
-                    borderColor: '#26a69a',
-                    borderWidth: 1.5,
-                    borderDash: [6, 3],
-                    pointRadius: 3,
-                    pointBackgroundColor: '#26a69a',
-                    fill: false,
-                    tension: 0,
-                    order: 3,
-                });
-            }
-
-            this.charts[canvasId] = new Chart(ctx, {
-                type: 'candlestick',
-                data: { datasets: datasets },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top',
-                            labels: { boxWidth: 12, font: { size: 10 }, color: '#8b95a5' },
-                        },
-                        tooltip: {
-                            backgroundColor: '#1c2030',
-                            titleColor: '#e2e8f0',
-                            bodyColor: '#8b95a5',
-                            borderColor: '#2a2e39',
-                            borderWidth: 1,
-                        },
-                    },
-                    scales: {
-                        x: {
-                            type: 'time',
-                            time: { unit: timeUnit, displayFormats: { [timeUnit]: timeFormat } },
-                            grid: { display: false },
-                            ticks: { maxTicksLimit: 8, font: { size: 10 }, color: '#8b95a5' },
-                        },
-                        y: {
-                            grid: { color: '#2a2e3960' },
-                            ticks: {
-                                callback: function(v) { return '$' + v.toLocaleString(); },
-                                font: { size: 10 },
-                                color: '#8b95a5',
-                            },
-                        },
-                    },
-                    interaction: { intersect: false, mode: 'index' },
-                },
+                return { ...d, sma_20: sma };
             });
+            AlphaCharts.quickCandlestick(canvasId, enriched, { height: 250, showVolume: false });
         } else {
-            // Fallback to line chart if no OHLC data
-            this.renderLineChart(canvasId, chartData, ['close'], [sectorName], ['#2962ff']);
+            AlphaCharts.quickLine(canvasId, chartData, { keys: ['close'], labels: [sectorName], colors: ['#2962ff'], height: 250 });
         }
     },
 
@@ -801,69 +648,10 @@ const Dashboard = {
     },
 
     renderAssetChart(asset) {
-        const ctx = document.getElementById('commodityCryptoChart');
-        if (!ctx) return;
-
-        // Destroy existing chart
-        if (this.charts.commodityCryptoChart) {
-            this.charts.commodityCryptoChart.destroy();
-        }
-
+        if (typeof AlphaCharts === 'undefined') return;
         const chartData = asset.hourly_chart_data;
         if (!chartData || chartData.length === 0) return;
-
-        // Convert timestamps to luxon millis for the time axis
-        const timestamps = chartData.map(d => luxon.DateTime.fromISO(d.timestamp).toMillis());
-
-        // Candlestick dataset — {x, o, h, l, c} format
-        const candlestickData = chartData.map((d, i) => ({
-            x: timestamps[i],
-            o: d.open,
-            h: d.high,
-            l: d.low,
-            c: d.close,
-        }));
-
-        this.charts.commodityCryptoChart = new Chart(ctx, {
-            type: 'candlestick',
-            data: {
-                datasets: [{
-                    label: asset.name,
-                    data: candlestickData,
-                }],
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: '#1c2030',
-                        titleColor: '#e2e8f0',
-                        bodyColor: '#8b95a5',
-                        borderColor: '#2a2e39',
-                        borderWidth: 1,
-                    },
-                },
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: { unit: 'hour', displayFormats: { hour: 'MMM d, ha' } },
-                        grid: { display: false },
-                        ticks: { maxTicksLimit: 6, font: { size: 10 }, color: '#8b95a5' },
-                    },
-                    y: {
-                        grid: { color: '#2a2e3960' },
-                        ticks: {
-                            callback: function(v) { return '$' + v.toLocaleString(); },
-                            font: { size: 10 },
-                            color: '#8b95a5',
-                        },
-                    },
-                },
-                interaction: { intersect: false, mode: 'index' },
-            },
-        });
+        AlphaCharts.quickCandlestick('commodityCryptoChart', chartData, { height: 200, showVolume: false, ticker: asset.symbol });
     },
 
     // ──────────────────────────────────────────────────────────
@@ -871,136 +659,8 @@ const Dashboard = {
     // ──────────────────────────────────────────────────────────
 
     renderCandlestickChart(canvasId, chartData, peaks, troughs, timeUnit = 'week', timeFormat = 'MMM d') {
-        const ctx = document.getElementById(canvasId);
-        if (!ctx) return;
-
-        if (this.charts[canvasId]) {
-            this.charts[canvasId].destroy();
-        }
-
-        // Convert dates/timestamps to luxon timestamps for the time axis
-        const timestamps = chartData.map(d => {
-            const dateStr = d.date || d.timestamp;
-            return luxon.DateTime.fromISO(dateStr).toMillis();
-        });
-
-        // Candlestick dataset — {x, o, h, l, c} format
-        const candlestickData = chartData.map((d, i) => ({
-            x: timestamps[i],
-            o: d.open,
-            h: d.high,
-            l: d.low,
-            c: d.close,
-        }));
-
-        // SMA 20 overlay — {x, y} point format for time axis compatibility
-        const smaData = chartData.map((d, i) => d.sma_20 !== null ? {x: timestamps[i], y: d.sma_20} : null).filter(p => p !== null);
-
-        // Resistance trend line (peaks) — {x, y} points only at peak dates
-        const peakDateSet = new Set(peaks.map(p => p.date));
-        const resistanceData = chartData
-            .map((d, i) => peakDateSet.has(d.date) ? {x: timestamps[i], y: peaks.find(p => p.date === d.date).price} : null)
-            .filter(p => p !== null);
-
-        // Support trend line (troughs) — {x, y} points only at trough dates
-        const troughDateSet = new Set(troughs.map(t => t.date));
-        const supportData = chartData
-            .map((d, i) => troughDateSet.has(d.date) ? {x: timestamps[i], y: troughs.find(t => t.date === d.date).price} : null)
-            .filter(p => p !== null);
-
-        const datasets = [
-            {
-                label: 'S&P 500',
-                data: candlestickData,
-            },
-            {
-                label: 'SMA 20',
-                data: smaData,
-                type: 'line',
-                borderColor: '#f59e0b',
-                borderWidth: 2,
-                pointRadius: 0,
-                tension: 0.3,
-                fill: false,
-                order: 1,
-            },
-        ];
-
-        // Add resistance line if we have >= 2 peaks
-        if (resistanceData.length >= 2) {
-            datasets.push({
-                label: 'Resistance',
-                data: resistanceData,
-                type: 'line',
-                borderColor: '#ef5350',
-                borderWidth: 1.5,
-                borderDash: [6, 3],
-                pointRadius: 3,
-                pointBackgroundColor: '#ef5350',
-                fill: false,
-                tension: 0,
-                order: 2,
-            });
-        }
-
-        // Add support line if we have >= 2 troughs
-        if (supportData.length >= 2) {
-            datasets.push({
-                label: 'Support',
-                data: supportData,
-                type: 'line',
-                borderColor: '#26a69a',
-                borderWidth: 1.5,
-                borderDash: [6, 3],
-                pointRadius: 3,
-                pointBackgroundColor: '#26a69a',
-                fill: false,
-                tension: 0,
-                order: 3,
-            });
-        }
-
-        this.charts[canvasId] = new Chart(ctx, {
-            type: 'candlestick',
-            data: {
-                datasets: datasets,
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: { boxWidth: 12, font: { size: 10 }, color: '#8b95a5' },
-                    },
-                    tooltip: {
-                        backgroundColor: '#1c2030',
-                        titleColor: '#e2e8f0',
-                        bodyColor: '#8b95a5',
-                        borderColor: '#2a2e39',
-                        borderWidth: 1,
-                    },
-                },
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: { unit: timeUnit, displayFormats: { [timeUnit]: timeFormat } },
-                        grid: { display: false },
-                        ticks: { maxTicksLimit: 8, font: { size: 10 }, color: '#8b95a5' },
-                    },
-                    y: {
-                        grid: { color: '#2a2e3960' },
-                        ticks: {
-                            callback: function(v) { return '$' + v.toLocaleString(); },
-                            font: { size: 10 },
-                            color: '#8b95a5',
-                        },
-                    },
-                },
-                interaction: { intersect: false, mode: 'index' },
-            },
-        });
+        if (typeof AlphaCharts === 'undefined') return;
+        AlphaCharts.quickCandlestick(canvasId, chartData, { height: 250, showVolume: false });
     },
 
     // ──────────────────────────────────────────────────────────
@@ -1008,65 +668,8 @@ const Dashboard = {
     // ──────────────────────────────────────────────────────────
 
     renderLineChart(canvasId, chartData, valueKeys, labels, colors) {
-        const ctx = document.getElementById(canvasId);
-        if (!ctx) return;
-
-        if (this.charts[canvasId]) {
-            this.charts[canvasId].destroy();
-        }
-
-        const datasets = valueKeys.map((key, i) => {
-            const ds = {
-                label: labels[i],
-                data: chartData.map(d => d[key]),
-                borderColor: colors[i],
-                borderWidth: 2,
-                pointRadius: 0,
-                tension: 0.3,
-                fill: i === 0,
-            };
-            if (i === 0) {
-                ds.backgroundColor = colors[0] + '15';
-            }
-            return ds;
-        });
-
-        this.charts[canvasId] = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: chartData.map(d => d.date),
-                datasets: datasets,
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: valueKeys.length > 1,
-                        position: 'top',
-                        labels: { boxWidth: 12, font: { size: 10 }, color: '#8b95a5' },
-                    },
-                    tooltip: {
-                        backgroundColor: '#1c2030',
-                        titleColor: '#e2e8f0',
-                        bodyColor: '#8b95a5',
-                        borderColor: '#2a2e39',
-                        borderWidth: 1,
-                    },
-                },
-                scales: {
-                    x: {
-                        grid: { display: false },
-                        ticks: { maxTicksLimit: 5, font: { size: 10 }, color: '#8b95a5' },
-                    },
-                    y: {
-                        grid: { color: '#2a2e3960' },
-                        ticks: { font: { size: 10 }, color: '#8b95a5' },
-                    },
-                },
-                interaction: { intersect: false, mode: 'index' },
-            },
-        });
+        if (typeof AlphaCharts === 'undefined') return;
+        AlphaCharts.quickLine(canvasId, chartData, { keys: valueKeys, labels, colors, height: 200 });
     },
 
     // ──────────────────────────────────────────────────────────

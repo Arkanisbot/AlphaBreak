@@ -108,6 +108,7 @@ const Watchlist = {
             const response = await apiRequest('/api/user/watchlist', 'POST', {
                 tickers: [ticker]
             });
+            if (response.ok && typeof Onboarding !== 'undefined') Onboarding.trackWatchlist();
             return response.ok;
         } catch (err) {
             console.warn('Failed to add ticker to server:', err);
@@ -499,99 +500,13 @@ const Watchlist = {
     },
 
     renderWatchlistChart(ticker, chartInfo, interval) {
-        const canvas = document.getElementById(`watchlistChart_${ticker}`);
-        if (!canvas) return;
-
-        // Destroy existing chart for this ticker
-        if (this.charts[ticker]) {
-            this.charts[ticker].destroy();
-            delete this.charts[ticker];
-        }
+        const containerId = `watchlistChart_${ticker}`;
+        if (typeof AlphaCharts === 'undefined') return;
 
         const rawData = chartInfo.data || [];
         if (rawData.length === 0) return;
 
-        const { DateTime } = luxon;
-
-        const candlestickData = rawData.map(d => ({
-            x: DateTime.fromISO(d.timestamp).toMillis(),
-            o: d.open,
-            h: d.high,
-            l: d.low,
-            c: d.close,
-        }));
-
-        const datasets = [{
-            label: `${ticker}`,
-            data: candlestickData,
-        }];
-
-        // Add resistance line from peaks
-        if (chartInfo.peaks && chartInfo.peaks.length > 0) {
-            const lastPeak = chartInfo.peaks[chartInfo.peaks.length - 1];
-            datasets.push({
-                label: `R $${lastPeak.price.toFixed(2)}`,
-                data: candlestickData.map(d => ({ x: d.x, y: lastPeak.price })),
-                type: 'line',
-                borderColor: '#ef5350',
-                borderWidth: 1,
-                borderDash: [4, 4],
-                pointRadius: 0,
-                fill: false,
-            });
-        }
-
-        // Add support line from troughs
-        if (chartInfo.troughs && chartInfo.troughs.length > 0) {
-            const lastTrough = chartInfo.troughs[chartInfo.troughs.length - 1];
-            datasets.push({
-                label: `S $${lastTrough.price.toFixed(2)}`,
-                data: candlestickData.map(d => ({ x: d.x, y: lastTrough.price })),
-                type: 'line',
-                borderColor: '#26a69a',
-                borderWidth: 1,
-                borderDash: [4, 4],
-                pointRadius: 0,
-                fill: false,
-            });
-        }
-
-        const timeUnit = interval === '1d' ? 'day' : interval === '1h' ? 'hour' : 'minute';
-
-        this.charts[ticker] = new Chart(canvas.getContext('2d'), {
-            type: 'candlestick',
-            data: { datasets },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        labels: { color: '#8b95a5', font: { size: 9 } },
-                    },
-                    tooltip: {
-                        backgroundColor: '#1c2030',
-                        titleColor: '#e2e8f0',
-                        bodyColor: '#8b95a5',
-                        borderColor: '#2a2e39',
-                        borderWidth: 1,
-                    },
-                },
-                scales: {
-                    x: {
-                        type: 'timeseries',
-                        time: { unit: timeUnit },
-                        grid: { color: '#2a2e3960' },
-                        ticks: { color: '#8b95a5', maxTicksLimit: 6, font: { size: 9 } },
-                    },
-                    y: {
-                        position: 'right',
-                        grid: { color: '#2a2e3960' },
-                        ticks: { color: '#8b95a5', font: { size: 9 } },
-                    },
-                },
-            },
-        });
+        AlphaCharts.quickCandlestick(containerId, rawData, { height: 200, showVolume: false, ticker });
     },
 
     // ── Auto-refresh ────────────────────────────────────────────────────

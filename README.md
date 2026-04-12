@@ -46,9 +46,12 @@ Domain:    alphabreak.vip (SSL via Let's Encrypt)
 ```
 frontend/               # Static HTML/JS/CSS served by nginx
   index.html            # Single-page app (all tabs)
-  app.js                # Core: sidebar, tabs, auth init, widget collapse
-  analyze.js            # Security Analysis page (landing page)
-  charts.js             # AlphaCharts module (Lightweight Charts wrapper)
+  app.js                # Core: sidebar, tabs, auth init, widget collapse, landing/contact logic
+  onboarding.js         # 3-stage onboarding: tooltip tour, checklist banner, empty states
+  analyze.js            # Security Analysis page (default for authenticated users)
+  charts.js             # AlphaCharts module (Lightweight Charts wrapper + AI popovers)
+  chart-indicators.js   # Indicator sub-panes (RSI, MACD, Stochastic, VWAP)
+  chart-drawings.js     # Drawing tools (trendline, hline, Fibonacci, rectangle)
   educational.js        # AI briefs, tooltips, guide panels for Reports/Earnings/Options
   dashboard.js          # Sentiment, sectors, VIX, commodities
   reports.js            # Trend Break Reports
@@ -125,15 +128,15 @@ GET  /api/portfolio/summary         # Portfolio tracker
 
 ### Deployment
 ```bash
-# Frontend (zero downtime):
-scp -i docs/other/security/trading-db-key.pem -r frontend/* ubuntu@3.140.78.15:~/frontend/
+PEM="docs/other/security/trading-db-key.pem"
 
-# Backend (rebuild Docker + rollout):
-ssh -i docs/other/security/trading-db-key.pem ubuntu@3.140.78.15
-cd ~/Securities_prediction_model
-sudo docker build -f flask_app/Dockerfile -t trading-api:latest .
-sudo docker save trading-api:latest | sudo k0s ctr images import -
-sudo k0s kubectl rollout restart deployment/trading-api -n trading-system
+# Frontend (zero downtime — nginx serves from repo clone):
+git push
+ssh -i "$PEM" ubuntu@3.140.78.15 "cd ~/Securities_prediction_model && git pull"
+
+# Backend (rebuild Docker + restart pods):
+git push
+ssh -i "$PEM" ubuntu@3.140.78.15 "cd ~/Securities_prediction_model && git pull && sudo docker build -f flask_app/Dockerfile -t trading-api:latest . && sudo docker save trading-api:latest | sudo k0s ctr images import - && sudo docker system prune -af && sudo k0s kubectl delete pods -n trading-system -l app=trading-api --force"
 ```
 
 ## What's Built (Free Tier)
@@ -142,7 +145,9 @@ sudo k0s kubectl rollout restart deployment/trading-api -n trading-system
 |---------|--------|
 | Security Analysis (single-ticker deep dive) | Complete |
 | TradingView Lightweight Charts (candlestick + volume) | Complete |
-| Auto-detected trendlines with confidence scoring | Complete (Pro-gated) |
+| Auto-detected trendlines with clickable AI popovers | Complete (Pro-gated) |
+| Drawing tools (trendline, Fibonacci, hline, rectangle) | Complete |
+| Indicator sub-panes (RSI, MACD, Stochastic, VWAP) | Complete |
 | Market regime classification (BULL/BEAR/RANGE/HIGH_VOL) | Complete |
 | Historical analog matching | Complete |
 | Candlestick pattern recognition (8 patterns) | Complete (Pro-gated) |
@@ -165,6 +170,9 @@ sudo k0s kubectl rollout restart deployment/trading-api -n trading-system
 | Earnings calendar + CBOE activity | Complete |
 | All widgets collapsible | Complete |
 | Pricing page (4-tier funnel) | Complete |
+| Landing page (marketing, social proof, CTAs) | Complete |
+| Contact page (form, FAQ, info) | Complete |
+| Onboarding flow (tooltip tour + checklist + empty states) | Complete |
 | Premium gating with 1 free trial per feature | Complete |
 
 ## What's Next (Pro Tier — Not Yet Built)
@@ -174,9 +182,9 @@ See [docs/ROADMAP.md](docs/ROADMAP.md) for the full list. Highlights:
 - Insider trading signals (SEC Form 4)
 - News NLP sentiment (FinBERT)
 - Unusual options activity
-- AI-assisted drawing tools (Fibonacci, channels)
 - Multi-chart layout with synced crosshairs
-- 100+ indicators with regime-aware weighting
+- More indicators (Ichimoku, OBV, ATR, Parabolic SAR)
+- Regime-aware indicator weighting
 - Natural-language scripting for alerts and screeners
 - Real-time data via Polygon.io
 - Stripe billing integration

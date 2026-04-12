@@ -1,7 +1,7 @@
 # Product Roadmap
 
-**Version**: 4.3
-**Last Updated**: April 8, 2026
+**Version**: 4.4
+**Last Updated**: April 10, 2026
 **Domain**: alphabreak.vip
 
 ---
@@ -175,12 +175,15 @@ Pro is the revenue engine. These features justify the price by replacing 2-3 sep
 - [x] **Market Maker Move** — Implied move from ATM straddle pricing with ±% and dollar range
 
 ### Charting — Phase 2
-- [ ] **AI-Assisted Drawing Tools** — Fibonacci (auto-placed at detected swings), trendlines (pre-drawn suggestions user can adjust), channels, pitchforks. AI suggests "draw here" based on pivot detection.
+- [x] **Drawing Tools** — Trendline, horizontal line, Fibonacci retracement, rectangle with keyboard shortcuts (T/H/F/R), undo, clear, per-ticker localStorage persistence
+- [x] **Indicator Sub-Panes** — RSI (14), MACD (12,26,9), Stochastic (14,3) as synced sub-charts below main chart, toggle on/off
+- [x] **VWAP Overlay** — Volume-weighted average price as main chart overlay
+- [x] **AI Trendline Popover** — Click any auto-detected trendline for confidence breakdown, analog analysis, price projections, suggested action
 - [ ] **Multi-Chart Layout** — 2-4 charts side-by-side with synced crosshairs. Compare same ticker across timeframes or different tickers.
 - [ ] **Multi-Timeframe Analysis** — Overlay indicators from daily + hourly + 15min on single view
 
 ### Charting — Phase 3
-- [ ] **Indicator Library (100+)** — RSI, MACD, Stochastic, Bollinger, Ichimoku, VWAP, OBV, Williams %R, Keltner, ATR, Parabolic SAR, etc.
+- [ ] **Indicator Library (100+)** — Ichimoku, OBV, Williams %R, Keltner, ATR, Parabolic SAR, etc.
 - [ ] **Regime-Aware Weighting** — In BULL regime, weight momentum indicators. In RANGE, weight mean-reversion. Only highlight top 5 most predictive for current regime.
 - [ ] **Indicator Search + Add** — Search bar to find and overlay any indicator with custom parameters
 
@@ -315,9 +318,9 @@ Not committed to a tier or timeline. Will be prioritized based on user demand an
 
 ### Pre-Launch (Current)
 - [x] **Pricing Page** — 4-tier funnel (Free/Pro/Elite/API), monthly/annual toggle, FAQ, all upgrade CTAs wired
+- [x] **Landing Page** — Hero, social proof (854K trades), problem/solution comparison, 6-feature grid, CTAs, shown to unauthenticated visitors
+- [x] **Contact Page** — Contact form (name, email, subject dropdown, message), info card, FAQ, mailto fallback
 - [ ] **Stripe Integration** — Billing, plan management, trial periods (14-day), upgrade/downgrade flows
-- [ ] **Contact Page** — Professional contact form (name, email, subject, message), FAQ section, support email, social links, office hours
-- [ ] **Landing Page** — Value proposition, feature screenshots, email capture for waitlist
 - [ ] **SEO Content** — Blog posts targeting: "best stock analysis tools", "Bloomberg alternative", "free options analysis", "AI trade scoring"
 - [ ] **Social Proof** — Backtest results (854K trades, 98.5% win rate) as marketing content
 - [ ] **Competitive Positioning** — "Bloomberg depth at 1/80th the cost" messaging
@@ -342,7 +345,7 @@ Not committed to a tier or timeline. Will be prioritized based on user demand an
 ### Retention
 - [ ] **Daily Email Digest** — Personalized watchlist alerts, trend breaks, earnings reminders
 - [ ] **Gamification** — Streak tracking, journal consistency badges, community leaderboards
-- [ ] **Onboarding Flow** — Guided tour for new users: add watchlist → analyze first ticker → create first journal entry
+- [x] **Onboarding Flow** — 6-step tooltip tour, 5-item checklist banner with progress bar, empty state prompts
 - [ ] **NPS Surveys** — Quarterly user satisfaction measurement
 - [ ] **Feature Request Voting** — Public board where users vote on priorities
 
@@ -382,7 +385,7 @@ Everything below is required to serve hundreds of thousands to millions of users
 - [ ] **Connection Pooling** — PgBouncer or increase pool size for concurrent connections
 - [ ] **Query Optimization** — Add indexes on hot paths, analyze query plans, eliminate N+1 queries
 - [ ] **Read Replicas** — Postgres streaming replication for read-heavy endpoints (analyze, reports)
-- [ ] **Database Backups** — Automated daily to S3, 30-day retention, tested restore procedure
+- [x] **Database Backups** — Manual pg_dump backup/restore procedure documented, first backup taken (643MB)
 - [ ] **Query Caching** — In-memory caching (Redis) with 1-5 min TTL for expensive queries
 
 #### Compute
@@ -412,7 +415,7 @@ Everything below is required to serve hundreds of thousands to millions of users
 - [ ] **Penetration Testing** — Before public launch
 
 #### Email & Notifications
-- [ ] **SES Domain Verification** — Verify alphabreak.vip, move out of sandbox mode
+- [x] **SES Domain Verification** — Domain identity + DKIM initiated, DNS records pending propagation
 - [ ] **Email Templates** — Branded HTML templates for all notification types
 - [ ] **Bounce Handling** — SES bounce/complaint processing to maintain sender reputation
 
@@ -433,7 +436,23 @@ Everything below is required to serve hundreds of thousands to millions of users
 
 ## Recently Completed
 
-### v4.3 (April 8, 2026) — Pro Features + New Analytics
+### v4.4 (April 9-10, 2026) — Chart Migration + Auth Stability
+- ✅ **Chart.js → Lightweight Charts migration** — All 14 Chart.js instances across 7 files (dashboard, earnings, forex, portfolio, account, longterm, watchlist) converted to Lightweight Charts. Only portfolio allocation doughnut remains as Chart.js.
+- ✅ **Stable JWT authentication** — Fixed random JWT secret regenerating on every pod restart (all tokens invalidated). Stable key now set via k8s env var, shared across all replicas.
+- ✅ **Extended token lifetime** — Access token 15min → 24hrs, refresh token 7 days → 30 days
+- ✅ **Auth resilience** — Network errors / 502s during token validation no longer clear session. Only explicit 401/403 from server triggers logout.
+- ✅ **NaN JSON fix** — Custom SafeJSONProvider converts Python NaN/Infinity to null, preventing invalid JSON responses
+- ✅ **Hidden chart rendering fix** — Sentiment chart defers rendering when container is hidden (landing page), re-renders on login
+- ✅ **Deployment path fix** — Corrected frontend deploy target from ~/frontend/ to ~/Securities_prediction_model/frontend/ (nginx root)
+- ✅ **Cache busting** — Version-bumped all JS/CSS script tags to force browser cache refresh
+
+### v4.3 (April 8, 2026) — Pro Features + New Analytics + Launch Prep
+- ✅ **Landing page** — Marketing page for unauthenticated visitors (hero, social proof, problem/solution, feature grid, CTAs)
+- ✅ **Contact page** — Form with subject dropdown, info card, FAQ, mailto fallback
+- ✅ **Onboarding flow** — 6-step tooltip tour, 5-item checklist banner with progress tracking, empty state prompts
+- ✅ **SES domain verification** — Domain identity + DKIM tokens generated, DNS records ready
+- ✅ **Database backup procedure** — pg_dump/pg_restore documented in PROJECT_CONTEXT, first 643MB backup taken
+- ✅ **Charting upgrade** — Drawing tools (trendline/hline/Fibonacci/rectangle), RSI/MACD/Stochastic sub-panes, VWAP overlay, clickable AI trendline popovers with confidence breakdown
 - ✅ **Premium gate: Trendlines + Seasonality** — Pro badge on toggles, locked overlay with upgrade CTA, 1 free trial each
 - ✅ **Short Interest section** — Short % float, days to cover, MoM change, squeeze risk score
 - ✅ **Dividend Analysis section** — Yield, rate, payout ratio, safety grade, 5-yr avg, ex-date
@@ -451,7 +470,7 @@ Everything below is required to serve hundreds of thousands to millions of users
 
 ### v4.1 (April 3-4, 2026) — Security Analysis + Charting Overhaul
 - ✅ **Security Analysis page** — full single-ticker deep dive (landing page)
-- ✅ **TradingView Lightweight Charts** — replaced Chart.js across 4 tabs
+- ✅ **TradingView Lightweight Charts** — replaced Chart.js across 4 tabs (later expanded to all charts in v4.4)
 - ✅ **Auto-detected trendlines** — pivot detection, confidence scoring, analog matching
 - ✅ **Candlestick pattern recognition** — 8 patterns with probability scoring
 - ✅ **Seasonality heatmap** — 5yr monthly returns
@@ -508,4 +527,4 @@ Everything below is required to serve hundreds of thousands to millions of users
 
 ---
 
-**Last Updated**: April 4, 2026
+**Last Updated**: April 10, 2026

@@ -204,7 +204,12 @@ const Auth = {
             });
 
             if (!response.ok) {
-                throw new Error('Token refresh failed');
+                // Only clear auth on explicit rejection (401/403), not server errors (502/503)
+                if (response.status === 401 || response.status === 403) {
+                    this.clearStorage();
+                    this.updateUI();
+                }
+                return false;
             }
 
             const data = await response.json();
@@ -213,10 +218,8 @@ const Auth = {
 
             return true;
         } catch (e) {
-            console.warn('Token refresh failed:', e);
-            // Clear auth state on refresh failure
-            this.clearStorage();
-            this.updateUI();
+            // Network error — don't clear tokens, just fail silently
+            console.warn('Token refresh skipped (network error):', e.message);
             return false;
         }
     },
@@ -277,9 +280,9 @@ const Auth = {
 
             return true;
         } catch (e) {
-            console.warn('Token validation failed:', e);
-            this.clearStorage();
-            this.updateUI();
+            // Network errors (API down, timeout) — keep tokens, don't log out
+            // Only clearStorage is called on explicit 401 (handled above)
+            console.warn('Token validation skipped (network error):', e.message);
             return false;
         }
     },
@@ -321,6 +324,9 @@ const Auth = {
             }
             document.querySelectorAll('.auth-only-sidebar-item').forEach(el => el.style.display = 'none');
         }
+
+        // Toggle landing page vs app view
+        if (typeof showLandingIfNeeded === 'function') showLandingIfNeeded();
     },
 
     /**

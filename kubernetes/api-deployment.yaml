@@ -35,6 +35,8 @@ spec:
               key: secret-key
         - name: API_KEY_REQUIRED
           value: "false"  # Disable for local dev
+        - name: JWT_SECRET_KEY
+          value: "ecaa3f887ce78eb63d76e1302a36461a01ea2a9823b1a6ebcc77927df40b8b8f"
         - name: REDIS_URL
           value: "redis://redis-service:6379/0"
         - name: RATELIMIT_STORAGE_URL

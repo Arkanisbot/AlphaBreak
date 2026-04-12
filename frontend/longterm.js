@@ -360,66 +360,24 @@ const LongTerm = {
         const title = document.getElementById('longtermComparisonTitle');
         if (title) title.textContent = `${ticker} vs S&P 500, Gold, Bitcoin`;
 
-        this.charts['comparison'] = new Chart(canvas.getContext('2d'), {
-            type: 'line',
-            data: { datasets },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: { color: '#8b95a5', font: { size: 11 }, boxWidth: 14, usePointStyle: true },
-                        onClick: (e, legendItem, legend) => {
-                            // Toggle dataset visibility on legend click
-                            const idx = legendItem.datasetIndex;
-                            const chart = legend.chart;
-                            chart.getDatasetMeta(idx).hidden = !chart.getDatasetMeta(idx).hidden;
-                            chart.update();
-                        },
-                    },
-                    tooltip: {
-                        backgroundColor: '#1c2030',
-                        titleColor: '#e2e8f0',
-                        bodyColor: '#8b95a5',
-                        borderColor: '#2a2e39',
-                        borderWidth: 1,
-                        callbacks: {
-                            label: (ctx) => {
-                                const val = ctx.parsed.y;
-                                const pctChange = (val - 100).toFixed(1);
-                                const sign = pctChange >= 0 ? '+' : '';
-                                return `${ctx.dataset.label}: ${val.toFixed(1)} (${sign}${pctChange}%)`;
-                            },
-                        },
-                    },
-                },
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: { unit: 'month' },
-                        grid: { color: '#2a2e3960' },
-                        ticks: { color: '#8b95a5', font: { size: 10 } },
-                    },
-                    y: {
-                        grid: { color: '#2a2e3960' },
-                        ticks: {
-                            callback: (v) => v.toFixed(0),
-                            color: '#8b95a5',
-                            font: { size: 10 },
-                        },
-                        title: {
-                            display: true,
-                            text: 'Growth of $100',
-                            color: '#5c6578',
-                            font: { size: 10 },
-                        },
-                    },
-                },
-                interaction: { intersect: false, mode: 'index' },
-            },
-        });
+        if (typeof AlphaCharts !== 'undefined') {
+            // Build combined data from series
+            const keys = Object.keys(comparison.series);
+            const allDates = comparison.series[keys[0]]?.map(p => p.date) || [];
+            const combined = allDates.map((date, i) => {
+                const row = { date };
+                keys.forEach(k => {
+                    const pts = comparison.series[k];
+                    row[k] = pts[i] ? 100 + pts[i].pct_return : null;
+                });
+                return row;
+            });
+            const labels = keys.map(k => k === 'SPY' ? 'S&P 500' : k === 'GLD' ? 'Gold' : k === 'BTC' ? 'Bitcoin' : k);
+            const colors = keys.map(k => colorMap[k] || '#8b95a5');
+            AlphaCharts.quickLine('longtermComparisonChart', combined, {
+                keys, labels, colors, height: 350, area: false,
+            });
+        }
 
         // Setup range selector buttons
         this.setupRangeSelector();

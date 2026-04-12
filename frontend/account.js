@@ -207,48 +207,18 @@ const Account = {
         const canvas = document.getElementById('equityCurveChart');
         if (!canvas || !curve.length) return;
 
-        if (this.equityChart) this.equityChart.destroy();
-
-        const labels = curve.map(d => d.date);
-        const values = curve.map(d => d.value);
-        const drawdowns = curve.map(d => d.drawdown_pct * 100);
-
-        this.equityChart = new Chart(canvas, {
-            type: 'line',
-            data: {
-                labels,
-                datasets: [{
-                    label: 'Portfolio Value',
-                    data: values,
-                    borderColor: '#00d4aa',
-                    backgroundColor: 'rgba(0,212,170,0.1)',
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 0,
-                    yAxisID: 'y',
-                }, {
-                    label: 'Drawdown %',
-                    data: drawdowns,
-                    borderColor: '#ff6b6b',
-                    backgroundColor: 'rgba(255,107,107,0.1)',
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 0,
-                    yAxisID: 'y1',
-                }],
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: { legend: { labels: { color: '#e0e0e0' } } },
-                scales: {
-                    x: { ticks: { color: '#888', maxTicksLimit: 10 }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    y: { position: 'left', ticks: { color: '#00d4aa', callback: v => '$' + v.toLocaleString() }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    y1: { position: 'right', ticks: { color: '#ff6b6b', callback: v => v.toFixed(1) + '%' }, grid: { display: false }, min: -30, max: 0 },
-                },
-            },
-        });
+        if (typeof AlphaCharts !== 'undefined') {
+            const lineData = curve.map(d => ({
+                date: d.date,
+                value: d.value,
+            }));
+            AlphaCharts.quickLine('equityCurveChart', lineData, {
+                keys: ['value'],
+                labels: ['Portfolio Value'],
+                colors: ['#00d4aa'],
+                height: 250,
+            });
+        }
     },
 
     async loadPnLCalendar() {
