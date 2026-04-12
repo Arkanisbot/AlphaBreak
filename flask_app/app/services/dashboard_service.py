@@ -344,9 +344,9 @@ def compute_market_sentiment(db_manager=None):
     # Fetch S&P 500 daily data
     df = pd.DataFrame()
     if db_manager:
-        df = _fetch_market_index_from_db(db_manager, '^GSPC', days=210)
+        df = _fetch_market_index_from_db(db_manager, '^GSPC', days=365)
 
-    if df.empty:
+    if df.empty or len(df) < 140:
         df = _fetch_yfinance_data('^GSPC', period='1y', interval='1d')
         if df.empty:
             return {'sentiment': 'NEUTRAL', 'confidence': 0, 'indicators': {},
