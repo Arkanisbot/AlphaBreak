@@ -14,6 +14,32 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1/dist/chartjs-chart-financial.min.js"></script>
     <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        /* WebSocket connection status indicator */
+        .ws-status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-left: 10px;
+            vertical-align: middle;
+            transition: background-color 0.3s ease;
+        }
+        .ws-connected   { background-color: #22c55e; box-shadow: 0 0 4px #22c55e; }
+        .ws-disconnected { background-color: #ef4444; box-shadow: 0 0 4px #ef4444; }
+        /* Price flash animation for real-time updates */
+        @keyframes priceFlash {
+            0%   { background-color: rgba(34,197,94,0.3); }
+            100% { background-color: transparent; }
+        }
+        @keyframes priceFlashDown {
+            0%   { background-color: rgba(239,68,68,0.3); }
+            100% { background-color: transparent; }
+        }
+        .price-flash-up   { animation: priceFlash 0.8s ease-out; }
+        .price-flash-down  { animation: priceFlashDown 0.8s ease-out; }
+    </style>
 </head>
 <body>
     <!-- App Layout with Fixed Sidebar -->
@@ -61,6 +87,7 @@
                 </div>
                 <div class="header-right">
                     <span class="current-page-title" id="currentPageTitle">Security Analysis</span>
+                    <span class="ws-status-dot ws-disconnected" id="wsStatusDot" title="Disconnected"></span>
                     <!-- API status moved to footer -->
                     <!-- Auth buttons (when not logged in) -->
                     <div class="auth-actions" id="authActions">
@@ -1147,9 +1174,20 @@
                                                 <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"></path>
                                             </svg>
                                         </button>
+                                        <button class="multi-chart-toggle-btn" id="multiChartToggleBtn" title="Multi-Chart View (Pro)">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                                <rect x="3" y="3" width="8" height="8" rx="1"></rect>
+                                                <rect x="13" y="3" width="8" height="8" rx="1"></rect>
+                                                <rect x="3" y="13" width="8" height="8" rx="1"></rect>
+                                                <rect x="13" y="13" width="8" height="8" rx="1"></rect>
+                                            </svg>
+                                            <span class="pro-tag">Pro</span>
+                                        </button>
                                     </div>
                                 </div>
                                 <div id="analyzeChartContainer" class="lw-chart-container"></div>
+                                <!-- Multi-chart layout container (Pro) -->
+                                <div id="multiChartContainer" class="multi-chart-wrapper" style="display:none;"></div>
                                 <!-- Pattern markers legend -->
                                 <div id="patternMarkers" class="pattern-markers-bar" style="display:none;"></div>
                                 <!-- Seasonality heatmap -->
@@ -2769,6 +2807,7 @@
         </div>
     </div>
 
+    <script src="websocket.js?v=1"></script>
     <script src="onboarding.js?v=2"></script>
     <script src="auth.js?v=4"></script>
     <script src="notifications.js?v=1"></script>

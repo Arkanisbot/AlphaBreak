@@ -170,6 +170,10 @@ const Journal = {
                 <button class="modal-close" onclick="document.getElementById('journalDetailModal').remove()">&times;</button>
             </div>
             <div class="modal-body">
+                <!-- Market Annotations -->
+                ${this.renderAnnotations(entry.annotations)}
+                ${!entry.annotations ? `<div class="journal-annotations"><button class="btn btn-sm btn-ghost" onclick="Journal.refreshAnnotations(${entry.id})">Generate Market Annotations</button></div>` : ''}
+
                 <!-- P&L Summary -->
                 <div class="journal-detail-pnl">
                     <span class="pnl-amount ${pnlClass}">${entry.realized_pnl != null ? '$' + entry.realized_pnl.toFixed(2) : 'Open'}</span>
@@ -675,6 +679,92 @@ const Journal = {
         if (!level) return '-/5';
         const labels = { 1: 'Speculative', 2: 'Low', 3: 'Moderate', 4: 'High', 5: 'Very High' };
         return `${level}/5 (${labels[level] || ''})`;
+    },
+
+    // ──────────────────────────────────────────────
+    // Annotations
+    // ──────────────────────────────────────────────
+
+    renderAnnotations(annotations) {
+        if (!annotations || typeof annotations !== 'object') {
+            return '';
+        }
+
+        const badges = [];
+
+        // Market regime badge
+        if (annotations.market_regime) {
+            const regime = annotations.market_regime;
+            const regimeClass = regime === 'BULL' ? 'annotation-bull'
+                : regime === 'BEAR' ? 'annotation-bear' : 'annotation-range';
+            const regimeLabel = regime === 'BULL' ? 'BULL Regime'
+                : regime === 'BEAR' ? 'BEAR Regime' : 'RANGE';
+            badges.push(`<span class="annotation-badge ${regimeClass}">${regimeLabel}</span>`);
+        }
+
+        // Trend break badge
+        if (annotations.trend_break_probability != null) {
+            const prob = (annotations.trend_break_probability * 100).toFixed(0);
+            const dir = annotations.trend_break_direction || '';
+            const dirLabel = dir.charAt(0).toUpperCase() + dir.slice(1).toLowerCase();
+            const tbClass = dir.toLowerCase() === 'bullish' ? 'annotation-bull'
+                : dir.toLowerCase() === 'bearish' ? 'annotation-bear' : 'annotation-range';
+            badges.push(`<span class="annotation-badge ${tbClass}">Trend Break ${prob}% ${dirLabel}</span>`);
+        }
+
+        // RSI badge
+        if (annotations.rsi != null) {
+            const rsi = annotations.rsi;
+            const rsiLabel = annotations.rsi_signal || 'Neutral';
+            const rsiClass = rsiLabel === 'Oversold' ? 'annotation-bull'
+                : rsiLabel === 'Overbought' ? 'annotation-bear' : 'annotation-neutral';
+            badges.push(`<span class="annotation-badge ${rsiClass}">RSI ${rsi} (${rsiLabel})</span>`);
+        }
+
+        // CCI badge
+        if (annotations.cci != null) {
+            const cci = annotations.cci;
+            const cciLabel = annotations.cci_signal || 'Neutral';
+            const cciClass = cciLabel === 'Oversold' ? 'annotation-bull'
+                : cciLabel === 'Overbought' ? 'annotation-bear' : 'annotation-neutral';
+            badges.push(`<span class="annotation-badge ${cciClass}">CCI ${cci} (${cciLabel})</span>`);
+        }
+
+        // SMA 20 vs price badge
+        if (annotations.sma_20_vs_price) {
+            const above = annotations.sma_20_vs_price === 'above';
+            const smaClass = above ? 'annotation-bull' : 'annotation-bear';
+            const smaLabel = above ? 'Above SMA 20' : 'Below SMA 20';
+            badges.push(`<span class="annotation-badge ${smaClass}">${smaLabel}</span>`);
+        }
+
+        // Sector sentiment badge
+        if (annotations.sector_sentiment && annotations.sector_sentiment !== 'NEUTRAL') {
+            const ss = annotations.sector_sentiment;
+            const ssClass = ss === 'BULLISH' ? 'annotation-bull'
+                : ss === 'BEARISH' ? 'annotation-bear' : 'annotation-neutral';
+            const sectorName = annotations.sector_name ? ` (${annotations.sector_name})` : '';
+            badges.push(`<span class="annotation-badge ${ssClass}">Sector ${ss}${sectorName}</span>`);
+        }
+
+        if (badges.length === 0) {
+            return '';
+        }
+
+        return `<div class="journal-annotations">
+            <h4>Market Conditions at Entry</h4>
+            <div class="annotation-badges">${badges.join('')}</div>
+        </div>`;
+    },
+
+    async refreshAnnotations(id) {
+        try {
+            const res = await apiRequest(`/api/journal/entries/${id}/annotations`, 'POST');
+            if (res.ok) {
+                if (typeof showSnackbar === 'function') showSnackbar('Annotations refreshed', 'success');
+                this.openEntry(id);
+            }
+        } catch (e) { /* ignore */ }
     },
 
     esc(str) {

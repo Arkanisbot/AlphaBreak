@@ -1,0 +1,19 @@
+# Prometheus scrape configuration for AlphaBreak API
+# ---------------------------------------------------
+# Drop this into your Prometheus config or mount as a ConfigMap.
+#
+# The Flask app exposes /metrics via prometheus-flask-instrumentator.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: alphabreak-api
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - localhost:30427
+        labels:
+          environment: production
+          service: alphabreak-api

@@ -48,6 +48,139 @@ def mark_trial_used(user_id, feature_name):
 
 
 # ──────────────────────────────────────────────────────────────
+# Auto-Annotations
+# ──────────────────────────────────────────────────────────────
+
+def generate_annotations(ticker, db_manager=None, trade_date=None):
+    """
+    Generate a lightweight market-conditions snapshot for a ticker.
+
+    Fetches current indicators, trend break status, sector sentiment,
+    and SMA position. Designed to be fast and non-blocking — returns
+    partial data if some fetches fail, or empty dict on total failure.
+
+    Returns dict: {market_regime, trend_break_probability, trend_break_direction,
+                   rsi, rsi_signal, cci, cci_signal, sma_20_vs_price,
+                   composite_signal, sector_sentiment, timestamp}
+    """
+    annotations = {'timestamp': datetime.now().isoformat(), 'ticker': ticker}
+
+    try:
+        import yfinance as yf
+        from app.services.watchlist_service import (
+            _get_trend_break_data, _safe_float,
+        )
+        from app.services.dashboard_service import (
+            _calculate_cci, _calculate_rsi, _calculate_sma,
+        )
+        from app.services.report_service import TICKER_SECTOR_MAP, SECTOR_ETFS
+        from app.services.watchlist_service import _compute_sector_sentiment_cached
+        from app.services.analyze_service import (
+            _signal_from_rsi, _signal_from_cci, _compute_composite_signal,
+        )
+
+        stock = yf.Ticker(ticker)
+        df = stock.history(period='3mo', interval='1d')
+        if df.empty or len(df) < 5:
+            logger.debug(f"Annotations: insufficient data for {ticker}")
+            return annotations
+
+        df = df.reset_index()
+        if 'Date' in df.columns:
+            df = df.rename(columns={'Date': 'date'})
+
+        current_price = float(df['Close'].iloc[-1])
+        annotations['price'] = round(current_price, 2)
+
+        # -- Indicators --
+        signals = {}
+        sma_20 = None
+        if len(df) >= 20:
+            try:
+                rsi_series = _calculate_rsi(df)
+                rsi = _safe_float(rsi_series.iloc[-1], 2)
+                annotations['rsi'] = rsi
+                rsi_sig = _signal_from_rsi(rsi)
+                annotations['rsi_signal'] = 'Oversold' if rsi_sig == 'BUY' else 'Overbought' if rsi_sig == 'SELL' else 'Neutral'
+                signals['rsi'] = rsi_sig
+            except Exception:
+                pass
+
+            try:
+                cci_series = _calculate_cci(df)
+                cci = _safe_float(cci_series.iloc[-1], 2)
+                annotations['cci'] = cci
+                cci_sig = _signal_from_cci(cci)
+                annotations['cci_signal'] = 'Oversold' if cci_sig == 'BUY' else 'Overbought' if cci_sig == 'SELL' else 'Neutral'
+                signals['cci'] = cci_sig
+            except Exception:
+                pass
+
+            try:
+                sma_20 = _safe_float(_calculate_sma(df['Close'], 20).iloc[-1], 4)
+                if sma_20 is not None:
+                    annotations['sma_20'] = sma_20
+                    annotations['sma_20_vs_price'] = 'above' if current_price > sma_20 else 'below'
+            except Exception:
+                pass
+
+            try:
+                sma_50 = None
+                if len(df) >= 50:
+                    sma_50 = _safe_float(_calculate_sma(df['Close'], 50).iloc[-1], 4)
+                if sma_20 is not None and sma_50 is not None:
+                    signals['sma_cross'] = 'BULLISH' if sma_20 > sma_50 else 'BEARISH'
+            except Exception:
+                pass
+
+        # Composite signal -> market regime
+        composite = _compute_composite_signal(signals)
+        annotations['composite_signal'] = composite
+        regime_map = {'BULLISH': 'BULL', 'BEARISH': 'BEAR', 'NEUTRAL': 'RANGE'}
+        annotations['market_regime'] = regime_map.get(composite, 'RANGE')
+
+        # -- Trend Break --
+        try:
+            tb = _get_trend_break_data(ticker, df, db_manager)
+            if tb.get('probability') is not None:
+                annotations['trend_break_probability'] = round(float(tb['probability']), 2)
+                annotations['trend_break_direction'] = tb.get('direction')
+        except Exception:
+            pass
+
+        # -- Sector Sentiment --
+        try:
+            sector_name = TICKER_SECTOR_MAP.get(ticker)
+            if not sector_name:
+                info = stock.info or {}
+                sector_name = info.get('sector')
+            sector_etf = SECTOR_ETFS.get(sector_name) if sector_name else None
+            if sector_name and sector_etf:
+                ss = _compute_sector_sentiment_cached(sector_name, sector_etf)
+                annotations['sector_sentiment'] = ss.get('sentiment', 'NEUTRAL')
+                annotations['sector_name'] = sector_name
+        except Exception:
+            pass
+
+    except Exception as e:
+        logger.warning(f"generate_annotations failed for {ticker}: {e}")
+
+    return annotations
+
+
+def _save_annotations(db_manager, entry_id, annotations):
+    """Persist annotations JSONB on a journal entry."""
+    try:
+        with db_manager.get_cursor(commit=True) as cur:
+            cur.execute(
+                "UPDATE trade_journal SET annotations = %s WHERE id = %s",
+                (json.dumps(annotations), entry_id)
+            )
+    except Exception as e:
+        logger.warning(f"Failed to save annotations for entry {entry_id}: {e}")
+
+
+# ──────────────────────────────────────────────────────────────
 # CRUD
 # ──────────────────────────────────────────────────────────────
 
@@ -75,6 +208,18 @@ def create_entry(db_manager, user_id, data):
         with db_manager.get_cursor(commit=True) as cur:
             cur.execute(query, params)
             entry_id = cur.fetchone()[0]
+
+        # Auto-annotate with market conditions (non-blocking — don't fail the create)
+        ticker = data.get('ticker', '').upper()
+        if ticker:
+            try:
+                annotations = generate_annotations(ticker, db_manager=db_manager,
+                                                   trade_date=data.get('trade_date'))
+                if annotations and len(annotations) > 2:  # more than just timestamp+ticker
+                    _save_annotations(db_manager, entry_id, annotations)
+            except Exception as ann_err:
+                logger.debug(f"Auto-annotation skipped for entry {entry_id}: {ann_err}")
+
         return {'success': True, 'id': entry_id}
     except Exception as e:
         logger.error(f"Create journal entry failed: {e}")
@@ -571,13 +716,77 @@ def get_stats_by_tag(db_manager, user_id):
 # Premium: Pre-Trade Plan & Post-Trade Review
 # ──────────────────────────────────────────────────────────────
 
+VALID_TIME_HORIZONS = ('day_trade', 'swing', 'short_term', 'medium_term', 'long_term')
+
+
 def save_pre_trade_plan(db_manager, user_id, entry_id, plan_data):
-    """Save pre-trade plan JSONB."""
+    """Save pre-trade plan JSONB with structured thesis fields."""
+    # Validate and normalize structured thesis fields
+    normalized = {}
+
+    # Legacy fields (keep backward compat)
+    for key in ('thesis', 'setup_type', 'risk_reward'):
+        if key in plan_data:
+            normalized[key] = str(plan_data[key])[:500]
+
+    # Structured thesis template fields
+    if 'entry_criteria' in plan_data:
+        normalized['entry_criteria'] = str(plan_data['entry_criteria'])[:1000]
+
+    if 'price_target' in plan_data and plan_data['price_target'] not in (None, '', 'null'):
+        try:
+            normalized['price_target'] = float(plan_data['price_target'])
+        except (ValueError, TypeError):
+            pass
+
+    if 'stop_loss' in plan_data and plan_data['stop_loss'] not in (None, '', 'null'):
+        try:
+            normalized['stop_loss'] = float(plan_data['stop_loss'])
+        except (ValueError, TypeError):
+            pass
+
+    if 'time_horizon' in plan_data:
+        th = plan_data['time_horizon']
+        if th in VALID_TIME_HORIZONS:
+            normalized['time_horizon'] = th
+
+    if 'catalysts' in plan_data:
+        normalized['catalysts'] = str(plan_data['catalysts'])[:1000]
+
+    if 'risks' in plan_data:
+        normalized['risks'] = str(plan_data['risks'])[:1000]
+
+    if 'conviction_level' in plan_data and plan_data['conviction_level'] not in (None, '', 'null'):
+        try:
+            cl = int(plan_data['conviction_level'])
+            normalized['conviction_level'] = max(1, min(5, cl))
+        except (ValueError, TypeError):
+            pass
+
+    # Legacy fields that may still be passed
+    if 'target_price' in plan_data and 'price_target' not in plan_data:
+        try:
+            normalized['price_target'] = float(plan_data['target_price'])
+        except (ValueError, TypeError):
+            pass
+    if 'stop_price' in plan_data and 'stop_loss' not in plan_data:
+        try:
+            normalized['stop_loss'] = float(plan_data['stop_price'])
+        except (ValueError, TypeError):
+            pass
+    if 'confidence' in plan_data and 'conviction_level' not in plan_data:
+        try:
+            normalized['conviction_level'] = max(1, min(5, int(plan_data['confidence'])))
+        except (ValueError, TypeError):
+            pass
+
+    normalized['updated_at'] = datetime.now().isoformat()
+
     try:
         with db_manager.get_cursor(commit=True) as cur:
             cur.execute(
                 "UPDATE trade_journal SET pre_trade_plan = %s WHERE id = %s AND user_id = %s",
-                (json.dumps(plan_data), entry_id, user_id)
+                (json.dumps(normalized), entry_id, user_id)
             )
             return {'success': cur.rowcount > 0}
     except Exception as e:
@@ -686,6 +895,7 @@ def _row_to_dict(row):
         'entry_price', 'exit_price', 'quantity', 'realized_pnl', 'realized_pnl_pct',
         'entry_notes', 'exit_notes', 'lessons_learned', 'tags',
         'pre_trade_plan', 'post_trade_review', 'ai_score', 'pattern_data',
+        'annotations',
         'chart_snapshot_entry', 'chart_snapshot_exit', 'is_public',
         'signal_source', 'signal_details', 'created_at', 'updated_at',
         'holding_type',
@@ -704,7 +914,7 @@ def _row_to_dict(row):
         d[key] = val
 
     # Parse JSONB fields if they're strings
-    for jf in ('pre_trade_plan', 'post_trade_review', 'ai_score', 'pattern_data', 'signal_details'):
+    for jf in ('pre_trade_plan', 'post_trade_review', 'ai_score', 'pattern_data', 'annotations', 'signal_details'):
         if jf in d and isinstance(d[jf], str):
             try:
                 d[jf] = json.loads(d[jf])

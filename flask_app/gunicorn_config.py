@@ -17,7 +17,7 @@ backlog = 2048
 # Worker Processes
 # Use 2 workers for container deployment to avoid OOM
 workers = int(os.environ.get('GUNICORN_WORKERS', 2))
-worker_class = 'sync'  # Use 'gevent' or 'eventlet' for async
+worker_class = 'eventlet'  # Required for Flask-SocketIO WebSocket support
 worker_connections = 1000
 max_requests = 1000  # Restart workers after this many requests (prevents memory leaks)
 max_requests_jitter = 50  # Add randomness to max_requests
@@ -40,11 +40,57 @@ user = None
 group = None
 tmp_upload_dir = None
 
-# Logging
+# Logging — JSON structured output for log aggregation
 accesslog = '-'  # Log to stdout
 errorlog = '-'   # Log to stderr
 loglevel = os.environ.get('GUNICORN_LOG_LEVEL', 'info')
-access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(D)s'
+
+# JSON access log format consumed by log collectors (FluentBit, Loki, etc.)
+access_log_format = (
+    '{"timestamp":"%(t)s","remote_addr":"%(h)s","method":"%(m)s",'
+    '"path":"%(U)s","query":"%(q)s","protocol":"%(H)s",'
+    '"status":%(s)s,"response_bytes":%(B)s,'
+    '"referer":"%(f)s","user_agent":"%(a)s","duration_us":%(D)s}'
+)
+
+logconfig_dict = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'json': {
+            '()': 'pythonjsonlogger.jsonlogger.JsonFormatter',
+            'fmt': '%(asctime)s %(levelname)s %(name)s %(message)s',
+            'rename_fields': {
+                'asctime': 'timestamp',
+                'levelname': 'level',
+            },
+            'datefmt': '%Y-%m-%dT%H:%M:%S%z',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'json',
+            'stream': 'ext://sys.stdout',
+        },
+    },
+    'root': {
+        'level': 'INFO',
+        'handlers': ['console'],
+    },
+    'loggers': {
+        'gunicorn.error': {
+            'level': 'INFO',
+            'handlers': ['console'],
+            'propagate': False,
+        },
+        'gunicorn.access': {
+            'level': 'INFO',
+            'handlers': ['console'],
+            'propagate': False,
+        },
+    },
+}
 
 # Process Naming
 proc_name = 'trading-prediction-api'

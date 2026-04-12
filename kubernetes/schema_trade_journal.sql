@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS trade_journal (
     ai_score JSONB,
     -- Paid/Trial: Pattern recognition
     pattern_data JSONB,
+    -- Free: Auto-generated market annotations at time of entry
+    annotations JSONB,
     -- Free: Chart snapshots (base64)
     chart_snapshot_entry TEXT,
     chart_snapshot_exit TEXT,

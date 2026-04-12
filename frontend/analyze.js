@@ -7,6 +7,8 @@ const Analyze = (() => {
     let searchTimeout = null;
     let currentChartPeriod = '6mo';
     let currentChartInterval = '1d';
+    let multiChartActive = false;
+    let multiChartCount = 2;
 
     // ── Init ─────────────────────────────────────────────────────────────
     function init() {
@@ -95,6 +97,10 @@ const Analyze = (() => {
         const fsBtn = document.getElementById('chartFullscreenBtn');
         if (fsBtn) fsBtn.addEventListener('click', () => AlphaCharts.toggleFullscreen('analyzeChartContainer'));
 
+        // Multi-Chart toggle (Pro feature)
+        const mcBtn = document.getElementById('multiChartToggleBtn');
+        if (mcBtn) mcBtn.addEventListener('click', () => toggleMultiChart());
+
         // Check URL hash for direct ticker link, or auto-load top trend break
         const hash = window.location.hash;
         if (hash.startsWith('#analyze/')) {
@@ -180,10 +186,48 @@ const Analyze = (() => {
         }, 250);
     }
 
+    // ── Real-time price update handler ─────────────────────────────────
+    let _wsPrevTicker = null;
+
+    function _onRealtimePrice(data) {
+        if (data.ticker !== currentTicker) return;
+        const el = document.getElementById('analyzeHeaderPrice');
+        if (!el) return;
+
+        const oldText = el.textContent;
+        el.textContent = `$${Number(data.price).toFixed(2)}`;
+
+        // Flash green/red on update
+        const cls = data.change >= 0 ? 'price-flash-up' : 'price-flash-down';
+        el.classList.remove('price-flash-up', 'price-flash-down');
+        // Force reflow to restart animation
+        void el.offsetWidth;
+        el.classList.add(cls);
+
+        // Also update change display
+        const changeEl = document.getElementById('analyzeHeaderChange');
+        if (changeEl) {
+            const sign = data.change >= 0 ? '+' : '';
+            changeEl.textContent = `${sign}${Number(data.change).toFixed(2)} (${sign}${Number(data.change_pct).toFixed(2)}%)`;
+            changeEl.className = 'analyze-change ' + (data.change >= 0 ? 'positive' : 'negative');
+        }
+    }
+
     // ── Main fetch ───────────────────────────────────────────────────────
     async function analyzeTicker(ticker) {
+        // Unsubscribe from previous ticker's real-time feed
+        if (_wsPrevTicker && typeof AlphaSocket !== 'undefined') {
+            AlphaSocket.unsubscribeTicker(_wsPrevTicker);
+        }
+
         currentTicker = ticker;
+        _wsPrevTicker = ticker;
         window.location.hash = `analyze/${ticker}`;
+
+        // Subscribe to real-time price updates for the new ticker
+        if (typeof AlphaSocket !== 'undefined') {
+            AlphaSocket.subscribeTicker(ticker, _onRealtimePrice);
+        }
         document.getElementById('analyzeAutocomplete').innerHTML = '';
         if (typeof Onboarding !== 'undefined') Onboarding.trackSearch();
 
@@ -1628,6 +1672,106 @@ const Analyze = (() => {
     function _fmtDollar(v) {
         if (v == null || v === '--') return '--';
         return '$' + Number(v).toFixed(2);
+    }
+
+    // ── Multi-Chart Mode ─────────────────────────────────────────────────
+    function toggleMultiChart() {
+        if (!currentTicker) return;
+
+        // Pro gate
+        const access = Premium.checkAccess('multi_chart');
+        if (!access.allowed) {
+            _showChartProBanner('&#x1f512; <strong>Multi-Chart View</strong> is a Pro feature. <button class="btn btn-primary btn-xs pro-locked-btn">Upgrade to Pro — $99/mo</button>');
+            return;
+        }
+
+        multiChartActive = !multiChartActive;
+        const mcBtn = document.getElementById('multiChartToggleBtn');
+        const singleChart = document.getElementById('analyzeChartContainer');
+        const multiContainer = document.getElementById('multiChartContainer');
+
+        if (multiChartActive) {
+            // Enter multi-chart mode
+            mcBtn.classList.add('active');
+            singleChart.style.display = 'none';
+            multiContainer.style.display = 'block';
+
+            // Build multi-chart layout: same ticker, two timeframes by default
+            multiChartCount = 2;
+            _renderMultiChart();
+
+            if (access.isTrial) {
+                Premium.recordTrial('multi_chart');
+                _showChartProBanner('Free trial of <strong>Multi-Chart View</strong>. Upgrade to Pro for permanent access.');
+            }
+        } else {
+            // Exit multi-chart mode
+            mcBtn.classList.remove('active');
+            AlphaCharts.destroyMultiChart('multiChartContainer');
+            multiContainer.style.display = 'none';
+            singleChart.style.display = '';
+
+            // Reload single chart
+            loadChart(currentTicker, currentChartPeriod, currentChartInterval);
+        }
+    }
+
+    function _renderMultiChart() {
+        const ticker = currentTicker || 'AAPL';
+        const configs = [
+            { ticker: ticker, period: '6mo', interval: '1d' },
+            { ticker: ticker, period: '1mo', interval: '1d' },
+        ];
+        // Add extra configs if count > 2
+        if (multiChartCount >= 3) configs.push({ ticker: ticker, period: '5d', interval: '15m' });
+        if (multiChartCount >= 4) configs.push({ ticker: ticker, period: '1d', interval: '5m' });
+
+        // Build the multi-chart container with add/remove controls
+        const multiContainer = document.getElementById('multiChartContainer');
+        multiContainer.innerHTML = '';
+
+        // Toolbar
+        const toolbar = document.createElement('div');
+        toolbar.className = 'multi-chart-toolbar';
+
+        const addBtn = document.createElement('button');
+        addBtn.className = 'btn btn-sm multi-chart-add-btn';
+        addBtn.innerHTML = '+ Add Chart';
+        addBtn.title = 'Add another chart (max 4)';
+        addBtn.addEventListener('click', () => {
+            if (multiChartCount >= 4) return;
+            multiChartCount++;
+            const newCfg = { ticker: ticker, period: '1d', interval: '5m' };
+            AlphaCharts.multiChartAddCell('multiChartGrid', newCfg);
+            if (multiChartCount >= 4) addBtn.disabled = true;
+            removeBtn.disabled = false;
+        });
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'btn btn-sm multi-chart-remove-btn';
+        removeBtn.innerHTML = '- Remove Chart';
+        removeBtn.title = 'Remove last chart (min 2)';
+        removeBtn.disabled = multiChartCount <= 2;
+        removeBtn.addEventListener('click', () => {
+            const ctrl = AlphaCharts.getMultiChartController('multiChartGrid');
+            if (!ctrl || ctrl.cells.length <= 2) return;
+            multiChartCount--;
+            AlphaCharts.multiChartRemoveCell('multiChartGrid', ctrl.cells.length - 1);
+            if (multiChartCount <= 2) removeBtn.disabled = true;
+            addBtn.disabled = false;
+        });
+
+        toolbar.appendChild(addBtn);
+        toolbar.appendChild(removeBtn);
+        multiContainer.appendChild(toolbar);
+
+        // Grid container
+        const gridDiv = document.createElement('div');
+        gridDiv.id = 'multiChartGrid';
+        multiContainer.appendChild(gridDiv);
+
+        // Create multi-chart
+        AlphaCharts.multiChart('multiChartGrid', configs);
     }
 
     return { init, analyzeTicker };

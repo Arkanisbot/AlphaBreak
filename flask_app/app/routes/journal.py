@@ -197,6 +197,28 @@ def toggle_share(entry_id):
 # AI Scoring (Free)
 # ──────────────────────────────────────────────────────────────
 
+@journal_bp.route('/journal/entries/<int:entry_id>/annotations', methods=['POST'])
+@log_request
+@require_jwt
+def refresh_annotations(entry_id):
+    """Re-generate market annotations for an entry."""
+    user = _get_user()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    from app.services.journal_service import get_entry, generate_annotations, _save_annotations
+    entry = get_entry(db_manager, user['id'], entry_id)
+    if not entry:
+        return jsonify({'error': 'Entry not found'}), 404
+
+    annotations = generate_annotations(entry['ticker'], db_manager=db_manager,
+                                       trade_date=entry.get('trade_date'))
+    if annotations and len(annotations) > 2:
+        _save_annotations(db_manager, entry_id, annotations)
+        return jsonify({'success': True, 'annotations': annotations})
+    return jsonify({'success': False, 'error': 'Could not generate annotations'}), 400
+
+
 @journal_bp.route('/journal/entries/<int:entry_id>/ai-score', methods=['POST'])
 @log_request
 @require_jwt

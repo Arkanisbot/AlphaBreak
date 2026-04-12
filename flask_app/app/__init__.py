@@ -5,17 +5,23 @@ Creates and configures the Flask application with all necessary extensions,
 blueprints, and error handlers.
 """
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, g
 from flask.json.provider import DefaultJSONProvider
 from flask_cors import CORS
 from flask_caching import Cache
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_socketio import SocketIO
+from prometheus_flask_instrumentator import Instrumentator
+from prometheus_client import Gauge
 import jwt as pyjwt
 import logging
 from logging.handlers import RotatingFileHandler
+from pythonjsonlogger import jsonlogger
 import math
 import os
+import time
+import uuid
 
 
 class SafeJSONProvider(DefaultJSONProvider):
@@ -39,6 +45,17 @@ class SafeJSONProvider(DefaultJSONProvider):
 
 cache = Cache()
 limiter = Limiter(key_func=get_remote_address)
+socketio = SocketIO()
+
+# Prometheus custom metrics
+ACTIVE_DB_CONNECTIONS = Gauge(
+    'alphabreak_active_db_connections',
+    'Number of active database connections in the pool'
+)
+CACHE_HIT_RATE = Gauge(
+    'alphabreak_cache_hit_rate',
+    'Cache hit rate (hits / total lookups)'
+)
 
 
 def _get_rate_limit_key():
@@ -100,7 +117,18 @@ def create_app(config_name='development'):
         exempt_paths = ['/api/health', '/api/ready', '/api/live']
         return any(request.path.startswith(path) for path in exempt_paths)
 
-    # Setup logging
+    # Initialize Flask-SocketIO for real-time WebSocket support
+    socketio.init_app(
+        app,
+        cors_allowed_origins=app.config.get('CORS_ORIGINS', '*'),
+        message_queue=app.config.get('REDIS_URL', None),
+        async_mode='eventlet',
+    )
+
+    # Register WebSocket event handlers
+    from app.routes import websocket  # noqa: F401 — registers SocketIO events on import
+
+    # Setup structured JSON logging
     if not app.debug:
         if not os.path.exists('logs'):
             os.mkdir('logs')
@@ -110,13 +138,73 @@ def create_app(config_name='development'):
             maxBytes=10240000,  # 10MB
             backupCount=10
         )
-        file_handler.setFormatter(logging.Formatter(
-            '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
-        ))
+        json_formatter = jsonlogger.JsonFormatter(
+            fmt='%(asctime)s %(levelname)s %(name)s %(module)s %(funcName)s %(lineno)d %(message)s',
+            rename_fields={
+                'asctime': 'timestamp',
+                'levelname': 'level',
+                'funcName': 'function',
+                'lineno': 'line',
+            },
+            datefmt='%Y-%m-%dT%H:%M:%S%z',
+        )
+        file_handler.setFormatter(json_formatter)
         file_handler.setLevel(logging.INFO)
         app.logger.addHandler(file_handler)
         app.logger.setLevel(logging.INFO)
         app.logger.info('Trading API startup')
+
+    # Request-ID middleware and request timing
+    @app.before_request
+    def _before_request():
+        g.request_id = request.headers.get('X-Request-ID', str(uuid.uuid4()))
+        g.start_time = time.time()
+
+    @app.after_request
+    def _after_request(response):
+        duration_ms = (time.time() - getattr(g, 'start_time', time.time())) * 1000
+        request_id = getattr(g, 'request_id', '-')
+        response.headers['X-Request-ID'] = request_id
+        app.logger.info(
+            'request completed',
+            extra={
+                'request_id': request_id,
+                'method': request.method,
+                'path': request.path,
+                'status': response.status_code,
+                'duration_ms': round(duration_ms, 2),
+            },
+        )
+        # Update custom Prometheus metrics
+        _update_custom_metrics()
+        return response
+
+    # Prometheus metrics instrumentation
+    Instrumentator(
+        should_group_status_codes=False,
+        excluded_handlers=['/metrics'],
+    ).instrument(app).expose(app, endpoint='/metrics')
+
+    def _update_custom_metrics():
+        """Collect custom metrics from DB pool and cache."""
+        try:
+            from app.utils.database import db_manager
+            status = db_manager.pool_status()
+            if status and not status.get('closed'):
+                pool = db_manager.connection_pool
+                # _used tracks connections currently checked out
+                used = len(getattr(pool, '_used', {}))
+                ACTIVE_DB_CONNECTIONS.set(used)
+        except Exception:
+            pass
+        try:
+            backend = cache.cache
+            hits = getattr(backend, '_cache_hits', 0)
+            misses = getattr(backend, '_cache_misses', 0)
+            total = hits + misses
+            CACHE_HIT_RATE.set(hits / total if total > 0 else 0.0)
+        except Exception:
+            pass
 
     # Register blueprints
     from app.routes.health import health_bp

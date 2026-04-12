@@ -937,9 +937,305 @@ const AlphaCharts = (() => {
         return instances[containerId];
     }
 
+    // ── Multi-Chart Layout with Synced Crosshairs ───────────────────────
+    // Usage: AlphaCharts.multiChart('containerId', [
+    //   { ticker: 'AAPL', period: '6mo', interval: '1d' },
+    //   { ticker: 'AAPL', period: '1mo', interval: '1h' },
+    // ], { onLoadChart: async (ticker, period, interval) => chartData })
+    //
+    // Returns a controller object with methods: addChart, removeChart, destroy, getCharts
+
+    const multiChartInstances = {};
+
+    function multiChart(containerId, configs, options = {}) {
+        const container = document.getElementById(containerId);
+        if (!container) return null;
+
+        // Destroy existing multi-chart
+        destroyMultiChart(containerId);
+
+        const count = Math.min(4, Math.max(2, configs.length));
+        const cols = count <= 2 ? 2 : 2; // Always 2 columns; 2 charts = 1 row, 3-4 = 2 rows
+
+        // Build grid container
+        container.innerHTML = '';
+        container.classList.add('multi-chart-grid');
+        container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+        const chartCells = [];
+        const chartInstances = [];
+        let syncingCrosshair = false;
+
+        for (let i = 0; i < count; i++) {
+            const cfg = configs[i] || configs[0];
+            const cell = _createMultiChartCell(containerId, i, cfg, options);
+            container.appendChild(cell.wrapper);
+            chartCells.push(cell);
+        }
+
+        // Store the multi-chart controller
+        const controller = {
+            containerId,
+            cells: chartCells,
+            configs: configs.slice(0, count),
+            options,
+            syncingCrosshair: false,
+        };
+
+        multiChartInstances[containerId] = controller;
+
+        // Load data for each chart
+        for (let i = 0; i < chartCells.length; i++) {
+            const cfg = configs[i] || configs[0];
+            _loadMultiChartData(controller, i, cfg.ticker, cfg.period, cfg.interval);
+        }
+
+        return controller;
+    }
+
+    function _createMultiChartCell(parentId, index, cfg, options) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'multi-chart-cell';
+        wrapper.dataset.index = index;
+
+        // Header with ticker input + period buttons
+        const header = document.createElement('div');
+        header.className = 'multi-chart-cell-header';
+
+        // Ticker input
+        const tickerInput = document.createElement('input');
+        tickerInput.type = 'text';
+        tickerInput.className = 'multi-chart-ticker-input';
+        tickerInput.value = cfg.ticker || '';
+        tickerInput.placeholder = 'TICKER';
+        tickerInput.maxLength = 10;
+        tickerInput.addEventListener('input', () => {
+            tickerInput.value = tickerInput.value.toUpperCase();
+        });
+        tickerInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const ticker = tickerInput.value.trim().toUpperCase();
+                if (ticker) {
+                    const ctrl = multiChartInstances[parentId];
+                    if (ctrl) {
+                        const cell = ctrl.cells[index];
+                        const period = cell.currentPeriod || '6mo';
+                        const interval = cell.currentInterval || '1d';
+                        _loadMultiChartData(ctrl, index, ticker, period, interval);
+                    }
+                }
+            }
+        });
+        header.appendChild(tickerInput);
+
+        // Period buttons
+        const periods = document.createElement('div');
+        periods.className = 'multi-chart-periods';
+        const periodConfigs = [
+            { label: '1D', period: '1d', interval: '5m' },
+            { label: '5D', period: '5d', interval: '15m' },
+            { label: '1M', period: '1mo', interval: '1d' },
+            { label: '6M', period: '6mo', interval: '1d' },
+            { label: '1Y', period: '1y', interval: '1d' },
+        ];
+        for (const pc of periodConfigs) {
+            const btn = document.createElement('button');
+            btn.textContent = pc.label;
+            btn.dataset.period = pc.period;
+            btn.dataset.interval = pc.interval;
+            if (pc.period === cfg.period) btn.classList.add('active');
+            btn.addEventListener('click', () => {
+                periods.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const ctrl = multiChartInstances[parentId];
+                if (ctrl) {
+                    const ticker = tickerInput.value.trim().toUpperCase() || cfg.ticker;
+                    _loadMultiChartData(ctrl, index, ticker, pc.period, pc.interval);
+                }
+            });
+            periods.appendChild(btn);
+        }
+        header.appendChild(periods);
+
+        wrapper.appendChild(header);
+
+        // Chart container
+        const chartDiv = document.createElement('div');
+        chartDiv.id = `${parentId}_mc_${index}`;
+        chartDiv.className = 'multi-chart-inner lw-chart-container';
+        wrapper.appendChild(chartDiv);
+
+        return {
+            wrapper,
+            chartDivId: chartDiv.id,
+            tickerInput,
+            periods,
+            currentPeriod: cfg.period || '6mo',
+            currentInterval: cfg.interval || '1d',
+            instance: null,
+            candleData: null,
+        };
+    }
+
+    async function _loadMultiChartData(controller, index, ticker, period, interval) {
+        const cell = controller.cells[index];
+        if (!cell) return;
+
+        cell.currentPeriod = period;
+        cell.currentInterval = interval;
+        cell.tickerInput.value = ticker;
+
+        // Show loading state
+        const chartDiv = document.getElementById(cell.chartDivId);
+        if (!chartDiv) return;
+
+        // Use the provided data loader, or the default API
+        const onLoadChart = controller.options.onLoadChart;
+        let chartData = null;
+
+        try {
+            if (onLoadChart) {
+                chartData = await onLoadChart(ticker, period, interval);
+            } else {
+                const resp = await apiRequest(`/api/analyze/${ticker}/chart?period=${period}&interval=${interval}`);
+                if (!resp.ok) throw new Error(`Chart API error: ${resp.status}`);
+                chartData = await resp.json();
+            }
+        } catch (e) {
+            chartDiv.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:12px;">Failed to load ${ticker}</div>`;
+            return;
+        }
+
+        if (!chartData?.data?.length) {
+            chartDiv.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:12px;">No data for ${ticker}</div>`;
+            return;
+        }
+
+        // Destroy existing chart in this cell
+        destroy(cell.chartDivId);
+
+        // Create new chart
+        const inst = create(cell.chartDivId, { height: 220, volumeHeight: 40 });
+        if (!inst) return;
+
+        inst.ticker = ticker;
+        cell.instance = inst;
+        cell.candleData = chartData.data;
+
+        // Set data with overlays
+        const overlays = chartData.overlays || {};
+        setData(cell.chartDivId, chartData.data, overlays);
+
+        // Set up crosshair sync
+        _setupCrosshairSync(controller, index);
+    }
+
+    function _setupCrosshairSync(controller, sourceIndex) {
+        const sourceCell = controller.cells[sourceIndex];
+        if (!sourceCell?.instance?.chart) return;
+
+        sourceCell.instance.chart.subscribeCrosshairMove((param) => {
+            if (controller.syncingCrosshair) return;
+            controller.syncingCrosshair = true;
+
+            try {
+                const time = param.time;
+                if (!time) {
+                    // Clear crosshairs on other charts
+                    for (let i = 0; i < controller.cells.length; i++) {
+                        if (i === sourceIndex) continue;
+                        const cell = controller.cells[i];
+                        if (cell?.instance?.chart) {
+                            try { cell.instance.chart.clearCrosshairPosition(); } catch (e) {}
+                        }
+                    }
+                } else {
+                    // Sync crosshair to other charts at the same time
+                    for (let i = 0; i < controller.cells.length; i++) {
+                        if (i === sourceIndex) continue;
+                        const cell = controller.cells[i];
+                        if (cell?.instance?.chart && cell?.instance?.candleSeries) {
+                            try {
+                                cell.instance.chart.setCrosshairPosition(
+                                    undefined, // price — let the chart figure it out
+                                    time,
+                                    cell.instance.candleSeries
+                                );
+                            } catch (e) {}
+                        }
+                    }
+                }
+            } finally {
+                controller.syncingCrosshair = false;
+            }
+        });
+    }
+
+    function multiChartAddCell(containerId, cfg) {
+        const controller = multiChartInstances[containerId];
+        if (!controller) return;
+        if (controller.cells.length >= 4) return; // Max 4
+
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const index = controller.cells.length;
+        const cell = _createMultiChartCell(containerId, index, cfg, controller.options);
+        container.appendChild(cell.wrapper);
+        controller.cells.push(cell);
+        controller.configs.push(cfg);
+
+        // Update grid: always 2 columns
+        container.style.gridTemplateColumns = 'repeat(2, 1fr)';
+
+        _loadMultiChartData(controller, index, cfg.ticker, cfg.period, cfg.interval);
+    }
+
+    function multiChartRemoveCell(containerId, index) {
+        const controller = multiChartInstances[containerId];
+        if (!controller || controller.cells.length <= 2) return; // Min 2
+
+        const cell = controller.cells[index];
+        if (!cell) return;
+
+        destroy(cell.chartDivId);
+        cell.wrapper.remove();
+        controller.cells.splice(index, 1);
+        controller.configs.splice(index, 1);
+
+        // Re-index remaining cells
+        controller.cells.forEach((c, i) => {
+            c.wrapper.dataset.index = i;
+        });
+    }
+
+    function destroyMultiChart(containerId) {
+        const controller = multiChartInstances[containerId];
+        if (!controller) return;
+
+        for (const cell of controller.cells) {
+            destroy(cell.chartDivId);
+        }
+
+        const container = document.getElementById(containerId);
+        if (container) {
+            container.innerHTML = '';
+            container.classList.remove('multi-chart-grid');
+            container.style.gridTemplateColumns = '';
+        }
+
+        delete multiChartInstances[containerId];
+    }
+
+    function getMultiChartController(containerId) {
+        return multiChartInstances[containerId] || null;
+    }
+
     return { create, setData, setTrendlines, setPatterns, setCompare, clearCompare,
              renderSeasonality, toggleFullscreen, toggleIndicator, initDrawings,
              quickCandlestick, quickLine,
+             multiChart, multiChartAddCell, multiChartRemoveCell, destroyMultiChart,
+             getMultiChartController,
              destroy, resize, instances };
 })();
 

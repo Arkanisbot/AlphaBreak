@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaBreak — System Status</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #1a1a2e;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #4ecca3;
+            margin-bottom: 0.25rem;
+        }
+
+        header p {
+            font-size: 0.85rem;
+            color: #8b95a5;
+        }
+
+        .card {
+            background: #16213e;
+            border: 1px solid #2a2e39;
+            border-radius: 10px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #8b95a5;
+            margin-bottom: 0.75rem;
+        }
+
+        /* -- Service row -- */
+        .service {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.7rem 0;
+            border-bottom: 1px solid #2a2e39;
+        }
+        .service:last-child { border-bottom: none; }
+
+        .service-left {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #5c6578;
+            flex-shrink: 0;
+        }
+        .dot.healthy   { background: #4ecca3; box-shadow: 0 0 8px rgba(78, 204, 163, 0.5); }
+        .dot.unhealthy { background: #ef5350; box-shadow: 0 0 8px rgba(239, 83, 80, 0.5); }
+        .dot.checking  { background: #f0b90b; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50%      { opacity: 0.4; }
+        }
+
+        .service-name { font-size: 0.95rem; font-weight: 500; }
+
+        .service-meta {
+            text-align: right;
+            font-size: 0.8rem;
+            color: #8b95a5;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-ok      { background: rgba(78, 204, 163, 0.15); color: #4ecca3; }
+        .badge-fail    { background: rgba(239, 83, 80, 0.15); color: #ef5350; }
+        .badge-pending { background: rgba(240, 185, 11, 0.15); color: #f0b90b; }
+
+        /* -- Stats grid -- */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 1rem 0.5rem;
+            background: #1a1a2e;
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #4ecca3;
+        }
+        .stat-value.danger { color: #ef5350; }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #8b95a5;
+            margin-top: 0.25rem;
+        }
+
+        /* -- Log -- */
+        .log {
+            max-height: 180px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.75rem;
+            line-height: 1.6;
+            color: #8b95a5;
+        }
+        .log .ok   { color: #4ecca3; }
+        .log .fail { color: #ef5350; }
+
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.75rem;
+            color: #5c6578;
+        }
+        footer a { color: #4ecca3; text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+
+        /* -- Countdown bar -- */
+        .refresh-bar {
+            height: 3px;
+            background: #2a2e39;
+            border-radius: 2px;
+            margin-top: 1.5rem;
+            overflow: hidden;
+        }
+        .refresh-bar-fill {
+            height: 100%;
+            background: #4ecca3;
+            width: 100%;
+            transition: width 1s linear;
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 1rem 0.5rem; }
+            .card { padding: 1rem; }
+            .stat-value { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AlphaBreak Status</h1>
+            <p>System health overview &mdash; auto-refreshes every 30s</p>
+        </header>
+
+        <!-- Services -->
+        <div class="card">
+            <div class="card-title">Services</div>
+            <div id="services">
+                <div class="service" id="svc-health">
+                    <div class="service-left">
+                        <span class="dot checking"></span>
+                        <span class="service-name">API Health</span>
+                    </div>
+                    <div class="service-meta">
+                        <span class="badge badge-pending">Checking</span>
+                    </div>
+                </div>
+                <div class="service" id="svc-ready">
+                    <div class="service-left">
+                        <span class="dot checking"></span>
+                        <span class="service-name">API Ready</span>
+                    </div>
+                    <div class="service-meta">
+                        <span class="badge badge-pending">Checking</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="card">
+            <div class="card-title">Statistics</div>
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-value" id="uptime-pct">--</div>
+                    <div class="stat-label">Uptime</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="resp-time">--</div>
+                    <div class="stat-label">Response (ms)</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="total-checks">0</div>
+                    <div class="stat-label">Total Checks</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="last-check">--</div>
+                    <div class="stat-label">Last Check</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent log -->
+        <div class="card">
+            <div class="card-title">Recent Checks</div>
+            <div class="log" id="log"></div>
+        </div>
+
+        <div class="refresh-bar"><div class="refresh-bar-fill" id="refresh-bar"></div></div>
+
+        <footer>
+            <a href="/">Back to AlphaBreak</a> &middot; Powered by self-hosted monitoring
+        </footer>
+    </div>
+
+    <script>
+    (function () {
+        'use strict';
+
+        var REFRESH_INTERVAL = 30; // seconds
+        var STORAGE_KEY      = 'ab_health_stats';
+        var MAX_LOG_ENTRIES   = 50;
+
+        // ── State from localStorage ──
+        function loadState() {
+            try {
+                var raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) return JSON.parse(raw);
+            } catch (e) { /* ignore */ }
+            return { totalChecks: 0, healthyChecks: 0, log: [] };
+        }
+
+        function saveState(s) {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch (e) { /* ignore */ }
+        }
+
+        var state = loadState();
+
+        // ── DOM helpers ──
+        function $(id) { return document.getElementById(id); }
+
+        function updateService(id, ok, ms) {
+            var row   = $(id);
+            var dot   = row.querySelector('.dot');
+            var badge = row.querySelector('.badge');
+            dot.className   = 'dot ' + (ok ? 'healthy' : 'unhealthy');
+            badge.className = 'badge ' + (ok ? 'badge-ok' : 'badge-fail');
+            badge.textContent = ok ? ('OK ' + ms + ' ms') : 'Down';
+        }
+
+        function renderStats() {
+            var pct = state.totalChecks > 0
+                ? ((state.healthyChecks / state.totalChecks) * 100).toFixed(2)
+                : '--';
+            $('uptime-pct').textContent = pct === '--' ? pct : pct + '%';
+            if (pct !== '--') {
+                $('uptime-pct').className = 'stat-value' + (parseFloat(pct) < 99 ? ' danger' : '');
+            }
+            $('total-checks').textContent = state.totalChecks;
+        }
+
+        function renderLog() {
+            var el = $('log');
+            el.innerHTML = '';
+            var entries = state.log.slice().reverse();
+            for (var i = 0; i < entries.length; i++) {
+                var e = entries[i];
+                var cls = e.ok ? 'ok' : 'fail';
+                var line = document.createElement('div');
+                line.innerHTML = '<span class="' + cls + '">' +
+                    (e.ok ? 'OK' : 'FAIL') + '</span> ' +
+                    e.time + ' &mdash; ' + e.endpoint + ' (' + e.ms + ' ms)';
+                el.appendChild(line);
+            }
+        }
+
+        // ── Health check ──
+        function checkEndpoint(path) {
+            return new Promise(function (resolve) {
+                var start = performance.now();
+                var xhr   = new XMLHttpRequest();
+                xhr.open('GET', path, true);
+                xhr.timeout = 10000;
+                xhr.onload = function () {
+                    var ms = Math.round(performance.now() - start);
+                    resolve({ ok: xhr.status === 200, ms: ms });
+                };
+                xhr.onerror = xhr.ontimeout = function () {
+                    var ms = Math.round(performance.now() - start);
+                    resolve({ ok: false, ms: ms });
+                };
+                xhr.send();
+            });
+        }
+
+        function now() {
+            var d = new Date();
+            return d.toLocaleTimeString();
+        }
+
+        function runChecks() {
+            Promise.all([
+                checkEndpoint('/api/health'),
+                checkEndpoint('/api/ready')
+            ]).then(function (results) {
+                var health = results[0];
+                var ready  = results[1];
+                var allOk  = health.ok && ready.ok;
+
+                updateService('svc-health', health.ok, health.ms);
+                updateService('svc-ready',  ready.ok,  ready.ms);
+
+                $('resp-time').textContent = health.ms;
+                $('last-check').textContent = now();
+
+                state.totalChecks++;
+                if (allOk) state.healthyChecks++;
+
+                state.log.push({ time: now(), endpoint: '/api/health', ok: health.ok, ms: health.ms });
+                state.log.push({ time: now(), endpoint: '/api/ready',  ok: ready.ok,  ms: ready.ms });
+                if (state.log.length > MAX_LOG_ENTRIES) {
+                    state.log = state.log.slice(-MAX_LOG_ENTRIES);
+                }
+
+                renderStats();
+                renderLog();
+                saveState(state);
+            });
+        }
+
+        // ── Refresh countdown bar ──
+        var countdown = REFRESH_INTERVAL;
+        function tickBar() {
+            countdown--;
+            if (countdown <= 0) {
+                countdown = REFRESH_INTERVAL;
+                runChecks();
+            }
+            var pct = ((countdown / REFRESH_INTERVAL) * 100).toFixed(1);
+            $('refresh-bar').style.width = pct + '%';
+        }
+
+        // ── Init ──
+        renderStats();
+        renderLog();
+        runChecks();
+        setInterval(tickBar, 1000);
+    })();
+    </script>
+</body>
+</html>

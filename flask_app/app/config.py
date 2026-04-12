@@ -57,6 +57,9 @@ class Config:
     # Forex data source: 'yfinance', 'fred', 'database'
     FOREX_DATA_SOURCE = os.environ.get('FOREX_DATA_SOURCE', 'yfinance')
 
+    # Redis (used by SocketIO message queue, caching, rate limiting)
+    REDIS_URL = os.environ.get('REDIS_URL', None)
+
     # Notifications (AWS SES)
     SES_FROM_EMAIL = os.environ.get('SES_FROM_EMAIL', 'noreply@alphabreak.vip')
     SES_REGION = os.environ.get('AWS_SES_REGION', 'us-east-1')
@@ -78,6 +81,9 @@ class ProductionConfig(Config):
     TESTING = False
 
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'https://alphabreak.vip,https://www.alphabreak.vip').split(',')
+
+    # Redis URL for production (SocketIO message queue, caching, rate limiting)
+    REDIS_URL = os.environ.get('REDIS_URL') or 'redis://redis:6379/0'
 
     # Use Redis for caching in production
     CACHE_TYPE = 'RedisCache'

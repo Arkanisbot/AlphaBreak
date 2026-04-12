@@ -6562,6 +6562,61 @@ a.auth-user-name:hover {
     font-size: 13px;
 }
 
+/* Journal Annotations */
+.journal-annotations {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-color, #2a2a4a);
+    margin-bottom: 4px;
+}
+
+.journal-annotations h4 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    color: var(--text-muted, #888);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.annotation-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.annotation-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.annotation-bull {
+    background: rgba(0, 212, 170, 0.15);
+    color: #00d4aa;
+    border: 1px solid rgba(0, 212, 170, 0.3);
+}
+
+.annotation-bear {
+    background: rgba(255, 107, 107, 0.15);
+    color: #ff6b6b;
+    border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+.annotation-range {
+    background: rgba(160, 160, 180, 0.15);
+    color: #a0a0b4;
+    border: 1px solid rgba(160, 160, 180, 0.3);
+}
+
+.annotation-neutral {
+    background: rgba(140, 140, 160, 0.1);
+    color: #8c8ca0;
+    border: 1px solid rgba(140, 140, 160, 0.25);
+}
+
 /* Journal Detail Modal */
 .journal-detail-modal { max-width: 700px; }
 
@@ -8206,3 +8261,140 @@ body.chart-fullscreen-active { overflow: hidden; }
 .tp-level-row strong { color: var(--text-primary); }
 .tp-level-row strong.positive { color: #26a69a; }
 .tp-level-row strong.negative { color: #ef5350; }
+
+/* ── Multi-Chart Layout (Pro) ────────────────────────────────────────── */
+.multi-chart-wrapper { margin-top: 4px; }
+
+.multi-chart-toolbar {
+    display: flex; gap: 8px; margin-bottom: 8px; align-items: center;
+}
+.multi-chart-add-btn,
+.multi-chart-remove-btn {
+    padding: 4px 12px; font-size: 11px; font-weight: 600;
+    background: var(--bg-surface); color: var(--text-secondary);
+    border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;
+    transition: all 0.15s;
+}
+.multi-chart-add-btn:hover:not(:disabled),
+.multi-chart-remove-btn:hover:not(:disabled) {
+    color: var(--text-primary); border-color: var(--border-light);
+}
+.multi-chart-add-btn:disabled,
+.multi-chart-remove-btn:disabled {
+    opacity: 0.4; cursor: not-allowed;
+}
+
+.multi-chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    width: 100%;
+}
+
+.multi-chart-cell {
+    background: #131722;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    min-height: 250px;
+    display: flex;
+    flex-direction: column;
+}
+
+.multi-chart-cell-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    background: rgba(19, 23, 34, 0.9);
+    border-bottom: 1px solid rgba(42, 46, 57, 0.5);
+    flex-wrap: wrap;
+}
+
+.multi-chart-ticker-input {
+    width: 70px;
+    padding: 3px 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-primary);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.multi-chart-ticker-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.multi-chart-periods {
+    display: flex;
+    gap: 2px;
+    margin-left: auto;
+}
+.multi-chart-periods button {
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid transparent;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.multi-chart-periods button:hover {
+    color: var(--text-primary);
+    background: rgba(42, 46, 57, 0.5);
+}
+.multi-chart-periods button.active {
+    background: var(--primary-muted);
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.multi-chart-inner {
+    flex: 1;
+    min-height: 220px;
+}
+
+/* Multi-chart toggle button */
+.multi-chart-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.15s;
+}
+.multi-chart-toggle-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--border-light);
+}
+.multi-chart-toggle-btn.active {
+    background: var(--primary-muted);
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+.multi-chart-toggle-btn svg {
+    width: 14px; height: 14px;
+}
+
+/* Responsive: stack on mobile */
+@media (max-width: 768px) {
+    .multi-chart-grid {
+        grid-template-columns: 1fr;
+    }
+    .multi-chart-cell {
+        min-height: 280px;
+    }
+    .multi-chart-cell-header {
+        flex-wrap: wrap;
+    }
+}
