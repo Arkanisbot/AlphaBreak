@@ -1,0 +1,17 @@
+# Auto-normalize line endings to LF on commit
+* text=auto eol=lf
+
+# Windows-specific files stay CRLF
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.pkl binary
+*.h5 binary
+*.csv binary
