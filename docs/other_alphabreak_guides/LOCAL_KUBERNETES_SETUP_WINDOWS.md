@@ -116,7 +116,7 @@ choco install kubernetes-cli
 
 **Navigate to your project:**
 ```powershell
-cd C:\Users\nicho\OneDrive\Desktop\code\Securities_prediction_model
+cd C:\Users\nicho\OneDrive\Desktop\code\AlphaBreak
 ```
 
 **Verify you have these directories:**

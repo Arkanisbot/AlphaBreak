@@ -14,8 +14,8 @@ This guide walks you through setting up the project on a fresh machine. No AI as
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/SophistryDude/Securities_prediction_model.git
-cd Securities_prediction_model
+git clone https://github.com/SophistryDude/AlphaBreak.git
+cd AlphaBreak
 ```
 
 ### 2. Connect to EC2
@@ -134,8 +134,8 @@ Run with: `bash deploy.sh`
 ## Clone the Repository
 
 ```bash
-git clone https://github.com/SophistryDude/Securities_prediction_model.git
-cd Securities_prediction_model
+git clone https://github.com/SophistryDude/AlphaBreak.git
+cd AlphaBreak
 ```
 
 ---
@@ -596,7 +596,7 @@ lsof -i :5000                  # macOS/Linux
 ### Project Structure
 
 ```
-Securities_prediction_model/
+AlphaBreak/
 ├── frontend/           # Static HTML/JS frontend
 │   ├── index.html
 │   ├── app.js          # Main app (CONFIG.API_BASE_URL here)
@@ -761,5 +761,5 @@ Some ISPs (Comcast, Cox) block outbound port 22. Solutions:
 ## Support
 
 For issues or questions:
-- GitHub Issues: https://github.com/SophistryDude/Securities_prediction_model/issues
+- GitHub Issues: https://github.com/SophistryDude/AlphaBreak/issues
 - See also: [COMPLETED_FEATURES.md](../COMPLETED_FEATURES.md) for production feature documentation

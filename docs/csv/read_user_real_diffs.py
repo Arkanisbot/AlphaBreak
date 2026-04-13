@@ -2,11 +2,11 @@
 import openpyxl
 
 user_wb = openpyxl.load_workbook(
-    r"c:\Users\nicho\OneDrive\Documents\GitHub\data-acq-functional-SophistryDude\Securities_prediction_model\docs\csv\competitive_feature_matrix_user_input.xlsx",
+    r"c:\Users\nicho\OneDrive\Documents\GitHub\data-acq-functional-SophistryDude\AlphaBreak\docs\csv\competitive_feature_matrix_user_input.xlsx",
     data_only=True
 )
 orig_wb = openpyxl.load_workbook(
-    r"c:\Users\nicho\OneDrive\Documents\GitHub\data-acq-functional-SophistryDude\Securities_prediction_model\docs\csv\competitive_feature_matrix.xlsx",
+    r"c:\Users\nicho\OneDrive\Documents\GitHub\data-acq-functional-SophistryDude\AlphaBreak\docs\csv\competitive_feature_matrix.xlsx",
     data_only=True
 )
 

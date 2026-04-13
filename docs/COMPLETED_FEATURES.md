@@ -654,7 +654,7 @@ generate_report (aggregate statistics)
 **Deployment Commands**:
 ```bash
 # SSH Access
-ssh -i "Securities_prediction_model/docs/security/trading-db-key.pem" ubuntu@3.140.78.15
+ssh -i "AlphaBreak/docs/security/trading-db-key.pem" ubuntu@3.140.78.15
 
 # Deploy Frontend
 scp -i "docs/security/trading-db-key.pem" frontend/* ubuntu@3.140.78.15:/home/ubuntu/frontend/

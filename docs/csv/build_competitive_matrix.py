@@ -270,6 +270,6 @@ for row_idx, (label, desc, fill) in enumerate(legend_items, 1):
         a.fill = fill
         a.font = Font(name="Calibri", size=11, color="FFFFFF" if label == "Red" else "000000")
 
-output = r"c:\Users\nicho\OneDrive\Documents\GitHub\data-acq-functional-SophistryDude\Securities_prediction_model\docs\csv\competitive_feature_matrix.xlsx"
+output = r"c:\Users\nicho\OneDrive\Documents\GitHub\data-acq-functional-SophistryDude\AlphaBreak\docs\csv\competitive_feature_matrix.xlsx"
 wb.save(output)
 print(f"Saved to {output}")

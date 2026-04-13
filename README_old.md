@@ -31,7 +31,7 @@ This application analyzes securities to predict trend breaks and identify mispri
 ## Architecture
 
 ```
-Securities_prediction_model/
+AlphaBreak/
 ├── src/                          # Python analysis modules
 │   ├── data_fetcher.py           # Stock data retrieval (yfinance)
 │   ├── technical_indicators.py   # 25+ indicators using pandas_ta

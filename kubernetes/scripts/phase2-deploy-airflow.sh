@@ -15,7 +15,7 @@
 
 set -e  # Exit on any error
 
-REPO_DIR="/home/ubuntu/Securities_prediction_model"
+REPO_DIR="/home/ubuntu/AlphaBreak"
 K0S="sudo k0s kubectl"
 NS="trading-system"
 
@@ -27,9 +27,9 @@ echo "============================================"
 echo ""
 echo "[1/7] Building airflow-trading Docker image..."
 cd /home/ubuntu
-sudo docker build -f Securities_prediction_model/Dockerfile.airflow \
+sudo docker build -f AlphaBreak/Dockerfile.airflow \
     -t airflow-trading:latest \
-    Securities_prediction_model/
+    AlphaBreak/
 echo "  Build complete."
 
 # ── Step 2: Import image into k0s containerd ─────────────────────────────────

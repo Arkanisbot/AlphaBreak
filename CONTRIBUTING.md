@@ -57,7 +57,7 @@ Before contributing, ensure you have:
 # Fork the repository on GitHub
 # Then clone your fork
 git clone https://github.com/YOUR_USERNAME/data-acq-functional-SophistryDude.git
-cd data-acq-functional-SophistryDude/Securities_prediction_model
+cd data-acq-functional-SophistryDude/AlphaBreak
 
 # Add upstream remote
 git remote add upstream https://github.com/SophistryDude/data-acq-functional-SophistryDude.git

@@ -203,7 +203,7 @@ A comprehensive trading analysis platform with:
 ## File Structure
 
 ```
-Securities_prediction_model/
+AlphaBreak/
 ├── flask_app/              # Backend API
 │   ├── app/
 │   │   ├── routes/
@@ -235,7 +235,7 @@ Securities_prediction_model/
 
 ### Connection
 ```bash
-ssh -i "Securities_prediction_model/docs/other/security/trading-db-key.pem" ubuntu@3.140.78.15
+ssh -i "AlphaBreak/docs/other/security/trading-db-key.pem" ubuntu@3.140.78.15
 ```
 
 **Note**: Port 22 may be blocked on some home/corporate networks. Use mobile hotspot if connection times out.

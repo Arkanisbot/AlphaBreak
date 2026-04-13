@@ -8,7 +8,7 @@
 #
 # Install (cron every 5 minutes):
 #   crontab -e
-#   */5 * * * * /home/ubuntu/Securities_prediction_model/kubernetes/scripts/health-check.sh
+#   */5 * * * * /home/ubuntu/AlphaBreak/kubernetes/scripts/health-check.sh
 #
 # Optional environment variables:
 #   SLACK_WEBHOOK_URL   — Slack incoming webhook URL for failure alerts

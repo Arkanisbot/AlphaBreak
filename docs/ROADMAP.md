@@ -443,7 +443,7 @@ Everything below is required to serve hundreds of thousands to millions of users
 - ✅ **Auth resilience** — Network errors / 502s during token validation no longer clear session. Only explicit 401/403 from server triggers logout.
 - ✅ **NaN JSON fix** — Custom SafeJSONProvider converts Python NaN/Infinity to null, preventing invalid JSON responses
 - ✅ **Hidden chart rendering fix** — Sentiment chart defers rendering when container is hidden (landing page), re-renders on login
-- ✅ **Deployment path fix** — Corrected frontend deploy target from ~/frontend/ to ~/Securities_prediction_model/frontend/ (nginx root)
+- ✅ **Deployment path fix** — Corrected frontend deploy target from ~/frontend/ to ~/AlphaBreak/frontend/ (nginx root)
 - ✅ **Cache busting** — Version-bumped all JS/CSS script tags to force browser cache refresh
 
 ### v4.3 (April 8, 2026) — Pro Features + New Analytics + Launch Prep

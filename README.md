@@ -132,11 +132,11 @@ PEM="docs/other/security/trading-db-key.pem"
 
 # Frontend (zero downtime — nginx serves from repo clone):
 git push
-ssh -i "$PEM" ubuntu@3.140.78.15 "cd ~/Securities_prediction_model && git pull"
+ssh -i "$PEM" ubuntu@3.140.78.15 "cd ~/AlphaBreak && git pull"
 
 # Backend (rebuild Docker + restart pods):
 git push
-ssh -i "$PEM" ubuntu@3.140.78.15 "cd ~/Securities_prediction_model && git pull && sudo docker build -f flask_app/Dockerfile -t trading-api:latest . && sudo docker save trading-api:latest | sudo k0s ctr images import - && sudo docker system prune -af && sudo k0s kubectl delete pods -n trading-system -l app=trading-api --force"
+ssh -i "$PEM" ubuntu@3.140.78.15 "cd ~/AlphaBreak && git pull && sudo docker build -f flask_app/Dockerfile -t trading-api:latest . && sudo docker save trading-api:latest | sudo k0s ctr images import - && sudo docker system prune -af && sudo k0s kubectl delete pods -n trading-system -l app=trading-api --force"
 ```
 
 ## What's Built (Free Tier)

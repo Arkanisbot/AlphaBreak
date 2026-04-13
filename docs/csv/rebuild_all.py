@@ -2,7 +2,7 @@
 import subprocess, sys, os
 
 PY = r"c:\Users\nicho\AppData\Local\Programs\Python\Python3127\python.exe"
-DIR = r"c:\Users\nicho\OneDrive\Documents\GitHub\data-acq-functional-SophistryDude\Securities_prediction_model\docs\csv"
+DIR = r"c:\Users\nicho\OneDrive\Documents\GitHub\data-acq-functional-SophistryDude\AlphaBreak\docs\csv"
 
 scripts = [
     "build_competitive_matrix.py",

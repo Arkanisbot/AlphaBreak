@@ -326,7 +326,7 @@ Merge Hotfix to main
 
 2. **Restore Previous Version**:
    ```bash
-   cd ~/repo/Securities_prediction_model
+   cd ~/repo/AlphaBreak
    git checkout v1.0.0
    cp -r frontend/* ~/frontend/
    cp -r flask_app/* ~/flask_app/

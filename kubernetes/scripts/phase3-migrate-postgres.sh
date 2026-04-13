@@ -20,7 +20,7 @@
 
 set -e
 
-REPO_DIR="/home/ubuntu/Securities_prediction_model"
+REPO_DIR="/home/ubuntu/AlphaBreak"
 K0S="sudo k0s kubectl"
 NS="trading-system"
 DUMP_FILE="/tmp/trading_data.dump"

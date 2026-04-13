@@ -184,7 +184,7 @@ git checkout main  # Use main branch for production
 
 ```bash
 # Copy frontend files
-cp -r Securities_prediction_model/frontend/* ~/frontend/
+cp -r AlphaBreak/frontend/* ~/frontend/
 
 # Configure Nginx
 sudo tee /etc/nginx/sites-available/frontend <<EOF
@@ -219,7 +219,7 @@ sudo systemctl enable nginx
 
 ```bash
 # Copy Flask app
-cp -r Securities_prediction_model/flask_app/* ~/flask_app/
+cp -r AlphaBreak/flask_app/* ~/flask_app/
 
 # Create virtual environment
 cd ~/flask_app
@@ -436,7 +436,7 @@ sudo journalctl -u airflow-webserver -f
 
 ```bash
 # Copy DAGs from repository
-cp ~/repo/Securities_prediction_model/dags/* ~/dags/
+cp ~/repo/AlphaBreak/dags/* ~/dags/
 
 # Verify DAG syntax
 cd ~/airflow
@@ -475,7 +475,7 @@ sudo -u postgres psql -d trading_data -c "CREATE EXTENSION IF NOT EXISTS timesca
 
 ```bash
 # Copy schema files
-cp ~/repo/Securities_prediction_model/kubernetes/*.sql ~/
+cp ~/repo/AlphaBreak/kubernetes/*.sql ~/
 
 # Apply schemas
 psql -U trading -d trading_data -h 127.0.0.1 -f ~/schema_v2_intraday.sql
@@ -735,7 +735,7 @@ pg_restore -U trading -h 127.0.0.1 -d trading_data -t portfolio_holdings portfol
 # All code is in Git - no manual backups needed
 # Ensure all changes are committed and pushed
 
-cd ~/repo/Securities_prediction_model
+cd ~/repo/AlphaBreak
 git status
 git add .
 git commit -m "Production changes"
@@ -929,7 +929,7 @@ EOF
 ssh -i docs/security/trading-db-key.pem ubuntu@3.140.78.15
 
 # Rollback to previous commit
-cd ~/repo/Securities_prediction_model
+cd ~/repo/AlphaBreak
 git log  # Find commit hash
 git checkout <previous-commit-hash>
 

@@ -15,7 +15,7 @@
 
 set -e  # Exit on any error
 
-REPO_DIR="/home/ubuntu/Securities_prediction_model"
+REPO_DIR="/home/ubuntu/AlphaBreak"
 K0S="sudo k0s kubectl"
 NS="trading-system"
 

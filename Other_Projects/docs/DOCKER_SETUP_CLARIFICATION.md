@@ -268,7 +268,7 @@ kubectl cluster-info
 
 ### Step 5: Deploy your trading system
 ```powershell
-cd C:\Users\nicho\OneDrive\Desktop\code\Securities_prediction_model
+cd C:\Users\nicho\OneDrive\Desktop\code\AlphaBreak
 docker build -t trading-api:latest .
 kubectl apply -f kubernetes/
 ```
@@ -307,7 +307,7 @@ kubectl get nodes
 
 ### Deploy your trading system
 ```powershell
-cd C:\Users\nicho\OneDrive\Desktop\code\Securities_prediction_model
+cd C:\Users\nicho\OneDrive\Desktop\code\AlphaBreak
 
 # Build and load image into minikube
 docker build -t trading-api:latest .

@@ -56,7 +56,7 @@ sudo k0s kubectl get nodes
 # ── Step 3: Create namespace ─────────────────────────────────────────────────
 echo ""
 echo "[3/5] Creating trading-system namespace..."
-REPO_DIR="/home/ubuntu/Securities_prediction_model"
+REPO_DIR="/home/ubuntu/AlphaBreak"
 sudo k0s kubectl apply -f $REPO_DIR/kubernetes/namespace.yaml
 echo "  Namespace created."
 

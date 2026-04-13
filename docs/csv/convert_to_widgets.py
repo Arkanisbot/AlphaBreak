@@ -13,7 +13,7 @@ This script reads the HTML, processes it with regex, and writes the result.
 import re
 import sys
 
-INPUT = r"c:\Users\nicho\OneDrive\Documents\GitHub\data-acq-functional-SophistryDude\Securities_prediction_model\frontend\index.html"
+INPUT = r"c:\Users\nicho\OneDrive\Documents\GitHub\data-acq-functional-SophistryDude\AlphaBreak\frontend\index.html"
 
 with open(INPUT, 'r', encoding='utf-8') as f:
     html = f.read()
