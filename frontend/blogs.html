@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog — AlphaBreak | Trading Mental Models for Serious Retail Traders</title>
+    <meta name="description" content="In-depth trading education articles for beginner-to-intermediate traders. Risk management, psychology, technical analysis, and the structural reasons behind market behavior.">
+    <link rel="stylesheet" href="styles.css?v=1">
+    <style>
+        body {
+            background: #0f0f1e;
+            color: #e0e0e0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            line-height: 1.6;
+        }
+        .blog-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .blog-header {
+            text-align: center;
+            margin-bottom: 60px;
+            padding-bottom: 40px;
+            border-bottom: 1px solid #2a2a3e;
+        }
+        .blog-header h1 {
+            font-size: 2.5em;
+            margin: 0 0 16px 0;
+            color: #fff;
+        }
+        .blog-header h1 .alpha { color: #4ecca3; }
+        .blog-header h1 .break { color: #fff; }
+        .blog-header .tagline {
+            font-size: 1.2em;
+            color: #a0a0b0;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #4ecca3;
+            text-decoration: none;
+            font-size: 0.95em;
+        }
+        .back-link:hover { text-decoration: underline; }
+
+        .blog-section {
+            margin-bottom: 60px;
+        }
+        .section-title {
+            font-size: 1.5em;
+            color: #4ecca3;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #2a2a3e;
+        }
+        .section-subtitle {
+            color: #a0a0b0;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+        .article-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+        }
+        .article-card {
+            background: #1a1a2e;
+            border: 1px solid #2a2a3e;
+            border-radius: 8px;
+            padding: 24px;
+            transition: all 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+        }
+        .article-card:hover {
+            border-color: #4ecca3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(78, 204, 163, 0.1);
+        }
+        .article-number {
+            color: #4ecca3;
+            font-size: 0.85em;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .article-title {
+            font-size: 1.15em;
+            color: #fff;
+            margin: 0 0 12px 0;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+        .article-summary {
+            color: #a0a0b0;
+            font-size: 0.9em;
+            margin: 0 0 16px 0;
+            flex-grow: 1;
+        }
+        .article-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            color: #6a6a7e;
+            border-top: 1px solid #2a2a3e;
+            padding-top: 12px;
+            margin-top: auto;
+        }
+        .read-time {
+            color: #6a6a7e;
+        }
+        .read-more {
+            color: #4ecca3;
+        }
+        .blog-footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 40px;
+            border-top: 1px solid #2a2a3e;
+            color: #6a6a7e;
+            font-size: 0.9em;
+        }
+        .blog-footer a {
+            color: #4ecca3;
+            text-decoration: none;
+        }
+        .blog-footer a:hover { text-decoration: underline; }
+        .cta-banner {
+            background: linear-gradient(135deg, #1a1a2e, #252540);
+            border: 1px solid #4ecca3;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin: 40px 0;
+        }
+        .cta-banner h3 {
+            color: #fff;
+            margin: 0 0 10px 0;
+        }
+        .cta-banner p {
+            color: #a0a0b0;
+            margin: 0 0 20px 0;
+        }
+        .cta-button {
+            display: inline-block;
+            background: #4ecca3;
+            color: #0f0f1e;
+            padding: 12px 28px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .cta-button:hover {
+            background: #5fdcb3;
+            transform: translateY(-1px);
+        }
+        @media (max-width: 600px) {
+            .blog-header h1 { font-size: 1.8em; }
+            .article-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="blog-container">
+        <a href="/" class="back-link">← Back to AlphaBreak</a>
+
+        <header class="blog-header">
+            <h1><span class="alpha">Alpha</span><span class="break">Break</span> Blog</h1>
+            <p class="tagline">Trading mental models for serious retail traders. In-depth, honest, and built on the constraints that actually matter.</p>
+        </header>
+
+        <!-- Section 1: Foundations -->
+        <section class="blog-section">
+            <h2 class="section-title">Foundations</h2>
+            <p class="section-subtitle">Start here. The core mental models every trader needs.</p>
+            <div class="article-grid">
+                <a class="article-card" href="/blogs/01-why-most-new-traders-lose-money">
+                    <div class="article-number">ARTICLE 01</div>
+                    <h3 class="article-title">Why Most New Traders Lose Money (And How to Not Be One of Them)</h3>
+                    <p class="article-summary">The structural reasons behind the 70-90% failure rate — and the specific counter-measures professionals use.</p>
+                    <div class="article-meta">
+                        <span class="read-time">16 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+                <a class="article-card" href="/blogs/02-risk-management">
+                    <div class="article-number">ARTICLE 02</div>
+                    <h3 class="article-title">Risk Management: The One Skill That Separates Survivors from Blow-Ups</h3>
+                    <p class="article-summary">Position sizing, stop losses, the math of ruin, and the 1-2% rule explained from first principles.</p>
+                    <div class="article-meta">
+                        <span class="read-time">18 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+                <a class="article-card" href="/blogs/03-how-to-read-a-chart">
+                    <div class="article-number">ARTICLE 03</div>
+                    <h3 class="article-title">How to Read a Chart Without Getting Overwhelmed</h3>
+                    <p class="article-summary">Candlesticks, volume, support and resistance, and the information overload trap that destroys beginners.</p>
+                    <div class="article-meta">
+                        <span class="read-time">15 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+                <a class="article-card" href="/blogs/04-what-moves-stock-prices">
+                    <div class="article-number">ARTICLE 04</div>
+                    <h3 class="article-title">The Only Three Things That Actually Move Stock Prices</h3>
+                    <p class="article-summary">Supply/demand, new information, and sentiment — the underlying forces beneath every price move.</p>
+                    <div class="article-meta">
+                        <span class="read-time">13 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+                <a class="article-card" href="/blogs/05-technical-vs-fundamental">
+                    <div class="article-number">ARTICLE 05</div>
+                    <h3 class="article-title">Technical vs Fundamental Analysis: Which One Should You Use?</h3>
+                    <p class="article-summary">The false dichotomy explained. When to use each, how to combine them, and the time-horizon connection.</p>
+                    <div class="article-meta">
+                        <span class="read-time">15 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- Section 2: Psychology -->
+        <section class="blog-section">
+            <h2 class="section-title">Psychology &amp; Common Pitfalls</h2>
+            <p class="section-subtitle">Why your brain is wired against you — and how to build systems that work anyway.</p>
+            <div class="article-grid">
+                <a class="article-card" href="/blogs/06-emotions-trading-enemy">
+                    <div class="article-number">ARTICLE 06</div>
+                    <h3 class="article-title">Why Your Emotions Are Your Biggest Trading Enemy (And How to Control Them)</h3>
+                    <p class="article-summary">FOMO, revenge trading, loss aversion, and the pre-commitment strategies that prevent emotional execution.</p>
+                    <div class="article-meta">
+                        <span class="read-time">18 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+                <a class="article-card" href="/blogs/07-illusion-of-control">
+                    <div class="article-number">ARTICLE 07</div>
+                    <h3 class="article-title">The Illusion of Control: Why "Feeling It" Is Usually Wrong</h3>
+                    <p class="article-summary">Overconfidence, distinguishing skill from luck, and the systematic antidotes to cognitive bias.</p>
+                    <div class="article-meta">
+                        <span class="read-time">13 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+                <a class="article-card" href="/blogs/08-handling-losing-streaks">
+                    <div class="article-number">ARTICLE 08</div>
+                    <h3 class="article-title">How to Handle Losing Streaks Without Quitting</h3>
+                    <p class="article-summary">Variance vs system failure, the emotional progression of drawdowns, and survival protocols.</p>
+                    <div class="article-meta">
+                        <span class="read-time">14 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- CTA Banner -->
+        <div class="cta-banner">
+            <h3>Apply These Concepts in Real Time</h3>
+            <p>AlphaBreak provides AI-scored trade analysis, automatic risk calculations, and structured journaling — built around the principles in these articles.</p>
+            <a href="/" class="cta-button">Try AlphaBreak Free →</a>
+        </div>
+
+        <!-- Section 3: Strategy -->
+        <section class="blog-section">
+            <h2 class="section-title">Strategy &amp; Execution</h2>
+            <p class="section-subtitle">Building a system you can actually execute under pressure.</p>
+            <div class="article-grid">
+                <a class="article-card" href="/blogs/09-first-trading-plan">
+                    <div class="article-number">ARTICLE 09</div>
+                    <h3 class="article-title">How to Build Your First Trading Plan (Template Included)</h3>
+                    <p class="article-summary">The seven components of a complete plan, with examples and a downloadable template.</p>
+                    <div class="article-meta">
+                        <span class="read-time">18 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+                <a class="article-card" href="/blogs/10-power-of-probabilities">
+                    <div class="article-number">ARTICLE 10</div>
+                    <h3 class="article-title">The Power of Probabilities: Thinking in Edge Instead of "Right or Wrong"</h3>
+                    <p class="article-summary">Expected value, the casino analogy, and the reframe that changes everything about trading psychology.</p>
+                    <div class="article-meta">
+                        <span class="read-time">16 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+                <a class="article-card" href="/blogs/11-support-and-resistance">
+                    <div class="article-number">ARTICLE 11</div>
+                    <h3 class="article-title">Support and Resistance: Why Price Respects These Levels (And When It Doesn't)</h3>
+                    <p class="article-summary">Memory, not magic. The structural reasons levels work, and how to recognize when they break.</p>
+                    <div class="article-meta">
+                        <span class="read-time">15 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+                <a class="article-card" href="/blogs/12-volume">
+                    <div class="article-number">ARTICLE 12</div>
+                    <h3 class="article-title">Volume: The Most Underrated Indicator in Trading</h3>
+                    <p class="article-summary">The four price-volume combinations and how to read participation alongside price.</p>
+                    <div class="article-meta">
+                        <span class="read-time">13 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+                <a class="article-card" href="/blogs/13-trend-vs-mean-reversion">
+                    <div class="article-number">ARTICLE 13</div>
+                    <h3 class="article-title">Trend Following vs Mean Reversion: Which Style Fits You?</h3>
+                    <p class="article-summary">Two valid philosophies for two different regimes. Which matches your personality?</p>
+                    <div class="article-meta">
+                        <span class="read-time">15 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- Section 4: Intermediate -->
+        <section class="blog-section">
+            <h2 class="section-title">Intermediate Concepts</h2>
+            <p class="section-subtitle">Bridge to advanced trading with deeper market understanding.</p>
+            <div class="article-grid">
+                <a class="article-card" href="/blogs/14-what-pros-look-for">
+                    <div class="article-number">ARTICLE 14</div>
+                    <h3 class="article-title">What Professional Traders Actually Look for Before Entering a Trade</h3>
+                    <p class="article-summary">The 3-gate framework, confirmation hierarchies, and the pre-trade checklist pros actually use.</p>
+                    <div class="article-meta">
+                        <span class="read-time">15 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+                <a class="article-card" href="/blogs/15-reading-order-flow">
+                    <div class="article-number">ARTICLE 15</div>
+                    <h3 class="article-title">How to Read Order Flow Without a Level 2 Screen</h3>
+                    <p class="article-summary">Price action signatures, dark pool footprints, and unusual options activity for retail traders.</p>
+                    <div class="article-meta">
+                        <span class="read-time">15 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+                <a class="article-card" href="/blogs/16-trading-styles">
+                    <div class="article-number">ARTICLE 16</div>
+                    <h3 class="article-title">The Real Difference Between Day Trading, Swing Trading, and Position Trading</h3>
+                    <p class="article-summary">Honest comparison: capital, time, stress, and the personality fit that determines success.</p>
+                    <div class="article-meta">
+                        <span class="read-time">13 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+                <a class="article-card" href="/blogs/17-why-backtests-lie">
+                    <div class="article-number">ARTICLE 17</div>
+                    <h3 class="article-title">Why Most Backtests Lie (And How to Spot Fake Results)</h3>
+                    <p class="article-summary">Overfitting, survivorship bias, and the walk-forward approach that separates real strategies from noise.</p>
+                    <div class="article-meta">
+                        <span class="read-time">16 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+                <a class="article-card" href="/blogs/18-building-a-watchlist">
+                    <div class="article-number">ARTICLE 18</div>
+                    <h3 class="article-title">Building a Watchlist That Actually Works</h3>
+                    <p class="article-summary">The filtering hierarchy, the rotation principle, and the constraint approach to focus.</p>
+                    <div class="article-meta">
+                        <span class="read-time">13 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+                <a class="article-card" href="/blogs/19-when-to-cut-losses">
+                    <div class="article-number">ARTICLE 19</div>
+                    <h3 class="article-title">When to Cut a Losing Trade (The Psychology and Math)</h3>
+                    <p class="article-summary">Two types of losing trades, the recovery arithmetic, and the rules-based exit framework.</p>
+                    <div class="article-meta">
+                        <span class="read-time">16 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+                <a class="article-card" href="/blogs/20-six-month-roadmap">
+                    <div class="article-number">ARTICLE 20</div>
+                    <h3 class="article-title">From Beginner to Consistent: The 6-Month Roadmap</h3>
+                    <p class="article-summary">A realistic month-by-month progression from zero knowledge to executing a real trading system.</p>
+                    <div class="article-meta">
+                        <span class="read-time">22 min read</span>
+                        <span class="read-more">Read →</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <footer class="blog-footer">
+            <p>All articles are free. No signup required. No paywall.</p>
+            <p style="margin-top: 12px;">© 2026 <a href="/">AlphaBreak</a> — Built for serious retail traders</p>
+        </footer>
+    </div>
+</body>
+</html>
