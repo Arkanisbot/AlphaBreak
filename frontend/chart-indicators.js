@@ -257,6 +257,81 @@ const ChartIndicators = (() => {
         return obv;
     }
 
+    // ── Squeeze Momentum (LazyBear) ─────────────────────────────────────
+    // Squeeze ON  = Bollinger Bands inside Keltner Channels (low volatility)
+    // Squeeze OFF = BB outside KC (volatility expansion → potential breakout)
+    // Histogram shows momentum direction via linear regression of the
+    // (close - mid_of_recent_range) series.
+    function calcSqueezeMomentum(highs, lows, closes, length = 20, mult = 2.0, kcLength = 20, kcMult = 1.5) {
+        const len = closes.length;
+
+        // Bollinger Bands (SMA basis + stdev)
+        const bbBasis = new Array(len).fill(null);
+        const bbDev = new Array(len).fill(null);
+        for (let i = length - 1; i < len; i++) {
+            let sum = 0;
+            for (let j = i - length + 1; j <= i; j++) sum += closes[j];
+            const mean = sum / length;
+            bbBasis[i] = mean;
+            let varSum = 0;
+            for (let j = i - length + 1; j <= i; j++) varSum += (closes[j] - mean) ** 2;
+            bbDev[i] = Math.sqrt(varSum / length);
+        }
+
+        // Keltner Channels (SMA + range-based dev)
+        const kcBasis = new Array(len).fill(null);
+        const kcDev = new Array(len).fill(null);
+        for (let i = kcLength - 1; i < len; i++) {
+            let sumC = 0, sumRange = 0;
+            for (let j = i - kcLength + 1; j <= i; j++) {
+                sumC += closes[j];
+                sumRange += (highs[j] - lows[j]);
+            }
+            kcBasis[i] = sumC / kcLength;
+            kcDev[i] = sumRange / kcLength;
+        }
+
+        // Squeeze state per bar
+        const squeezeOn = new Array(len).fill(false);
+        for (let i = 0; i < len; i++) {
+            if (bbBasis[i] == null || kcBasis[i] == null) continue;
+            const bbU = bbBasis[i] + mult * bbDev[i];
+            const bbL = bbBasis[i] - mult * bbDev[i];
+            const kcU = kcBasis[i] + kcMult * kcDev[i];
+            const kcL = kcBasis[i] - kcMult * kcDev[i];
+            squeezeOn[i] = bbU < kcU && bbL > kcL;
+        }
+
+        // Momentum: linear regression of (close - average of (highest_high, lowest_low, sma)) over `length`.
+        const momentum = new Array(len).fill(null);
+        for (let i = length - 1; i < len; i++) {
+            let hh = -Infinity, ll = Infinity, smaSum = 0;
+            for (let j = i - length + 1; j <= i; j++) {
+                if (highs[j] > hh) hh = highs[j];
+                if (lows[j] < ll) ll = lows[j];
+                smaSum += closes[j];
+            }
+            const sma = smaSum / length;
+            const avg = ((hh + ll) / 2 + sma) / 2;
+            // Linreg slope (last-bar value of best-fit line) of (close - avg) over length bars
+            const ys = [];
+            for (let j = i - length + 1; j <= i; j++) ys.push(closes[j] - avg);
+            const n = ys.length;
+            const xMean = (n - 1) / 2;
+            const yMean = ys.reduce((s, v) => s + v, 0) / n;
+            let num = 0, den = 0;
+            for (let k = 0; k < n; k++) {
+                num += (k - xMean) * (ys[k] - yMean);
+                den += (k - xMean) ** 2;
+            }
+            const slope = den === 0 ? 0 : num / den;
+            const intercept = yMean - slope * xMean;
+            momentum[i] = intercept + slope * (n - 1);
+        }
+
+        return { momentum, squeezeOn };
+    }
+
     // ── Ichimoku Cloud ──────────────────────────────────────────────────
     // Returns tenkan (9), kijun (26), senkouA & senkouB shifted forward 26, chikou shifted back 26.
     // We don't render the forward shift visually (would require projecting future time slots);
@@ -667,6 +742,76 @@ const ChartIndicators = (() => {
         return { pane, series };
     }
 
+    // ── Render Squeeze Momentum Pane ────────────────────────────────────
+
+    function renderSqueezeMomentum(containerId, chartData, mainChart) {
+        const container = document.getElementById(containerId);
+        if (!container || !chartData?.length) return null;
+
+        const highs = chartData.map(d => d.high);
+        const lows = chartData.map(d => d.low);
+        const closes = chartData.map(d => d.close);
+        const { momentum, squeezeOn } = calcSqueezeMomentum(highs, lows, closes);
+
+        const pane = _createPane(container, 110, 'SQUEEZE MOMENTUM');
+
+        // Histogram for momentum
+        const histSeries = pane.chart.addHistogramSeries({
+            priceFormat: { type: 'price', precision: 4, minMove: 0.0001 },
+            priceScaleId: '',
+        });
+
+        // Squeeze state markers as a thin line at zero (color = state)
+        const stateSeries = pane.chart.addLineSeries({
+            color: COLORS.textColor,
+            lineWidth: 3,
+            crosshairMarkerVisible: false,
+            lastValueVisible: false,
+            priceLineVisible: false,
+        });
+
+        const timeData = chartData.map(d => _toTime(d.timestamp));
+
+        // LazyBear's 4-color scheme:
+        //   Bright cyan = positive & rising,  blue   = positive & falling
+        //   Red         = negative & falling, yellow = negative & rising
+        const histData = [];
+        for (let i = 0; i < momentum.length; i++) {
+            const v = momentum[i];
+            if (v == null) continue;
+            const prev = momentum[i - 1] ?? v;
+            let color;
+            if (v >= 0) color = v >= prev ? '#26C6DA' : '#1976D2';
+            else color = v <= prev ? '#EF5350' : '#FBC02D';
+            histData.push({ time: timeData[i], value: v, color });
+        }
+        histSeries.setData(histData);
+
+        // Zero-line dots: black = squeeze on, gray = squeeze off
+        const stateData = squeezeOn.map((on, i) => ({
+            time: timeData[i],
+            value: 0,
+        }));
+        stateSeries.setData(stateData);
+
+        // Override colors per-bar by drawing a second histogram of zero-bars
+        // colored by squeeze state. lightweight-charts doesn't allow per-point
+        // line colors, so we add a second histogram for the dots.
+        const dotSeries = pane.chart.addHistogramSeries({
+            priceFormat: { type: 'price', precision: 4, minMove: 0.0001 },
+            priceScaleId: '',
+            base: 0,
+        });
+        dotSeries.setData(squeezeOn.map((on, i) => ({
+            time: timeData[i],
+            value: 0.0001 * (on ? 1 : -1), // tiny offset just to render the marker
+            color: on ? '#000000' : '#888888',
+        })));
+
+        _syncTimeScale(mainChart, pane.chart);
+        return { pane, series: { histogram: histSeries, state: stateSeries, dot: dotSeries } };
+    }
+
     // ── Add Supertrend Overlay ──────────────────────────────────────────
     // Main-chart overlay. Uses color changes to signal trend flips.
     // Because lightweight-charts line series can't change color mid-series
@@ -870,8 +1015,9 @@ const ChartIndicators = (() => {
     return {
         calcRSI, calcMACD, calcStochastic, calcVWAP,
         calcATR, calcSupertrend, calcKeltner, calcADX, calcOBV, calcIchimoku,
+        calcSqueezeMomentum,
         renderRSI, renderMACD, renderStochastic, addVWAP,
-        renderATR, renderADX, renderOBV,
+        renderATR, renderADX, renderOBV, renderSqueezeMomentum,
         addSupertrend, removeSupertrend,
         addKeltner, removeKeltner,
         addIchimoku, removeIchimoku,

@@ -94,6 +94,7 @@ const Analyze = (() => {
             ['toggleKeltner', 'keltner'],
             ['toggleIchimoku', 'ichimoku'],
             ['toggleVPVR', 'vpvr'],
+            ['toggleSqueeze', 'squeeze'],
         ];
         for (const [id, name] of indicatorToggles) {
             const el = document.getElementById(id);
@@ -118,6 +119,18 @@ const Analyze = (() => {
         // Fullscreen button
         const fsBtn = document.getElementById('chartFullscreenBtn');
         if (fsBtn) fsBtn.addEventListener('click', () => AlphaCharts.toggleFullscreen('analyzeChartContainer'));
+
+        // Presets dropdown
+        const presetsBtn = document.getElementById('chartPresetsBtn');
+        if (presetsBtn && typeof ChartPresets !== 'undefined') {
+            ChartPresets.attachDropdown(presetsBtn);
+        }
+
+        // Layout auto-save (per ticker). Listeners are bound once; setTicker
+        // is called in analyzeTicker() so saves are scoped to the current symbol.
+        if (typeof ChartLayouts !== 'undefined') {
+            ChartLayouts.init();
+        }
 
         // Multi-Chart toggle (Pro feature)
         const mcBtn = document.getElementById('multiChartToggleBtn');
@@ -245,6 +258,14 @@ const Analyze = (() => {
         currentTicker = ticker;
         _wsPrevTicker = ticker;
         window.location.hash = `analyze/${ticker}`;
+
+        // Restore saved chart layout for this ticker (if any). Must run BEFORE
+        // the chart loads so the toggle re-apply loop in loadChart() picks up
+        // the restored states.
+        if (typeof ChartLayouts !== 'undefined') {
+            ChartLayouts.setTicker(ticker);
+            ChartLayouts.restore(ticker);
+        }
 
         // Subscribe to real-time price updates for the new ticker
         if (typeof AlphaSocket !== 'undefined') {
@@ -1489,6 +1510,7 @@ const Analyze = (() => {
                 ['toggleKeltner', 'keltner'],
                 ['toggleIchimoku', 'ichimoku'],
                 ['toggleVPVR', 'vpvr'],
+                ['toggleSqueeze', 'squeeze'],
             ];
             for (const [id, name] of _reapply) {
                 if (document.getElementById(id)?.checked) {

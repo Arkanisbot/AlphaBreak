@@ -765,6 +765,9 @@ const AlphaCharts = (() => {
             case 'obv':
                 inst.indicatorPanes.obv = ChartIndicators.renderOBV(containerId, inst.chartData, inst.chart);
                 break;
+            case 'squeeze':
+                inst.indicatorPanes.squeeze = ChartIndicators.renderSqueezeMomentum(containerId, inst.chartData, inst.chart);
+                break;
             case 'vwap':
                 if (inst.overlays.vwap) {
                     try { inst.chart.removeSeries(inst.overlays.vwap); } catch (e) {}
