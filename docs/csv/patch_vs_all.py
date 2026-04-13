@@ -2,7 +2,7 @@
 import re
 
 # Read file
-path = r"c:\Users\nicho\OneDrive\Documents\GitHub\data-acq-functional-SophistryDude\AlphaBreak\docs\csv\build_vs_all_competitors.py"
+path = r"c:\Users\nicho\OneDrive\Documents\GitHub\data-acq-functional-Arkanisbot\AlphaBreak\docs\csv\build_vs_all_competitors.py"
 with open(path, "r", encoding="utf-8") as f:
     content = f.read()
 

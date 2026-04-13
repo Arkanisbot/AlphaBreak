@@ -175,7 +175,7 @@ sudo ufw status
 
 ```bash
 cd ~
-git clone https://github.com/SophistryDude/data-acq-functional-SophistryDude.git repo
+git clone https://github.com/Arkanisbot/data-acq-functional-Arkanisbot.git repo
 cd repo
 git checkout main  # Use main branch for production
 ```

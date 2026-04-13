@@ -988,7 +988,7 @@ for r, (label, desc, fill) in enumerate(legend, 1):
         a.font = Font(name="Calibri", size=11, color="FFFFFF" if needs_white else "000000")
 
 
-output = r"c:\Users\nicho\OneDrive\Documents\GitHub\data-acq-functional-SophistryDude\AlphaBreak\docs\csv\competitive_vs_alphabreak.xlsx"
+output = r"c:\Users\nicho\OneDrive\Documents\GitHub\data-acq-functional-Arkanisbot\AlphaBreak\docs\csv\competitive_vs_alphabreak.xlsx"
 wb.save(output)
 print(f"Saved to {output}")
 print("\nScorecard Summary:")

@@ -56,11 +56,11 @@ Before contributing, ensure you have:
 ```bash
 # Fork the repository on GitHub
 # Then clone your fork
-git clone https://github.com/YOUR_USERNAME/data-acq-functional-SophistryDude.git
-cd data-acq-functional-SophistryDude/AlphaBreak
+git clone https://github.com/YOUR_USERNAME/data-acq-functional-Arkanisbot.git
+cd data-acq-functional-Arkanisbot/AlphaBreak
 
 # Add upstream remote
-git remote add upstream https://github.com/SophistryDude/data-acq-functional-SophistryDude.git
+git remote add upstream https://github.com/Arkanisbot/data-acq-functional-Arkanisbot.git
 ```
 
 ### Set Up Development Environment

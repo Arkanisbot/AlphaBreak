@@ -371,7 +371,7 @@ Merge Hotfix to main
 
 ## 📞 Support & Feedback
 
-**Issues**: Open an issue on [GitHub](https://github.com/SophistryDude/data-acq-functional-SophistryDude/issues)
+**Issues**: Open an issue on [GitHub](https://github.com/Arkanisbot/data-acq-functional-Arkanisbot/issues)
 
 **Questions**: Contact dev team via [email/Slack]
 

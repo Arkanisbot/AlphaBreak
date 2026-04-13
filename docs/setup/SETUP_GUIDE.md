@@ -14,7 +14,7 @@ This guide walks you through setting up the project on a fresh machine. No AI as
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/SophistryDude/AlphaBreak.git
+git clone https://github.com/Arkanisbot/AlphaBreak.git
 cd AlphaBreak
 ```
 
@@ -134,7 +134,7 @@ Run with: `bash deploy.sh`
 ## Clone the Repository
 
 ```bash
-git clone https://github.com/SophistryDude/AlphaBreak.git
+git clone https://github.com/Arkanisbot/AlphaBreak.git
 cd AlphaBreak
 ```
 
@@ -761,5 +761,5 @@ Some ISPs (Comcast, Cox) block outbound port 22. Solutions:
 ## Support
 
 For issues or questions:
-- GitHub Issues: https://github.com/SophistryDude/AlphaBreak/issues
+- GitHub Issues: https://github.com/Arkanisbot/AlphaBreak/issues
 - See also: [COMPLETED_FEATURES.md](../COMPLETED_FEATURES.md) for production feature documentation

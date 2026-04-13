@@ -300,7 +300,7 @@ sudo journalctl -u airflow-webserver -f
 
 ## Contacts & Resources
 
-- **Repository**: [data-acq-functional-SophistryDude](https://github.com/SophistryDude/data-acq-functional-SophistryDude)
+- **Repository**: [data-acq-functional-Arkanisbot](https://github.com/Arkanisbot/data-acq-functional-Arkanisbot)
 - **EC2 Instance**: 3.140.78.15 (us-east-2)
 - **Airflow UI**: http://3.140.78.15:8080
 - **Application**: https://alphabreak.vip
