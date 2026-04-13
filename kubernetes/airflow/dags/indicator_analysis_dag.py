@@ -12,6 +12,10 @@ from datetime import datetime, timedelta
 import sys
 import os
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Add project root to path
 sys.path.insert(0, '/app')
 
@@ -50,7 +54,7 @@ def fetch_latest_market_data(**context):
     context['ti'].xcom_push(key='start_date', value=start_date)
     context['ti'].xcom_push(key='end_date', value=end_date)
 
-    print(f"Prepared analysis for {len(tickers)} tickers from {start_date} to {end_date}")
+    logger.info(f"Prepared analysis for {len(tickers)} tickers from {start_date} to {end_date}")
     return {'status': 'success', 'tickers': len(tickers)}
 
 
@@ -67,7 +71,7 @@ def analyze_indicators(**context):
     results = []
     for ticker in tickers:
         try:
-            print(f"Analyzing {ticker}...")
+            logger.info(f"Analyzing {ticker}...")
             result = analyze_indicator_accuracy(
                 ticker=ticker,
                 start_date=start_date,
@@ -81,7 +85,7 @@ def analyze_indicators(**context):
                 'indicators_analyzed': len(result) if result is not None else 0
             })
         except Exception as e:
-            print(f"Error analyzing {ticker}: {e}")
+            logger.error(f"Error analyzing {ticker}: {e}")
             results.append({
                 'ticker': ticker,
                 'status': 'error',
@@ -105,9 +109,8 @@ def generate_report(**context):
     results_path = ti.xcom_pull(key='results_path', task_ids='analyze')
     success_count = ti.xcom_pull(key='success_count', task_ids='analyze')
 
-    print(f"Analysis completed: {success_count} successful analyses")
-    print(f"Results saved to: {results_path}")
-
+    logger.info(f"Analysis completed: {success_count} successful analyses")
+    logger.info(f"Results saved to: {results_path}")
     # Could send email, Slack notification, etc.
     return {'status': 'report_generated', 'success_count': success_count}
 

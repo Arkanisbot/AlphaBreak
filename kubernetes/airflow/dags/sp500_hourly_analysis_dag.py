@@ -12,6 +12,10 @@ import sys
 import psycopg2
 from psycopg2.extras import execute_values
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 sys.path.insert(0, '/app')
 
 default_args = {
@@ -90,7 +94,7 @@ def fetch_latest_prices(**context):
                     float(latest['Close'])  # adjusted_close
                 ))
         except Exception as e:
-            print(f"Error fetching {ticker}: {e}")
+            logger.error(f"Error fetching {ticker}: {e}")
             failed_tickers.append(ticker)
 
     # Bulk insert
@@ -116,10 +120,9 @@ def fetch_latest_prices(**context):
     context['ti'].xcom_push(key='successful_tickers', value=len(prices_data))
     context['ti'].xcom_push(key='failed_tickers', value=failed_tickers)
 
-    print(f"Fetched prices for {len(prices_data)} tickers")
+    logger.info(f"Fetched prices for {len(prices_data)} tickers")
     if failed_tickers:
-        print(f"Failed tickers: {', '.join(failed_tickers)}")
-
+        logger.error(f"Failed tickers: {', '.join(failed_tickers)}")
     return {'success': len(prices_data), 'failed': len(failed_tickers)}
 
 
@@ -181,8 +184,7 @@ def calculate_indicators(**context):
                     ))
 
         except Exception as e:
-            print(f"Error calculating indicators for {ticker}: {e}")
-
+            logger.error(f"Error calculating indicators for {ticker}: {e}")
     # Bulk insert
     if indicators_data:
         insert_query = """
@@ -198,7 +200,7 @@ def calculate_indicators(**context):
     cursor.close()
     conn.close()
 
-    print(f"Calculated {len(indicators_data)} indicator values")
+    logger.info(f"Calculated {len(indicators_data)} indicator values")
     return {'indicators_calculated': len(indicators_data)}
 
 
@@ -242,8 +244,7 @@ def predict_trend_breaks(**context):
                 ))
 
         except Exception as e:
-            print(f"Error predicting {ticker}: {e}")
-
+            logger.error(f"Error predicting {ticker}: {e}")
     # Store predictions
     if predictions_data:
         insert_query = """
@@ -261,7 +262,7 @@ def predict_trend_breaks(**context):
 
     context['ti'].xcom_push(key='predictions_count', value=len(predictions_data))
 
-    print(f"Generated {len(predictions_data)} predictions")
+    logger.info(f"Generated {len(predictions_data)} predictions")
     return {'predictions': len(predictions_data)}
 
 
@@ -290,10 +291,9 @@ def update_alerts(**context):
     conn.close()
 
     if alerts:
-        print("HIGH CONFIDENCE ALERTS:")
+        logger.info("HIGH CONFIDENCE ALERTS:")
         for ticker, pred_value, confidence in alerts:
-            print(f"  {ticker}: {pred_value:.2f} (confidence: {confidence:.2%})")
-
+            logger.info(f"  {ticker}: {pred_value:.2f} (confidence: {confidence:.2%})")
     # Could send to Slack, email, etc.
     return {'alert_count': len(alerts)}
 

@@ -52,7 +52,7 @@ DB_CONFIG = {
     'port': int(os.getenv('DB_PORT', '5433')),
     'database': os.getenv('DB_NAME', 'trading_data'),
     'user': os.getenv('DB_USER', 'trading'),
-    'password': os.getenv('DB_PASSWORD', 'trading123'),
+    'password': os.getenv('DB_PASSWORD'),
     'sslmode': os.getenv('DB_SSLMODE', 'prefer')
 }
 

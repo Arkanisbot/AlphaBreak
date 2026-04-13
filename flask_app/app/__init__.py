@@ -11,23 +11,28 @@ from flask_cors import CORS
 from flask_caching import Cache
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+# Optional extras — feature-gated so the core API still boots if any are missing.
+# See flask_app/requirements.txt for the rationale on each.
 try:
     from flask_socketio import SocketIO
 except ImportError:
     SocketIO = None
+
 try:
     from prometheus_flask_instrumentator import Instrumentator
     from prometheus_client import Gauge
 except ImportError:
     Instrumentator = None
     Gauge = None
-import jwt as pyjwt
-import logging
-from logging.handlers import RotatingFileHandler
+
 try:
     from pythonjsonlogger import jsonlogger
 except ImportError:
     jsonlogger = None
+
+import jwt as pyjwt
+import logging
+from logging.handlers import RotatingFileHandler
 import math
 import os
 import time
@@ -111,6 +116,10 @@ def create_app(config_name='development'):
     # Load configuration
     config_module = f'app.config.{config_name.capitalize()}Config'
     app.config.from_object(config_module)
+
+    if config_name == 'production':
+        from app.config import ProductionConfig
+        ProductionConfig.validate_env()
 
     # Enable CORS for frontend access
     CORS(app, resources={r"/api/*": {"origins": app.config.get('CORS_ORIGINS', ['https://alphabreak.vip', 'https://www.alphabreak.vip'])}})

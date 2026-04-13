@@ -30,7 +30,8 @@ This guide covers production deployment to AWS EC2. For local development or Kub
 ### Current Production Environment
 
 - **Instance**: EC2 t3.medium (us-east-2)
-- **Public IP**: 3.140.78.15
+- **Domain**: alphabreak.vip (TLS via Let's Encrypt)
+- **Public IP**: 3.140.78.15 (use only for SSH/scp; all HTTP access goes through the domain)
 - **OS**: Ubuntu 22.04 LTS
 - **Services**: Flask API, Nginx, PostgreSQL 15, Airflow 2.8.1
 - **Branches**:
@@ -41,11 +42,11 @@ This guide covers production deployment to AWS EC2. For local development or Kub
 
 | Service | Port | URL | Access |
 |---------|------|-----|--------|
-| Frontend | 8000 | http://3.140.78.15:8000 | Public |
-| Flask API | 5000 | http://3.140.78.15:5000 | Localhost only |
-| Airflow UI | 8080 | http://3.140.78.15:8080 | Public (basic auth) |
+| Frontend | 443 | https://alphabreak.vip | Public |
+| Flask API | 5000 | http://127.0.0.1:5000 | Localhost only (proxied via Nginx) |
+| Airflow UI | 8080 | https://alphabreak.vip:8080 | Public (basic auth) |
 | PostgreSQL | 5432 | localhost:5432 | Localhost only |
-| SSH | 22 | 3.140.78.15:22 | Key-based auth |
+| SSH | 22 | alphabreak.vip:22 | Key-based auth |
 
 ---
 
@@ -175,7 +176,7 @@ sudo ufw status
 
 ```bash
 cd ~
-git clone https://github.com/Arkanisbot/data-acq-functional-Arkanisbot.git repo
+git clone https://github.com/Arkanisbot/AlphaBreak.git repo
 cd repo
 git checkout main  # Use main branch for production
 ```
@@ -184,13 +185,13 @@ git checkout main  # Use main branch for production
 
 ```bash
 # Copy frontend files
-cp -r AlphaBreak/frontend/* ~/frontend/
+cp -r ~/repo/frontend/* ~/frontend/
 
 # Configure Nginx
 sudo tee /etc/nginx/sites-available/frontend <<EOF
 server {
     listen 8000;
-    server_name 3.140.78.15;
+    server_name alphabreak.vip;
 
     root /home/ubuntu/frontend;
     index index.html;
@@ -219,7 +220,7 @@ sudo systemctl enable nginx
 
 ```bash
 # Copy Flask app
-cp -r AlphaBreak/flask_app/* ~/flask_app/
+cp -r ~/repo/flask_app/* ~/flask_app/
 
 # Create virtual environment
 cd ~/flask_app
@@ -281,7 +282,7 @@ chmod +x start_flask.sh
 curl http://127.0.0.1:5000/api/health
 
 # Check frontend (from local machine)
-curl http://3.140.78.15:8000
+curl https://alphabreak.vip
 
 # Check Nginx
 sudo systemctl status nginx
@@ -322,14 +323,14 @@ pip install "apache-airflow[postgres]==${AIRFLOW_VERSION}" --constraint "${CONST
 # Initialize Airflow database
 airflow db init
 
-# Create admin user
+# Create admin user (password from env var — set AIRFLOW_ADMIN_PASSWORD before running)
 airflow users create \
     --username admin \
     --firstname Admin \
     --lastname User \
     --role Admin \
     --email admin@example.com \
-    --password admin123
+    --password "$AIRFLOW_ADMIN_PASSWORD"
 
 # Edit airflow.cfg
 nano ~/airflow/airflow.cfg
@@ -436,7 +437,7 @@ sudo journalctl -u airflow-webserver -f
 
 ```bash
 # Copy DAGs from repository
-cp ~/repo/AlphaBreak/dags/* ~/dags/
+cp ~/repo/kubernetes/airflow/dags/* ~/dags/
 
 # Verify DAG syntax
 cd ~/airflow
@@ -475,7 +476,7 @@ sudo -u postgres psql -d trading_data -c "CREATE EXTENSION IF NOT EXISTS timesca
 
 ```bash
 # Copy schema files
-cp ~/repo/AlphaBreak/kubernetes/*.sql ~/
+cp ~/repo/kubernetes/*.sql ~/
 
 # Apply schemas
 psql -U trading -d trading_data -h 127.0.0.1 -f ~/schema_v2_intraday.sql
@@ -541,9 +542,9 @@ psql -h localhost -U trading -d trading_data
 
 ## SSL & Security Configuration
 
-### 1. Let's Encrypt SSL (Planned)
+### 1. Let's Encrypt SSL
 
-**Note**: Currently using HTTP only. SSL setup planned for Q2 2026.
+**Status**: Active — `alphabreak.vip` served over HTTPS via Certbot/Nginx.
 
 ```bash
 # Install Certbot
@@ -735,7 +736,7 @@ pg_restore -U trading -h 127.0.0.1 -d trading_data -t portfolio_holdings portfol
 # All code is in Git - no manual backups needed
 # Ensure all changes are committed and pushed
 
-cd ~/repo/AlphaBreak
+cd ~/repo
 git status
 git add .
 git commit -m "Production changes"
@@ -797,10 +798,10 @@ scp -i trading-db-key.pem ubuntu@3.140.78.15:~/config_backup_*.tar.gz .
 
 ```bash
 # From local machine
-scp -i docs/security/trading-db-key.pem -r frontend/* ubuntu@3.140.78.15:~/frontend/
+scp -i docs/security/trading-db-key.pem -r frontend/* ubuntu@alphabreak.vip:~/frontend/
 
 # Verify (from local machine)
-curl http://3.140.78.15:8000
+curl https://alphabreak.vip
 ```
 
 **No service restart required** - Nginx serves static files directly.
@@ -929,7 +930,7 @@ EOF
 ssh -i docs/security/trading-db-key.pem ubuntu@3.140.78.15
 
 # Rollback to previous commit
-cd ~/repo/AlphaBreak
+cd ~/repo
 git log  # Find commit hash
 git checkout <previous-commit-hash>
 

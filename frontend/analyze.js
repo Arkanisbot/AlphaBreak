@@ -10,6 +10,16 @@ const Analyze = (() => {
     let multiChartActive = false;
     let multiChartCount = 2;
 
+    // Wrap apiRequest + JSON parse + error-shape check in one call.
+    // Throws Error('<label>: <reason>') so callers can render a single catch branch.
+    async function _fetchJson(path, label = 'No data') {
+        const resp = await apiRequest(path);
+        if (!resp.ok) throw new Error(`${label} (${resp.status})`);
+        const payload = await resp.json();
+        if (!payload || payload.error) throw new Error(payload?.error || label);
+        return payload;
+    }
+
     // ── Init ─────────────────────────────────────────────────────────────
     function init() {
         const input = document.getElementById('analyzeTickerInput');
@@ -784,12 +794,7 @@ const Analyze = (() => {
         el.innerHTML = '<p class="muted">Loading dark pool data...</p>';
 
         try {
-            const resp = await fetch(`/api/darkpool/${ticker}`, {
-                headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('access_token') || '') }
-            });
-            if (!resp.ok) throw new Error('No data');
-            const dp = await resp.json();
-            if (!dp || dp.error) throw new Error(dp?.error || 'No data');
+            const dp = await _fetchJson(`/api/darkpool/${ticker}`);
 
             const latest = dp.latest || {};
             const totalShares = latest.total_shares ? _fmtLargeNum(latest.total_shares) : '--';
@@ -850,10 +855,7 @@ const Analyze = (() => {
         el.innerHTML = '<p class="muted">Loading insider trading data...</p>';
 
         try {
-            const resp = await apiRequest(`/api/analyze/${ticker}/insiders`);
-            if (!resp.ok) throw new Error('No data');
-            const data = await resp.json();
-            if (!data || data.error) throw new Error(data?.error || 'No data');
+            const data = await _fetchJson(`/api/analyze/${ticker}/insiders`);
 
             const txns = data.transactions || [];
             const summary = data.summary || {};
@@ -934,10 +936,7 @@ const Analyze = (() => {
         el.innerHTML = '<p class="muted">Loading unusual options activity...</p>';
 
         try {
-            const resp = await apiRequest(`/api/analyze/${ticker}/unusual-options`);
-            if (!resp.ok) throw new Error('No data');
-            const data = await resp.json();
-            if (!data || data.error) throw new Error(data?.error || 'No data');
+            const data = await _fetchJson(`/api/analyze/${ticker}/unusual-options`);
 
             const s = data.summary || {};
             const contracts = data.unusual_contracts || [];

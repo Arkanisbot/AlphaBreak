@@ -13,6 +13,10 @@ import sys
 import psycopg2
 from psycopg2.extras import execute_values
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 sys.path.insert(0, '/app')
 
 default_args = {
@@ -78,8 +82,7 @@ def fetch_crypto_prices(**context):
                         float(row['Close'])
                     ))
         except Exception as e:
-            print(f"Error fetching {ticker}: {e}")
-
+            logger.error(f"Error fetching {ticker}: {e}")
     # Bulk insert
     if prices_data:
         insert_query = """
@@ -102,7 +105,7 @@ def fetch_crypto_prices(**context):
 
     context['ti'].xcom_push(key='price_updates', value=len(prices_data))
 
-    print(f"Stored {len(prices_data)} crypto price updates")
+    logger.info(f"Stored {len(prices_data)} crypto price updates")
     return {'updates': len(prices_data)}
 
 
@@ -191,8 +194,7 @@ def calculate_crypto_indicators(**context):
                 ))
 
         except Exception as e:
-            print(f"Error calculating indicators for {ticker}: {e}")
-
+            logger.error(f"Error calculating indicators for {ticker}: {e}")
     # Bulk insert
     if indicators_data:
         insert_query = """
@@ -210,7 +212,7 @@ def calculate_crypto_indicators(**context):
 
     context['ti'].xcom_push(key='indicators_calculated', value=len(indicators_data))
 
-    print(f"Calculated {len(indicators_data)} crypto indicator values")
+    logger.info(f"Calculated {len(indicators_data)} crypto indicator values")
     return {'indicators': len(indicators_data)}
 
 
@@ -298,8 +300,7 @@ def detect_crypto_signals(**context):
                 ))
 
         except Exception as e:
-            print(f"Error detecting signals for {ticker}: {e}")
-
+            logger.error(f"Error detecting signals for {ticker}: {e}")
     # Store signals in engineered_features table
     if signals:
         insert_query = """
@@ -321,10 +322,9 @@ def detect_crypto_signals(**context):
 
     # Print alerts for monitoring
     if signals:
-        print("CRYPTO SIGNALS DETECTED:")
+        logger.info("CRYPTO SIGNALS DETECTED:")
         for ticker, _, signal_str, _ in signals:
-            print(f"  {ticker}: {signal_str}")
-
+            logger.info(f"  {ticker}: {signal_str}")
     context['ti'].xcom_push(key='signals_count', value=len(signals))
 
     return {'signals': len(signals)}
@@ -360,12 +360,11 @@ def update_crypto_metrics(**context):
                 }
 
         except Exception as e:
-            print(f"Error calculating metrics for {ticker}: {e}")
-
+            logger.error(f"Error calculating metrics for {ticker}: {e}")
     cursor.close()
     conn.close()
 
-    print(f"Crypto metrics: {metrics}")
+    logger.info(f"Crypto metrics: {metrics}")
     return metrics
 
 

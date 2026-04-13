@@ -6394,6 +6394,17 @@ a.auth-user-name:hover {
     font-size: 13px;
 }
 
+/* Inline variant for filling a chart/card slot when there's no data. */
+.empty-state--fill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .account-card-row { flex-direction: column; }

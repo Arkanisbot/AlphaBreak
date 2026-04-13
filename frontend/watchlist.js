@@ -164,7 +164,7 @@ const Watchlist = {
                 const data = await response.json();
                 this.tickers = data.tickers || [];
                 this.saveToLocalStorage();
-                console.log('Watchlist migrated to server:', this.tickers.length, 'tickers');
+                if (window.DEBUG) console.log('Watchlist migrated to server:', this.tickers.length, 'tickers');
             } else {
                 // Failed to migrate, just load from server
                 await this.loadFromStorage();

@@ -1102,12 +1102,12 @@ const AlphaCharts = (() => {
                 chartData = await resp.json();
             }
         } catch (e) {
-            chartDiv.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:12px;">Failed to load ${ticker}</div>`;
+            chartDiv.innerHTML = `<div class="empty-state empty-state--fill">Failed to load ${ticker}</div>`;
             return;
         }
 
         if (!chartData?.data?.length) {
-            chartDiv.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:12px;">No data for ${ticker}</div>`;
+            chartDiv.innerHTML = `<div class="empty-state empty-state--fill">No data for ${ticker}</div>`;
             return;
         }
 

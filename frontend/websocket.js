@@ -29,7 +29,7 @@ const AlphaSocket = (() => {
         socket = io(opts);
 
         socket.on('connect', () => {
-            console.log('[AlphaSocket] connected, sid:', socket.id);
+            if (window.DEBUG) console.log('[AlphaSocket] connected, sid:', socket.id);
             _setStatus(true);
 
             // Re-subscribe to any active tickers after reconnect
@@ -39,7 +39,7 @@ const AlphaSocket = (() => {
         });
 
         socket.on('disconnect', (reason) => {
-            console.log('[AlphaSocket] disconnected:', reason);
+            if (window.DEBUG) console.log('[AlphaSocket] disconnected:', reason);
             _setStatus(false);
         });
 

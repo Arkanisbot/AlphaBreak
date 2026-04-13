@@ -80,6 +80,20 @@ class ProductionConfig(Config):
     DEBUG = False
     TESTING = False
 
+    REQUIRED_ENV_VARS = (
+        'SECRET_KEY',
+        'JWT_SECRET_KEY',
+        'POSTGRES_PASSWORD',
+    )
+
+    @classmethod
+    def validate_env(cls):
+        missing = [v for v in cls.REQUIRED_ENV_VARS if not os.environ.get(v)]
+        if missing:
+            raise RuntimeError(
+                f"ProductionConfig: missing required environment variables: {', '.join(missing)}"
+            )
+
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'https://alphabreak.vip,https://www.alphabreak.vip').split(',')
 
     # Redis URL for production (SocketIO message queue, caching, rate limiting)

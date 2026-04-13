@@ -595,7 +595,7 @@ const Forex = {
 
     renderPairInlineChart(pair, pairData, dxyData) {
         const canvas = document.getElementById('forexPairInlineChart');
-        console.log('renderPairInlineChart called:', { pair, pairDataLength: pairData.length, hasDxyData: !!dxyData, hasCanvas: !!canvas });
+        if (window.DEBUG) console.log('renderPairInlineChart called:', { pair, pairDataLength: pairData.length, hasDxyData: !!dxyData, hasCanvas: !!canvas });
 
         if (!canvas) {
             console.error('Canvas element not found!');
@@ -620,13 +620,13 @@ const Forex = {
             y: d.close,
         }));
 
-        console.log('Pair chart data points:', pairChartData.length);
+        if (window.DEBUG) console.log('Pair chart data points:', pairChartData.length);
 
         const datasets = [];
 
         // Add DXY as background if available - calculate from chart_data
         if (dxyData && dxyData.chart_data && dxyData.chart_data.length > 0 && dxyData.pairs) {
-            console.log('Processing DXY data:', { chartDataLength: dxyData.chart_data.length, pairsCount: dxyData.pairs.length });
+            if (window.DEBUG) console.log('Processing DXY data:', { chartDataLength: dxyData.chart_data.length, pairsCount: dxyData.pairs.length });
             // Calculate DXY proxy (weighted average of USD pairs)
             const dxyChartData = dxyData.chart_data.map(d => {
                 let sum = 0;
@@ -673,8 +673,10 @@ const Forex = {
             order: 1,
         });
 
-        console.log('Creating chart with datasets:', datasets.length, 'datasets');
-        console.log('First dataset has', datasets[0].data.length, 'points');
+        if (window.DEBUG) {
+            console.log('Creating chart with datasets:', datasets.length, 'datasets');
+            console.log('First dataset has', datasets[0].data.length, 'points');
+        }
 
         if (typeof AlphaCharts !== 'undefined') {
             const lineData = pairData.map(d => ({ date: d.date, close: d.close }));

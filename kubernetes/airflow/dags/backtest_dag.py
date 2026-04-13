@@ -10,6 +10,10 @@ from airflow.utils.dates import days_ago
 from datetime import datetime, timedelta
 import sys
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 sys.path.insert(0, '/app')
 
 default_args = {
@@ -57,7 +61,7 @@ def prepare_backtest_config(**context):
     }
 
     context['ti'].xcom_push(key='backtest_config', value=config)
-    print(f"Backtest config prepared: {len(tickers)} tickers from {config['start_date']} to {config['end_date']}")
+    logger.info(f"Backtest config prepared: {len(tickers)} tickers from {config['start_date']} to {config['end_date']}")
     return config
 
 
@@ -72,7 +76,7 @@ def run_trend_break_backtest(**context):
     results = []
     for ticker in config['tickers']:
         try:
-            print(f"Backtesting {ticker}...")
+            logger.info(f"Backtesting {ticker}...")
             result = backtest_trend_break_strategy(
                 ticker=ticker,
                 start_date=config['start_date'],
@@ -90,7 +94,7 @@ def run_trend_break_backtest(**context):
                     'total_trades': result.get('total_trades', 0),
                 })
         except Exception as e:
-            print(f"Error backtesting {ticker}: {e}")
+            logger.error(f"Error backtesting {ticker}: {e}")
             results.append({
                 'ticker': ticker,
                 'error': str(e)
@@ -121,7 +125,7 @@ def run_options_backtest(**context):
     results = []
     for ticker in liquid_tickers:
         try:
-            print(f"Backtesting options for {ticker}...")
+            logger.info(f"Backtesting options for {ticker}...")
             result = backtest_options_strategy(
                 ticker=ticker,
                 start_date=config['start_date'],
@@ -137,8 +141,7 @@ def run_options_backtest(**context):
                     'avg_profit': result.get('avg_profit', 0),
                 })
         except Exception as e:
-            print(f"Error backtesting options for {ticker}: {e}")
-
+            logger.error(f"Error backtesting options for {ticker}: {e}")
     # Save results
     results_df = pd.DataFrame(results)
     output_path = f"/app/logs/options_backtest_{config['end_date']}.csv"
@@ -197,8 +200,7 @@ def generate_backtest_report(**context):
     ===================================
     """
 
-    print(report)
-
+    logger.info(report)
     # Save report
     report_path = f"/app/logs/backtest_report_{datetime.now().strftime('%Y-%m-%d')}.txt"
     with open(report_path, 'w') as f:

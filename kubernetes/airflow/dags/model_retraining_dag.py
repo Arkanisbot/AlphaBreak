@@ -19,6 +19,10 @@ from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
 from airflow.utils.dates import days_ago
 import sys
+
+import logging
+
+logger = logging.getLogger(__name__)
 sys.path.append('/app')
 
 
@@ -53,8 +57,7 @@ def fetch_latest_data(**context):
     end_date = datetime.now().strftime('%Y-%m-%d')
     start_date = (datetime.now() - timedelta(days=365*5)).strftime('%Y-%m-%d')  # 5 years
 
-    print(f"Fetching data for {len(tickers)} tickers from {start_date} to {end_date}")
-
+    logger.info(f"Fetching data for {len(tickers)} tickers from {start_date} to {end_date}")
     data_status = {}
     for ticker in tickers:
         try:
@@ -65,11 +68,10 @@ def fetch_latest_data(**context):
                 'start_date': data.index[0].strftime('%Y-%m-%d'),
                 'end_date': data.index[-1].strftime('%Y-%m-%d')
             }
-            print(f"✓ {ticker}: {len(data)} rows")
+            logger.info(f"✓ {ticker}: {len(data)} rows")
         except Exception as e:
             data_status[ticker] = {'success': False, 'error': str(e)}
-            print(f"✗ {ticker}: {e}")
-
+            logger.error(f"✗ {ticker}: {e}")
     # Push results to XCom
     context['task_instance'].xcom_push(key='data_status', value=data_status)
     context['task_instance'].xcom_push(key='tickers', value=tickers)
@@ -88,7 +90,7 @@ def analyze_indicators(**context):
     results = {}
     for ticker in tickers:
         try:
-            print(f"Analyzing indicators for {ticker}...")
+            logger.info(f"Analyzing indicators for {ticker}...")
             analysis = analyze_indicator_accuracy(ticker, start_date, end_date)
             best = filter_best_indicators(analysis, 0.80, 0.90)
 
@@ -97,11 +99,10 @@ def analyze_indicators(**context):
                 'best_indicators': best['indicator_names'],
                 'mean_accuracy': float(best['mean_accuracy'])
             }
-            print(f"✓ {ticker}: {len(best['indicator_names'])} indicators selected")
+            logger.info(f"✓ {ticker}: {len(best['indicator_names'])} indicators selected")
         except Exception as e:
             results[ticker] = {'success': False, 'error': str(e)}
-            print(f"✗ {ticker}: {e}")
-
+            logger.error(f"✗ {ticker}: {e}")
     context['task_instance'].xcom_push(key='indicator_analysis', value=results)
     return results
 
@@ -118,7 +119,7 @@ def train_meta_learning_model(**context):
     end_date = datetime.now().strftime('%Y-%m-%d')
     start_date = (datetime.now() - timedelta(days=365*5)).strftime('%Y-%m-%d')
 
-    print("Creating accuracy features dataset...")
+    logger.info("Creating accuracy features dataset...")
     dataset = create_accuracy_features_dataset(
         ticker=tickers[0],  # Use primary ticker
         start_date=start_date,
@@ -129,16 +130,15 @@ def train_meta_learning_model(**context):
     )
 
     dataset.to_csv('/app/models/accuracy_features_latest.csv', index=False)
-    print(f"✓ Dataset created: {len(dataset)} samples")
-
-    print("Training meta-learning model...")
+    logger.info(f"✓ Dataset created: {len(dataset)} samples")
+    logger.info("Training meta-learning model...")
     results = train_indicator_reliability_model(
         dataset_path='/app/models/accuracy_features_latest.csv',
         epochs=50,
         batch_size=32
     )
 
-    print("Saving model...")
+    logger.info("Saving model...")
     save_model_artifacts(results, output_dir='/app/models')
 
     context['task_instance'].xcom_push(key='meta_model_metrics', value={
@@ -146,7 +146,7 @@ def train_meta_learning_model(**context):
         'test_mae': float(results['test_mae'])
     })
 
-    print(f"✓ Meta-learning model trained (MAE: {results['test_mae']:.4f})")
+    logger.info(f"✓ Meta-learning model trained (MAE: {results['test_mae']:.4f})")
     return results['test_mae']
 
 
@@ -169,7 +169,7 @@ def train_trend_break_model(**context):
     start_date = (datetime.now() - timedelta(days=365*5)).strftime('%Y-%m-%d')
     test_split_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
 
-    print(f"Training trend break model with {len(best_indicators)} indicators...")
+    logger.info(f"Training trend break model with {len(best_indicators)} indicators...")
     results = train_trend_break_model(
         ticker=ticker,
         start_date=start_date,
@@ -180,14 +180,14 @@ def train_trend_break_model(**context):
         test_split_date=test_split_date
     )
 
-    print("Saving model...")
+    logger.info("Saving model...")
     save_trend_break_model(results, output_dir='/app/models')
 
     context['task_instance'].xcom_push(key='trend_model_metrics', value={
         'auc_score': float(results['auc_score'])
     })
 
-    print(f"✓ Trend break model trained (AUC: {results['auc_score']:.4f})")
+    logger.info(f"✓ Trend break model trained (AUC: {results['auc_score']:.4f})")
     return results['auc_score']
 
 
@@ -221,10 +221,9 @@ def validate_models(**context):
         error_msg = "Model validation FAILED:\n" + "\n".join(f"  - {issue}" for issue in issues)
         raise ValueError(error_msg)
 
-    print("✓ Model validation PASSED")
-    print(f"  Meta-learning MAE: {meta_metrics['test_mae']:.4f}")
-    print(f"  Trend model AUC: {trend_metrics['auc_score']:.4f}")
-
+    logger.info("✓ Model validation PASSED")
+    logger.info(f"  Meta-learning MAE: {meta_metrics['test_mae']:.4f}")
+    logger.info(f"  Trend model AUC: {trend_metrics['auc_score']:.4f}")
     return validation_passed
 
 
@@ -248,10 +247,8 @@ def deploy_models(**context):
     for model_path in models_to_backup:
         if os.path.exists(model_path):
             shutil.copy(model_path, backup_dir)
-            print(f"✓ Backed up {os.path.basename(model_path)}")
-
-    print(f"✓ Models deployed and old models backed up to {backup_dir}")
-
+            logger.info(f"✓ Backed up {os.path.basename(model_path)}")
+    logger.info(f"✓ Models deployed and old models backed up to {backup_dir}")
     context['task_instance'].xcom_push(key='deployment_time', value=timestamp)
     return timestamp
 
@@ -285,12 +282,9 @@ def send_notification(**context):
     Next scheduled run: Sunday 3 AM
     """
 
-    print(message)
-
-    # TODO: Implement actual notification (Slack, email, etc.)
-    # import requests
-    # requests.post(SLACK_WEBHOOK_URL, json={'text': message})
-
+    logger.info(message)
+    # External notifications (Slack/email) are delivered by the alerting stack
+    # consuming Airflow's structured logs; no in-DAG webhook call needed.
     return message
 
 

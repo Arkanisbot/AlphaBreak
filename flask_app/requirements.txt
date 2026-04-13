@@ -10,7 +10,12 @@ Flask-Caching>=2.1.0
 # WSGI Server
 gunicorn>=21.0.0
 
-# WebSocket / Real-time (install separately — eventlet conflicts with gunicorn sync workers)
+# WebSocket / Real-time — install separately in a dedicated SocketIO worker.
+# Why commented out: eventlet monkey-patches stdlib networking and breaks the
+# default gunicorn sync workers + psycopg2 connection pool used by the REST API.
+# How to enable: build a second image that installs these two packages and runs
+# `gunicorn -k eventlet -w 1 wsgi:app` on a separate port, leaving the REST API
+# on its existing sync-worker gunicorn.
 # flask-socketio>=5.3.0
 # eventlet>=0.35.0
 
@@ -47,7 +52,13 @@ vaderSentiment>=3.3.2
 
 # Logging & Monitoring
 python-json-logger>=2.0.0
-# prometheus-flask-instrumentator>=4.0.0  # conflicts with Flask — install separately if needed
+# Prometheus metrics — install separately if needed.
+# Why commented out: the package pulls a Flask pin that conflicts with our
+# Flask>=2.3 baseline and blocks `pip install -r requirements.txt`.
+# How to enable: `pip install prometheus-flask-instrumentator --no-deps` after
+# the rest of requirements.txt is installed; the app already import-guards it
+# in flask_app/app/__init__.py so metrics light up automatically.
+# prometheus-flask-instrumentator>=4.0.0
 
 # Utilities
 python-dotenv>=1.0.0
