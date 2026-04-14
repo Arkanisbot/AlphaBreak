@@ -18,6 +18,24 @@ set -euo pipefail
 
 SNIPPET="/etc/nginx/snippets/alphabreak-seo.conf"
 FRONTEND_ROOT="$HOME/AlphaBreak/frontend"
+BACKUP_DIR="/var/backups/nginx"
+
+# Where we write backups. NEVER put backups inside /etc/nginx/sites-enabled
+# or /etc/nginx/conf.d — nginx loads every file it finds there and a backup
+# with a duplicate server block crashes `nginx -t`.
+sudo mkdir -p "$BACKUP_DIR"
+
+# Proactively remove any stray .bak.* files inside sites-enabled and conf.d
+# that a previous buggy version of this script may have left behind. nginx
+# will try to load them and fail.
+echo "-- Cleaning stray .bak.* files from nginx-scanned directories --"
+for dir in /etc/nginx/sites-enabled /etc/nginx/conf.d; do
+    [ -d "$dir" ] || continue
+    while IFS= read -r -d '' stray; do
+        echo "  evicting $stray → $BACKUP_DIR/"
+        sudo mv "$stray" "$BACKUP_DIR/"
+    done < <(sudo find "$dir" -maxdepth 1 -type f -name '*.bak.*' -print0 2>/dev/null)
+done
 
 # ---- 1. Auto-discover the nginx config for alphabreak.vip ------------------
 discover_nginx_conf() {
@@ -142,7 +160,7 @@ for f in $STRAY_FILES; do
         continue
     fi
     echo "  removing stray include from $f"
-    STRAY_BACKUP="${f}.bak.$(date +%Y%m%d_%H%M%S)"
+    STRAY_BACKUP="$BACKUP_DIR/$(basename "$f").bak.$(date +%Y%m%d_%H%M%S)"
     sudo cp "$f" "$STRAY_BACKUP"
     sudo sed -i '/include[[:space:]]\+\/etc\/nginx\/snippets\/alphabreak-seo\.conf/d' "$f"
 done
@@ -154,7 +172,7 @@ echo "-- Injecting include directive into $NGINX_CONF --"
 if sudo grep -q "snippets/alphabreak-seo.conf" "$NGINX_CONF"; then
     echo "  include already present; skipping injection"
 else
-    BACKUP="${NGINX_CONF}.bak.$(date +%Y%m%d_%H%M%S)"
+    BACKUP="$BACKUP_DIR/$(basename "$NGINX_CONF").bak.$(date +%Y%m%d_%H%M%S)"
     echo "  backing up to $BACKUP"
     sudo cp "$NGINX_CONF" "$BACKUP"
 
