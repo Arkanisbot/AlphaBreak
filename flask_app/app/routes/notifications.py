@@ -27,6 +27,7 @@ notifications_bp = Blueprint('notifications', __name__)
 DEFAULT_EVENT_TYPES = [
     'trade_signal', 'stop_loss', 'take_profit', 'reversal_exit',
     'trim', 'new_position', 'earnings_1day', 'earnings_1week', 'portfolio_summary',
+    'smart_alert',
 ]
 
 

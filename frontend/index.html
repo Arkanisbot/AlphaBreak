@@ -68,7 +68,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=6">
+    <link rel="stylesheet" href="styles.css?v=7">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
@@ -1193,6 +1193,10 @@
                                         <button data-period="5y" data-interval="1wk">5Y</button>
                                     </div>
                                     <div class="analyze-chart-toggles">
+                                        <button type="button" class="btn btn-sm btn-primary" id="analyzeCreateAlertBtn"
+                                                style="margin-right:8px;" title="Create a smart alert for this ticker">
+                                            + Alert
+                                        </button>
                                         <label class="chart-toggle" title="Auto-detected trendlines (Pro)">
                                             <input type="checkbox" id="toggleTrendlines" checked>
                                             <span>Trendlines <span class="pro-tag">Pro</span></span>
@@ -2520,6 +2524,7 @@
                     <button class="account-sub-tab" data-subtab="linked">Linked Accounts</button>
                     <button class="account-sub-tab" data-subtab="performance">Performance</button>
                     <button class="account-sub-tab" data-subtab="journal">Trade Journal</button>
+                    <button class="account-sub-tab" data-subtab="alerts">Smart Alerts</button>
                 </div>
 
                 <!-- Profile Section -->
@@ -2687,6 +2692,9 @@
                         <p class="empty-state">Loading journal...</p>
                     </div>
                 </div>
+
+                <!-- Smart Alerts Section -->
+                <div class="account-section" id="accountSection-alerts" style="display:none;"></div>
             </div>
 
             <!-- Comparison Page: AlphaBreak vs TradingView -->
@@ -3049,6 +3057,45 @@
                     </div>
                     <div class="auth-error" id="loginError"></div>
                     <button type="submit" class="btn btn-primary auth-submit">Sign In</button>
+                    <div style="text-align:center;margin-top:12px;">
+                        <a href="#" id="forgotPasswordLink" style="color:#4fc3f7;font-size:13px;">Forgot password?</a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Forgot Password Form -->
+            <div class="auth-form-container" id="forgotFormContainer" style="display:none;">
+                <form id="forgotForm" class="auth-form">
+                    <p style="color:#ccc;font-size:14px;margin-top:0;">
+                        Enter your email and we'll send you a link to reset your password.
+                    </p>
+                    <div class="auth-form-group">
+                        <label for="forgotEmail">Email</label>
+                        <input type="email" id="forgotEmail" required placeholder="you@example.com">
+                    </div>
+                    <div class="auth-error" id="forgotError"></div>
+                    <div class="auth-success" id="forgotSuccess" style="color:#00d4aa;margin-bottom:8px;"></div>
+                    <button type="submit" class="btn btn-primary auth-submit">Send reset link</button>
+                    <div style="text-align:center;margin-top:12px;">
+                        <a href="#" id="backToLoginLink" style="color:#4fc3f7;font-size:13px;">&larr; Back to sign in</a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Reset Password Form (activated via #reset-password?token=...) -->
+            <div class="auth-form-container" id="resetFormContainer" style="display:none;">
+                <form id="resetForm" class="auth-form">
+                    <h3 style="margin-top:0;color:#fff;">Choose a new password</h3>
+                    <div class="auth-form-group">
+                        <label for="resetPassword">New password</label>
+                        <input type="password" id="resetPassword" required minlength="8" placeholder="Min 8 characters">
+                    </div>
+                    <div class="auth-form-group">
+                        <label for="resetConfirmPassword">Confirm new password</label>
+                        <input type="password" id="resetConfirmPassword" required placeholder="Confirm password">
+                    </div>
+                    <div class="auth-error" id="resetError"></div>
+                    <button type="submit" class="btn btn-primary auth-submit">Update password</button>
                 </form>
             </div>
 
@@ -3089,9 +3136,10 @@
 
     <script src="websocket.js?v=1"></script>
     <script src="onboarding.js?v=2"></script>
-    <script src="auth.js?v=4"></script>
+    <script src="auth.js?v=5"></script>
     <script src="notifications.js?v=1"></script>
-    <script src="account.js?v=2"></script>
+    <script src="account.js?v=3"></script>
+    <script src="alerts.js?v=1"></script>
     <script src="journal.js?v=3"></script>
     <script src="descriptions.js?v=1"></script>
     <script src="app.js?v=9"></script>
@@ -3103,7 +3151,7 @@
     <script src="chart-drawings.js?v=2"></script>
     <script src="chart-presets.js?v=2"></script>
     <script src="charts.js?v=5"></script>
-    <script src="analyze.js?v=4"></script>
+    <script src="analyze.js?v=5"></script>
     <script src="educational.js?v=1"></script>
     <script src="aidashboard.js?v=1"></script>
     <script src="earnings.js?v=5"></script>

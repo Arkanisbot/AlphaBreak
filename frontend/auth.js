@@ -336,28 +336,40 @@ const Auth = {
         const overlay = document.getElementById('authModalOverlay');
         const loginForm = document.getElementById('loginFormContainer');
         const registerForm = document.getElementById('registerFormContainer');
+        const forgotForm = document.getElementById('forgotFormContainer');
+        const resetForm = document.getElementById('resetFormContainer');
         const loginTab = document.getElementById('loginTab');
         const registerTab = document.getElementById('registerTab');
+        const tabsBar = document.querySelector('.auth-tabs');
 
         if (overlay) overlay.style.display = 'flex';
 
         // Clear any previous errors
-        const loginError = document.getElementById('loginError');
-        const registerError = document.getElementById('registerError');
-        if (loginError) loginError.textContent = '';
-        if (registerError) registerError.textContent = '';
+        ['loginError', 'registerError', 'forgotError', 'forgotSuccess', 'resetError']
+            .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = ''; });
 
-        // Show correct form
+        const hideAll = () => {
+            if (loginForm) loginForm.style.display = 'none';
+            if (registerForm) registerForm.style.display = 'none';
+            if (forgotForm) forgotForm.style.display = 'none';
+            if (resetForm) resetForm.style.display = 'none';
+        };
+        hideAll();
+
+        if (tabsBar) tabsBar.style.display = (tab === 'forgot' || tab === 'reset') ? 'none' : '';
+
         if (tab === 'login') {
             if (loginForm) loginForm.style.display = 'block';
-            if (registerForm) registerForm.style.display = 'none';
             if (loginTab) loginTab.classList.add('active');
             if (registerTab) registerTab.classList.remove('active');
-        } else {
-            if (loginForm) loginForm.style.display = 'none';
+        } else if (tab === 'register') {
             if (registerForm) registerForm.style.display = 'block';
             if (loginTab) loginTab.classList.remove('active');
             if (registerTab) registerTab.classList.add('active');
+        } else if (tab === 'forgot') {
+            if (forgotForm) forgotForm.style.display = 'block';
+        } else if (tab === 'reset') {
+            if (resetForm) resetForm.style.display = 'block';
         }
     },
 
@@ -445,6 +457,110 @@ const Auth = {
             });
         }
 
+        // Forgot-password link on login form
+        const forgotLink = document.getElementById('forgotPasswordLink');
+        if (forgotLink) {
+            forgotLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showModal('forgot');
+            });
+        }
+
+        // Back-to-login link on forgot form
+        const backToLogin = document.getElementById('backToLoginLink');
+        if (backToLogin) {
+            backToLogin.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showModal('login');
+            });
+        }
+
+        // Forgot-password form submission
+        const forgotForm = document.getElementById('forgotForm');
+        if (forgotForm) {
+            forgotForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('forgotEmail').value;
+                const errEl = document.getElementById('forgotError');
+                const okEl = document.getElementById('forgotSuccess');
+                const submitBtn = forgotForm.querySelector('button[type="submit"]');
+                if (errEl) errEl.textContent = '';
+                if (okEl) okEl.textContent = '';
+                if (submitBtn) submitBtn.disabled = true;
+                try {
+                    const res = await fetch(`${CONFIG.API_BASE_URL}/api/auth/forgot-password`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email }),
+                    });
+                    const data = await res.json();
+                    if (okEl) okEl.textContent = data.message || 'If that email exists, a reset link is on its way.';
+                } catch (err) {
+                    if (errEl) errEl.textContent = 'Request failed. Try again.';
+                } finally {
+                    if (submitBtn) submitBtn.disabled = false;
+                }
+            });
+        }
+
+        // Reset-password form submission
+        const resetForm = document.getElementById('resetForm');
+        if (resetForm) {
+            resetForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const pw = document.getElementById('resetPassword').value;
+                const confirmPw = document.getElementById('resetConfirmPassword').value;
+                const errEl = document.getElementById('resetError');
+                const submitBtn = resetForm.querySelector('button[type="submit"]');
+                if (errEl) errEl.textContent = '';
+
+                if (pw !== confirmPw) {
+                    if (errEl) errEl.textContent = 'Passwords do not match';
+                    return;
+                }
+                if (pw.length < 8) {
+                    if (errEl) errEl.textContent = 'Password must be at least 8 characters';
+                    return;
+                }
+                const token = this._pendingResetToken;
+                if (!token) {
+                    if (errEl) errEl.textContent = 'Missing reset token';
+                    return;
+                }
+                if (submitBtn) submitBtn.disabled = true;
+                try {
+                    const res = await fetch(`${CONFIG.API_BASE_URL}/api/auth/reset-password`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token, password: pw }),
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        // Clear the hash and show login form with a success note
+                        this._pendingResetToken = null;
+                        if (location.hash.startsWith('#reset-password')) {
+                            history.replaceState(null, '', location.pathname + location.search);
+                        }
+                        this.showModal('login');
+                        const loginError = document.getElementById('loginError');
+                        if (loginError) {
+                            loginError.style.color = '#00d4aa';
+                            loginError.textContent = data.message || 'Password updated. Please sign in.';
+                        }
+                    } else {
+                        if (errEl) errEl.textContent = data.error || 'Reset failed';
+                    }
+                } catch (err) {
+                    if (errEl) errEl.textContent = 'Request failed. Try again.';
+                } finally {
+                    if (submitBtn) submitBtn.disabled = false;
+                }
+            });
+        }
+
+        // Handle #reset-password?token=... hash on page load
+        this._maybeHandleResetHash();
+
         // Register form submission
         const registerForm = document.getElementById('registerForm');
         if (registerForm) {
@@ -477,6 +593,18 @@ const Auth = {
                 }
             });
         }
+    },
+
+    _maybeHandleResetHash() {
+        const hash = window.location.hash || '';
+        if (!hash.startsWith('#reset-password')) return;
+        const qIdx = hash.indexOf('?');
+        if (qIdx === -1) return;
+        const params = new URLSearchParams(hash.slice(qIdx + 1));
+        const token = params.get('token');
+        if (!token) return;
+        this._pendingResetToken = token;
+        this.showModal('reset');
     },
 };
 

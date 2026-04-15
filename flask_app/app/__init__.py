@@ -254,6 +254,7 @@ def create_app(config_name='development'):
     from app.routes.journal import journal_bp
     from app.routes.analyze import analyze_bp
     from app.routes.darkpool import darkpool_bp
+    from app.routes.alerts import alerts_bp
 
     app.register_blueprint(health_bp, url_prefix='/api')
     app.register_blueprint(predictions_bp, url_prefix='/api')
@@ -273,6 +274,7 @@ def create_app(config_name='development'):
     app.register_blueprint(journal_bp, url_prefix='/api')
     app.register_blueprint(analyze_bp, url_prefix='/api')
     app.register_blueprint(darkpool_bp, url_prefix='/api')
+    app.register_blueprint(alerts_bp, url_prefix='/api')
 
     # Error handlers
     @app.errorhandler(404)

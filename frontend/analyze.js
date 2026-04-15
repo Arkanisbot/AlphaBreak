@@ -73,6 +73,22 @@ const Analyze = (() => {
             });
         });
 
+        // Create-Alert button (opens Smart Alerts modal prefilled with current ticker)
+        const alertBtn = document.getElementById('analyzeCreateAlertBtn');
+        if (alertBtn) {
+            alertBtn.addEventListener('click', () => {
+                if (typeof Alerts === 'undefined' || !Alerts.openCreateModal) {
+                    if (typeof showSnackbar === 'function') showSnackbar('Alerts unavailable', 'error');
+                    return;
+                }
+                if (typeof Auth !== 'undefined' && !Auth.isAuthenticated) {
+                    Auth.showModal('login');
+                    return;
+                }
+                Alerts.openCreateModal(currentTicker || '');
+            });
+        }
+
         // VWAP toggle
         const vwapToggle = document.getElementById('toggleVWAP');
         if (vwapToggle) {

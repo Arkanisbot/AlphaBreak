@@ -827,6 +827,77 @@ def revoke_all_user_tokens(user_id):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Password reset tokens
+# ──────────────────────────────────────────────────────────────────────────────
+
+def store_password_reset_token(user_id, token_hash, expires_at, ip_address=None):
+    """Insert a one-shot password reset token (hashed)."""
+    query = """
+        INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, ip_address)
+        VALUES (%s, %s, %s, %s)
+    """
+    try:
+        with db_manager.get_cursor(commit=True) as cursor:
+            cursor.execute(query, (user_id, token_hash, expires_at, ip_address))
+    except Exception as e:
+        logger.error(f"Failed to store password reset token: {e}")
+        raise
+
+
+def consume_password_reset_token(token_hash):
+    """
+    Atomically mark a reset token as used and return the associated user.
+    Returns dict with user id/email or None if the token is missing, expired,
+    or already used.
+    """
+    query = """
+        UPDATE password_reset_tokens
+        SET used_at = NOW()
+        WHERE token_hash = %s
+          AND used_at IS NULL
+          AND expires_at > NOW()
+        RETURNING user_id
+    """
+    try:
+        with db_manager.get_cursor(commit=True) as cursor:
+            cursor.execute(query, (token_hash,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            user_id = row[0]
+            cursor.execute(
+                "SELECT id, public_id, email, display_name FROM users WHERE id = %s AND is_active = TRUE",
+                (user_id,),
+            )
+            user_row = cursor.fetchone()
+            if not user_row:
+                return None
+            return {
+                'id': user_row[0],
+                'public_id': str(user_row[1]),
+                'email': user_row[2],
+                'display_name': user_row[3],
+            }
+    except Exception as e:
+        logger.error(f"Failed to consume password reset token: {e}")
+        return None
+
+
+def invalidate_user_password_reset_tokens(user_id):
+    """Mark any outstanding reset tokens for a user as used (on successful reset)."""
+    query = """
+        UPDATE password_reset_tokens
+        SET used_at = NOW()
+        WHERE user_id = %s AND used_at IS NULL
+    """
+    try:
+        with db_manager.get_cursor(commit=True) as cursor:
+            cursor.execute(query, (user_id,))
+    except Exception as e:
+        logger.debug(f"Failed to invalidate reset tokens: {e}")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # User Watchlist helpers
 # ──────────────────────────────────────────────────────────────────────────────
 

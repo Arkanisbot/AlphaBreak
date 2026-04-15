@@ -23,6 +23,7 @@ NOTIFICATIONS_ENABLED = os.getenv('NOTIFICATIONS_ENABLED', 'true').lower() == 't
 DEFAULT_EVENT_TYPES = [
     'trade_signal', 'stop_loss', 'take_profit', 'reversal_exit',
     'trim', 'new_position', 'earnings_1day', 'earnings_1week', 'portfolio_summary',
+    'smart_alert',
 ]
 
 EVENT_TYPE_LABELS = {
@@ -35,6 +36,7 @@ EVENT_TYPE_LABELS = {
     'earnings_1day': 'Earnings Tomorrow',
     'earnings_1week': 'Earnings This Week',
     'portfolio_summary': 'Daily Portfolio Summary',
+    'smart_alert': 'Smart Alert',
 }
 
 

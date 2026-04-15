@@ -8650,3 +8650,95 @@ body.chart-fullscreen-active { overflow: hidden; }
         flex-wrap: wrap;
     }
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Smart Alerts (Account > Smart Alerts sub-tab and Create-Alert modal)
+   ────────────────────────────────────────────────────────────────────────── */
+.alerts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+.alerts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.alert-rule {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding: 14px 16px;
+    background: #16213e;
+    border: 1px solid #2a2a4a;
+    border-radius: 8px;
+}
+.alert-rule--inactive {
+    opacity: 0.55;
+}
+.alert-rule__main {
+    flex: 1;
+    min-width: 0;
+}
+.alert-rule__name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+    color: #fff;
+}
+.alert-rule__ticker {
+    background: #0f3460;
+    color: #4fc3f7;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.alert-rule__conditions {
+    color: #ccc;
+    font-size: 13px;
+    margin-bottom: 4px;
+    word-break: break-word;
+}
+.alert-rule__meta {
+    color: #888;
+    font-size: 12px;
+}
+.alert-rule__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.alerts-firings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.alerts-firings-table th,
+.alerts-firings-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #2a2a4a;
+    color: #ccc;
+}
+.alerts-firings-table th {
+    color: #888;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.alert-condition-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr auto;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: center;
+}
+.alert-condition-row .profile-input {
+    width: 100%;
+}
