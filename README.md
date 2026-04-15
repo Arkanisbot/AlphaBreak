@@ -134,10 +134,18 @@ PEM="docs/other/security/trading-db-key.pem"
 git push
 ssh -i "$PEM" ubuntu@3.140.78.15 "cd ~/AlphaBreak && git pull"
 
-# Backend (rebuild Docker + restart pods):
+# Backend (rebuilds BOTH trading-api and airflow-trading, imports to k0s, restarts pods):
 git push
-ssh -i "$PEM" ubuntu@3.140.78.15 "cd ~/AlphaBreak && git pull && sudo docker build -f flask_app/Dockerfile -t trading-api:latest . && sudo docker save trading-api:latest | sudo k0s ctr images import - && sudo docker system prune -af && sudo k0s kubectl delete pods -n trading-system -l app=trading-api --force"
+ssh -i "$PEM" ubuntu@3.140.78.15 "cd ~/AlphaBreak && bash scripts/deploy-backend.sh"
+
+# Single-image variants:
+#   bash scripts/deploy-backend.sh --api-only
+#   bash scripts/deploy-backend.sh --airflow-only
 ```
+
+> The script always rebuilds both images and only prunes dangling Docker layers
+> (never `-a`) to avoid wiping `airflow-trading` out of k0s containerd — a bug
+> that silently broke Airflow for ~4 days in April 2026.
 
 ## What's Built (Free Tier)
 
