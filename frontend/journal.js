@@ -628,6 +628,7 @@ const Journal = {
             this.loadEntries();
             if (typeof showSnackbar === 'function') showSnackbar('Entry created', 'success');
             if (typeof Onboarding !== 'undefined') Onboarding.trackJournal();
+            if (typeof Achievements !== 'undefined') Achievements.recordJournal();
         }
     },
 

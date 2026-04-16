@@ -254,6 +254,57 @@ const ChartSettings = (() => {
         label.appendChild(gear);
     }
 
+    // ── Toolbar gear icons for overlay indicators ─────────────────
+    // Overlay indicators (Supertrend, Keltner, Ichimoku) render on the
+    // main chart and don't have sub-pane labels. This injects a small
+    // gear icon into their toolbar toggle labels so users can still
+    // configure parameters from the chart toolbar.
+
+    const TOOLBAR_GEAR_MAP = {
+        toggleSupertrend: 'supertrend',
+        toggleKeltner: 'keltner',
+        toggleIchimoku: 'ichimoku',
+        toggleSqueeze: 'squeeze',
+        toggleRSI: 'rsi',
+        toggleMACD: 'macd',
+        toggleStoch: 'stochastic',
+        toggleATR: 'atr',
+        toggleADX: 'adx',
+    };
+
+    function initToolbarGears(containerId) {
+        for (const [toggleId, indicator] of Object.entries(TOOLBAR_GEAR_MAP)) {
+            if (!REGISTRY[indicator]) continue;
+            const input = document.getElementById(toggleId);
+            if (!input) continue;
+            const label = input.closest('label.chart-toggle');
+            if (!label) continue;
+            const span = label.querySelector('span');
+            if (!span || span.querySelector('.toolbar-settings-gear')) continue;
+
+            const gear = document.createElement('span');
+            gear.className = 'toolbar-settings-gear';
+            gear.innerHTML = '&#9881;';
+            gear.title = `${REGISTRY[indicator].label} settings`;
+            gear.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showSettings(indicator, gear, () => {
+                    // Re-render if currently active: toggle off then on
+                    if (input.checked) {
+                        input.checked = false;
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                        requestAnimationFrame(() => {
+                            input.checked = true;
+                            input.dispatchEvent(new Event('change', { bubbles: true }));
+                        });
+                    }
+                });
+            });
+            span.appendChild(gear);
+        }
+    }
+
     // ── Indicator Search Dropdown ──────────────────────────────────
     // Filterable list of all 17 indicators with toggle checkboxes.
     // Uses ChartTooltips.DESCRIPTIONS for names and descriptions and
@@ -345,7 +396,7 @@ const ChartSettings = (() => {
         });
     }
 
-    return { REGISTRY, get, set, reset, showSettings, addGearToPane, attachIndicatorSearch };
+    return { REGISTRY, get, set, reset, showSettings, addGearToPane, initToolbarGears, attachIndicatorSearch };
 })();
 
 window.ChartSettings = ChartSettings;

@@ -2543,6 +2543,7 @@
                     <button class="account-sub-tab" data-subtab="performance">Performance</button>
                     <button class="account-sub-tab" data-subtab="journal">Trade Journal</button>
                     <button class="account-sub-tab" data-subtab="alerts">Smart Alerts</button>
+                    <button class="account-sub-tab" data-subtab="achievements">Achievements</button>
                 </div>
 
                 <!-- Profile Section -->
@@ -2713,6 +2714,18 @@
 
                 <!-- Smart Alerts Section -->
                 <div class="account-section" id="accountSection-alerts" style="display:none;"></div>
+
+                <!-- Achievements Section -->
+                <div class="account-section" id="accountSection-achievements" style="display:none;">
+                    <div class="account-card">
+                        <h3>Your Achievements</h3>
+                        <div id="achievementsBadges" class="achievements-grid"></div>
+                    </div>
+                    <div class="account-card" style="margin-top:16px;">
+                        <h3>Activity Streaks</h3>
+                        <div id="achievementsStreaks" class="achievements-streaks"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- Comparison Page: AlphaBreak vs TradingView -->
@@ -3156,7 +3169,8 @@
     <script src="onboarding.js?v=2"></script>
     <script src="auth.js?v=5"></script>
     <script src="notifications.js?v=1"></script>
-    <script src="account.js?v=3"></script>
+    <script src="achievements.js?v=1"></script>
+    <script src="account.js?v=4"></script>
     <script src="alerts.js?v=1"></script>
     <script src="journal.js?v=3"></script>
     <script src="descriptions.js?v=1"></script>

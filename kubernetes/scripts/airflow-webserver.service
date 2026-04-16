@@ -1,0 +1,30 @@
+[Unit]
+Description=Apache Airflow Webserver
+After=network.target postgresql.service airflow-scheduler.service
+Wants=postgresql.service
+
+[Service]
+User=ubuntu
+Group=ubuntu
+Type=simple
+Environment="AIRFLOW_HOME=/home/ubuntu/airflow"
+Environment="PATH=/home/ubuntu/airflow/airflow_venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
+EnvironmentFile=-/home/ubuntu/airflow/.env
+
+ExecStart=/home/ubuntu/airflow/airflow_venv/bin/airflow webserver --port 8080
+ExecReload=/bin/kill -s HUP $MAINPID
+
+Restart=on-failure
+RestartSec=10
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=airflow-webserver
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

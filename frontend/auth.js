@@ -146,6 +146,7 @@ const Auth = {
 
             this.saveToStorage();
             this.updateUI();
+            if (typeof Achievements !== 'undefined') Achievements.recordLogin();
 
             // Migrate watchlist after login
             if (typeof Watchlist !== 'undefined' && Watchlist.migrateToServer) {
@@ -277,6 +278,7 @@ const Auth = {
             this.isAuthenticated = true;
             this.saveToStorage();
             this.updateUI();
+            if (typeof Achievements !== 'undefined') Achievements.recordLogin();
 
             return true;
         } catch (e) {

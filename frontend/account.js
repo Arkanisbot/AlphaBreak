@@ -46,6 +46,7 @@ const Account = {
         if (name === 'performance') this.loadAnalytics();
         if (name === 'journal' && typeof Journal !== 'undefined') Journal.load();
         if (name === 'alerts' && typeof Alerts !== 'undefined') Alerts.loadList();
+        if (name === 'achievements' && typeof Achievements !== 'undefined') Achievements.render();
     },
 
     // ──────────────────────────────────────────────

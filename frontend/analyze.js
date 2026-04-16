@@ -152,10 +152,11 @@ const Analyze = (() => {
             ChartLayouts.init();
         }
 
-        // Indicator search dropdown
-        const searchBtn = document.getElementById('indicatorSearchBtn');
-        if (searchBtn && typeof ChartSettings !== 'undefined') {
-            ChartSettings.attachIndicatorSearch(searchBtn);
+        // Indicator search dropdown + toolbar gear icons
+        if (typeof ChartSettings !== 'undefined') {
+            const searchBtn = document.getElementById('indicatorSearchBtn');
+            if (searchBtn) ChartSettings.attachIndicatorSearch(searchBtn);
+            ChartSettings.initToolbarGears('analyzeChartContainer');
         }
 
         // Rich hover tooltips on chart-toolbar indicator labels
@@ -370,6 +371,7 @@ const Analyze = (() => {
 
             document.getElementById('analyzeLoading').style.display = 'none';
             document.getElementById('analyzeContent').style.display = 'block';
+            if (typeof Achievements !== 'undefined') Achievements.recordAnalysis(ticker);
 
             // Load chart (Lightweight Charts) — fires chart + trendlines in parallel
             loadChart(ticker, '6mo', '1d');

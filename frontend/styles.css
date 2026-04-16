@@ -6268,6 +6268,95 @@ a.auth-user-name:hover {
     min-width: 0;
 }
 
+/* Achievements */
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+    margin-top: 8px;
+}
+.achievement-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color, #2a2e39);
+    text-align: center;
+    transition: transform 0.15s, border-color 0.15s;
+}
+.achievement-badge.earned {
+    border-color: var(--primary-color, #2962FF);
+    background: rgba(41, 98, 255, 0.06);
+}
+.achievement-badge.locked {
+    opacity: 0.35;
+    filter: grayscale(1);
+}
+.achievement-badge:hover {
+    transform: translateY(-2px);
+}
+.achievement-icon {
+    font-size: 24px;
+    line-height: 1;
+}
+.achievement-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-primary, #e0e0e0);
+}
+.achievement-desc {
+    font-size: 9px;
+    color: var(--text-muted, #8b95a5);
+}
+.achievements-streaks {
+    margin-top: 8px;
+}
+.streak-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    position: relative;
+}
+.streak-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary, #e0e0e0);
+    width: 110px;
+    flex-shrink: 0;
+}
+.streak-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary-color, #2962FF);
+    width: 60px;
+    flex-shrink: 0;
+}
+.streak-bar {
+    height: 6px;
+    background: var(--primary-color, #2962FF);
+    border-radius: 3px;
+    flex-shrink: 0;
+    min-width: 2px;
+    max-width: 200px;
+    transition: width 0.3s;
+}
+.streak-stats {
+    display: flex;
+    gap: 24px;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color, #2a2e39);
+    text-align: center;
+    font-size: 12px;
+}
+.streak-stats strong {
+    font-size: 18px;
+    color: var(--text-primary, #e0e0e0);
+}
+
 .card-header-row {
     display: flex;
     justify-content: space-between;
@@ -7386,6 +7475,23 @@ body.chart-fullscreen-active { overflow: hidden; }
 }
 .ind-settings-apply:hover {
     opacity: 0.9;
+}
+
+/* Toolbar gear icon for configurable indicators */
+.toolbar-settings-gear {
+    display: inline-block;
+    margin-left: 3px;
+    font-size: 10px;
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    vertical-align: middle;
+}
+.chart-toggle:hover .toolbar-settings-gear {
+    opacity: 0.5;
+}
+.toolbar-settings-gear:hover {
+    opacity: 1 !important;
 }
 
 /* Indicator search dropdown */
